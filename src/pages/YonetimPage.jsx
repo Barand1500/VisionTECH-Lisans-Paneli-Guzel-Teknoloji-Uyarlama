@@ -6,6 +6,7 @@
 /* ============================================= */
 
 import { useState, useRef } from "react";
+import KopyalaButonu from "../components/KopyalaButonu";
 
 /* ============================================= */
 /*  Sabitler                                      */
@@ -129,10 +130,20 @@ const BASLANGIC_URUN_GRUPLARI_VERI = [
 const BASLANGIC_SURUMLER = [
   { id: 1, urunAdi: "CRM Yazılımı", surum: "3.2.1", tarih: "2025-01-15", notlar: "Performans iyileştirmeleri", aktif: true },
   { id: 2, urunAdi: "CRM Yazılımı", surum: "3.1.0", tarih: "2024-11-20", notlar: "Yeni raporlama modülü", aktif: false },
+  { id: 7, urunAdi: "CRM Yazılımı", surum: "3.0.0", tarih: "2024-08-10", notlar: "Büyük güncelleme: Yeni dashboard", aktif: false },
+  { id: 8, urunAdi: "CRM Yazılımı", surum: "2.9.5", tarih: "2024-06-01", notlar: "Güvenlik yamaları", aktif: false },
+  { id: 9, urunAdi: "CRM Yazılımı", surum: "2.8.0", tarih: "2024-03-22", notlar: "Çoklu dil desteği", aktif: false },
   { id: 3, urunAdi: "E-Ticaret Paketi", surum: "2.5.0", tarih: "2025-02-01", notlar: "Ödeme entegrasyonu", aktif: true },
+  { id: 10, urunAdi: "E-Ticaret Paketi", surum: "2.4.0", tarih: "2024-10-15", notlar: "Kargo entegrasyonu", aktif: false },
+  { id: 11, urunAdi: "E-Ticaret Paketi", surum: "2.3.1", tarih: "2024-07-08", notlar: "Sepet hata düzeltmesi", aktif: false },
+  { id: 12, urunAdi: "E-Ticaret Paketi", surum: "2.2.0", tarih: "2024-04-20", notlar: "Ürün varyant desteği", aktif: false },
   { id: 4, urunAdi: "Muhasebe Pro", surum: "4.0.0", tarih: "2025-01-10", notlar: "Yeni arayüz tasarımı", aktif: true },
+  { id: 13, urunAdi: "Muhasebe Pro", surum: "3.5.2", tarih: "2024-09-18", notlar: "E-Fatura güncellemesi", aktif: false },
+  { id: 14, urunAdi: "Muhasebe Pro", surum: "3.4.0", tarih: "2024-05-12", notlar: "KDV hesaplama düzeltmesi", aktif: false },
   { id: 5, urunAdi: "Stok Takip Sistemi", surum: "1.0.0", tarih: "2024-12-05", notlar: "İlk sürüm", aktif: true },
   { id: 6, urunAdi: "Mobil Uygulama Paketi", surum: "1.2.0", tarih: "2025-01-25", notlar: "iOS desteği", aktif: true },
+  { id: 15, urunAdi: "Mobil Uygulama Paketi", surum: "1.1.0", tarih: "2024-11-10", notlar: "Bildirim sistemi", aktif: false },
+  { id: 16, urunAdi: "Mobil Uygulama Paketi", surum: "1.0.0", tarih: "2024-09-01", notlar: "İlk sürüm - Android", aktif: false },
 ];
 
 const BASLANGIC_KULLANICILAR = [
@@ -879,13 +890,13 @@ function GrupModal({ modal, kapat, kaydet }) {
 function SurumlerSekmesi() {
   const [surumler, setSurumler] = useState(BASLANGIC_SURUMLER);
   const [modal, setModal] = useState(null);
+  const [acikGruplar, setAcikGruplar] = useState({});
 
   const kaydet = (veri) => {
     if (veri.id) {
       setSurumler((o) => o.map((s) => s.id === veri.id ? { ...s, ...veri } : s));
     } else {
       const yeniId = Math.max(...surumler.map((s) => s.id), 0) + 1;
-      // Aynı ürünün eski "Güncel" sürümlerini "Eski" yap
       setSurumler((o) => [
         ...o.map((s) => s.urunAdi === veri.urunAdi && s.aktif ? { ...s, aktif: false } : s),
         { ...veri, id: yeniId, aktif: true },
@@ -894,10 +905,24 @@ function SurumlerSekmesi() {
     setModal(null);
   };
 
+  /* ---- Ürün adına göre grupla, her grupta tarihe göre sırala (en yeni ilk) ---- */
+  const gruplar = {};
+  surumler.forEach((s) => {
+    if (!gruplar[s.urunAdi]) gruplar[s.urunAdi] = [];
+    gruplar[s.urunAdi].push(s);
+  });
+  Object.values(gruplar).forEach((liste) => liste.sort((a, b) => b.tarih.localeCompare(a.tarih)));
+
+  const grupToggle = (urunAdi) => {
+    setAcikGruplar((o) => ({ ...o, [urunAdi]: !o[urunAdi] }));
+  };
+
+  const benzersizUrunSayisi = Object.keys(gruplar).length;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-gray-500 dark:text-slate-400">{surumler.length} sürüm kaydı</p>
+        <p className="text-sm text-gray-500 dark:text-slate-400">{benzersizUrunSayisi} ürün, {surumler.length} sürüm kaydı</p>
         <button onClick={() => setModal("yeni")}
           className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-lg shadow-emerald-600/25 transition-colors cursor-pointer">
           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -906,40 +931,106 @@ function SurumlerSekmesi() {
         </button>
       </div>
 
-      <div className="rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-gray-50 dark:bg-white/[0.03]">
-              {["Ürün", "Sürüm", "Tarih", "Notlar", "Durum", "İşlemler"].map((h) => (
-                <th key={h} className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-            {surumler.map((s) => (
-              <tr key={s.id} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors">
-                <td className="px-4 py-3.5 font-medium text-gray-900 dark:text-white">{s.urunAdi}</td>
-                <td className="px-4 py-3.5">
-                  <span className="text-xs px-2.5 py-1 rounded-full font-mono font-medium bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400">v{s.surum}</span>
-                </td>
-                <td className="px-4 py-3.5 text-gray-600 dark:text-slate-400 text-sm">{s.tarih}</td>
-                <td className="px-4 py-3.5 text-gray-600 dark:text-slate-400 text-sm max-w-[250px] truncate">{s.notlar}</td>
-                <td className="px-4 py-3.5">
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${s.aktif ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-500"}`}>
-                    {s.aktif ? "Güncel" : "Eski"}
+      <div className="space-y-3">
+        {Object.entries(gruplar).map(([urunAdi, urunSurumleri]) => {
+          const guncel = urunSurumleri[0];
+          const eskiler = urunSurumleri.slice(1);
+          const acik = acikGruplar[urunAdi];
+
+          return (
+            <div key={urunAdi} className="rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 overflow-hidden transition-all">
+              {/* Ana Satır - Güncel Sürüm */}
+              <div
+                onClick={() => eskiler.length > 0 && grupToggle(urunAdi)}
+                className={`flex items-center gap-4 px-5 py-4 transition-colors ${
+                  eskiler.length > 0 ? "cursor-pointer hover:bg-gray-50 dark:hover:bg-white/[0.03]" : ""
+                } ${acik ? "bg-gray-50/50 dark:bg-white/[0.02]" : ""}`}
+              >
+                {/* Açılır/Kapanır İkon */}
+                <div className="w-6 h-6 flex items-center justify-center shrink-0">
+                  {eskiler.length > 0 ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" className={`w-4 h-4 text-gray-400 dark:text-slate-500 transition-transform duration-200 ${acik ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  ) : (
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-slate-600" />
+                  )}
+                </div>
+
+                {/* Ürün Bilgileri */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3">
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white">{urunAdi}</h4>
+                    <span className="text-xs px-2.5 py-0.5 rounded-full font-mono font-medium bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400">
+                      v{guncel.surum}
+                    </span>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">
+                      Güncel
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="text-xs text-gray-400 dark:text-slate-500">{guncel.tarih}</span>
+                    <span className="text-xs text-gray-500 dark:text-slate-400">{guncel.notlar}</span>
+                  </div>
+                </div>
+
+                {/* Sürüm Sayısı Rozeti */}
+                {eskiler.length > 0 && (
+                  <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+                    {eskiler.length} eski sürüm
                   </span>
-                </td>
-                <td className="px-4 py-3.5">
-                  <button onClick={() => setModal(s)} title="Düzenle"
-                    className="w-8 h-8 rounded-lg bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center cursor-pointer transition-colors shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                )}
+
+                {/* Düzenle Butonu */}
+                <button onClick={(e) => { e.stopPropagation(); setModal(guncel); }} title="Düzenle"
+                  className="w-8 h-8 rounded-lg bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center cursor-pointer transition-colors shadow-sm shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                </button>
+              </div>
+
+              {/* Eski Sürümler - Accordion İçeriği */}
+              {acik && eskiler.length > 0 && (
+                <div className="border-t border-gray-200 dark:border-white/10">
+                  <div className="px-5 py-2 bg-gray-50 dark:bg-white/[0.02]">
+                    <p className="text-[11px] font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Geçmiş Sürümler</p>
+                  </div>
+                  {eskiler.map((s, i) => (
+                    <div
+                      key={s.id}
+                      className={`flex items-center gap-4 px-5 py-3 ml-6 border-l-2 border-gray-200 dark:border-white/10 hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors ${
+                        i < eskiler.length - 1 ? "border-b border-b-gray-100 dark:border-b-white/5" : ""
+                      }`}
+                    >
+                      {/* Timeline Noktası */}
+                      <div className="w-6 h-6 flex items-center justify-center shrink-0 -ml-[19px]">
+                        <span className="w-2.5 h-2.5 rounded-full bg-gray-300 dark:bg-slate-600 ring-2 ring-white dark:ring-slate-900" />
+                      </div>
+
+                      {/* Sürüm Bilgileri */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs px-2.5 py-0.5 rounded-full font-mono font-medium bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-slate-400">
+                            v{s.surum}
+                          </span>
+                          <span className="text-xs text-gray-400 dark:text-slate-500">{s.tarih}</span>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 truncate">{s.notlar}</p>
+                      </div>
+
+                      {/* Düzenle */}
+                      <button onClick={() => setModal(s)} title="Düzenle"
+                        className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-white/10 hover:bg-blue-500 hover:text-white text-gray-500 dark:text-slate-400 flex items-center justify-center cursor-pointer transition-colors shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {modal && <SurumModal modal={modal} kapat={() => setModal(null)} kaydet={kaydet} surumler={surumler} />}
@@ -1131,7 +1222,7 @@ function KullanicilarSekmesi() {
                     <span className="font-medium text-gray-900 dark:text-white">{k.ad}</span>
                   </div>
                 </td>
-                <td className="px-4 py-3.5 text-gray-600 dark:text-slate-400 text-sm">{k.eposta}</td>
+                <td className="px-4 py-3.5 text-gray-600 dark:text-slate-400 text-sm"><span className="inline-flex items-center group">{k.eposta}<KopyalaButonu metin={k.eposta} /></span></td>
                 <td className="px-4 py-3.5">
                   <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                     k.rol === "Admin" ? "bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400"

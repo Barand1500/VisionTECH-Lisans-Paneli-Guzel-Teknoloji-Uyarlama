@@ -8,6 +8,7 @@
 /* ============================================= */
 
 import { useState, useRef, useEffect } from "react";
+import KopyalaButonu from "../components/KopyalaButonu";
 
 /* ============================================= */
 /*  Mock Veri                                     */
@@ -927,7 +928,12 @@ export default function BayilerPage() {
                       {bayi.ustBayiId ? ustBayiAdiBul(bayi.ustBayiId) : "—"}
                     </td>
                     <td className="px-6 py-4 text-gray-600 dark:text-slate-400">{bayi.sehir}</td>
-                    <td className="px-6 py-4 text-gray-600 dark:text-slate-400">{bayi.telefon || (bayi.telefonlar && bayi.telefonlar[0]) || "—"}</td>
+                    <td className="px-6 py-4 text-gray-600 dark:text-slate-400">
+                      <span className="inline-flex items-center group">
+                        {bayi.telefon || (bayi.telefonlar && bayi.telefonlar[0]) || "—"}
+                        <KopyalaButonu metin={bayi.telefon || (bayi.telefonlar && bayi.telefonlar[0])} />
+                      </span>
+                    </td>
                     <td className="px-6 py-4 text-center">
                       <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium ${bayi.durum === "aktif" ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-500"}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${bayi.durum === "aktif" ? "bg-emerald-500" : "bg-gray-400 dark:bg-slate-500"}`} />

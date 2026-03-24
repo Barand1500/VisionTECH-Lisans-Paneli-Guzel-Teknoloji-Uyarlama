@@ -7,6 +7,7 @@
 /* ============================================= */
 
 import { useState } from "react";
+import KopyalaButonu from "../components/KopyalaButonu";
 
 /* ============================================= */
 /*  Sabitler                                      */
@@ -320,7 +321,7 @@ function SatislarSekmesi() {
                   <td className="px-3 py-3 font-medium text-gray-900 dark:text-white text-xs">{s.musteri}</td>
                   <td className="px-3 py-3 text-gray-600 dark:text-slate-400 text-xs">{s.urun}</td>
                   <td className="px-3 py-3 text-gray-600 dark:text-slate-400 text-xs">{s.paket}</td>
-                  <td className="px-3 py-3 text-xs max-w-[180px] truncate">{s.domain ? <span className="text-blue-600 dark:text-blue-400">{s.domain}</span> : <span className="text-gray-400 dark:text-slate-600">—</span>}</td>
+                  <td className="px-3 py-3 text-xs max-w-[180px]"><span className="inline-flex items-center group truncate">{s.domain ? <span className="text-blue-600 dark:text-blue-400 truncate">{s.domain}</span> : <span className="text-gray-400 dark:text-slate-600">—</span>}<KopyalaButonu metin={s.domain} /></span></td>
                   <td className="px-3 py-3 text-gray-600 dark:text-slate-400 text-xs">{s.kullanici || "—"}</td>
                   <td className="px-3 py-3 font-semibold text-gray-900 dark:text-white text-xs">₺{s.tutar.toLocaleString("tr-TR")}</td>
                   <td className="px-3 py-3 text-gray-600 dark:text-slate-400 text-xs">{s.tarih}</td>
@@ -523,8 +524,8 @@ function AktifCihazlarSekmesi() {
                   <td className="px-3 py-3">
                     <span className="text-xs font-mono text-gray-700 dark:text-slate-300 bg-gray-50 dark:bg-white/5 px-1.5 py-0.5 rounded">{c.bilgisayarAdi}</span>
                   </td>
-                  <td className="px-3 py-3 text-gray-600 dark:text-slate-400 text-xs font-mono">{c.ipAdresi}</td>
-                  <td className="px-3 py-3 text-gray-600 dark:text-slate-400 text-xs font-mono">{c.islemciNo}</td>
+                  <td className="px-3 py-3 text-gray-600 dark:text-slate-400 text-xs font-mono"><span className="inline-flex items-center group">{c.ipAdresi}<KopyalaButonu metin={c.ipAdresi} /></span></td>
+                  <td className="px-3 py-3 text-gray-600 dark:text-slate-400 text-xs font-mono"><span className="inline-flex items-center group">{c.islemciNo}<KopyalaButonu metin={c.islemciNo} /></span></td>
                   <td className="px-3 py-3">
                     <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 font-medium">{c.surum}</span>
                   </td>
@@ -799,7 +800,10 @@ function TahsilatlarSekmesi() {
                 <tr key={t.id} className={`transition-colors ${t.durum === "Gecikmiş" ? "bg-red-50/50 dark:bg-red-500/[0.03]" : "hover:bg-gray-50/50 dark:hover:bg-white/[0.02]"}`}>
                   <td className="px-4 py-3.5 font-medium text-gray-900 dark:text-white text-sm">{t.musteri}</td>
                   <td className="px-4 py-3.5">
-                    <span className="text-sm font-mono text-gray-700 dark:text-slate-300 bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded">{t.faturaNo}</span>
+                    <span className="inline-flex items-center group">
+                      <span className="text-sm font-mono text-gray-700 dark:text-slate-300 bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded">{t.faturaNo}</span>
+                      <KopyalaButonu metin={t.faturaNo} />
+                    </span>
                   </td>
                   <td className="px-4 py-3.5 font-semibold text-gray-900 dark:text-white text-sm">₺{t.tutar.toLocaleString("tr-TR")}</td>
                   <td className="px-4 py-3.5 text-gray-600 dark:text-slate-400 text-sm">{t.odemeTarihi}</td>

@@ -10,6 +10,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMusteriler } from "../context/MusteriContext";
+import KopyalaButonu from "../components/KopyalaButonu";
 
 /* ---- Sekme Tanımları ---- */
 const SEKMELER = [
@@ -1092,8 +1093,8 @@ export default function MusterilerPage() {
                       <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${tipRenk(m.tur)}`}>{tipEtiket(m.tur)}</span>
                     </td>
                     <td className="px-4 py-4 text-sm text-gray-600 dark:text-slate-400">{m.yetkiliKisi || "-"}</td>
-                    <td className="px-4 py-4 text-sm text-gray-600 dark:text-slate-400">{(m.telefonlar || [])[0] || "-"}</td>
-                    <td className="px-4 py-4 text-sm text-gray-600 dark:text-slate-400">{m.eposta || "-"}</td>
+                    <td className="px-4 py-4 text-sm text-gray-600 dark:text-slate-400"><span className="inline-flex items-center group">{(m.telefonlar || [])[0] || "-"}<KopyalaButonu metin={(m.telefonlar || [])[0]} /></span></td>
+                    <td className="px-4 py-4 text-sm text-gray-600 dark:text-slate-400"><span className="inline-flex items-center group">{m.eposta || "-"}<KopyalaButonu metin={m.eposta} /></span></td>
                     <td className="px-4 py-4 text-center">
                       <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
                         m.durum === "Aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400"
