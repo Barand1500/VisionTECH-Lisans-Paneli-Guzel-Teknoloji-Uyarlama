@@ -128,22 +128,22 @@ const BASLANGIC_URUN_GRUPLARI_VERI = [
 ];
 
 const BASLANGIC_SURUMLER = [
-  { id: 1, urunAdi: "CRM Yazılımı", surum: "3.2.1", tarih: "2025-01-15", notlar: "Performans iyileştirmeleri", aktif: true },
-  { id: 2, urunAdi: "CRM Yazılımı", surum: "3.1.0", tarih: "2024-11-20", notlar: "Yeni raporlama modülü", aktif: false },
-  { id: 7, urunAdi: "CRM Yazılımı", surum: "3.0.0", tarih: "2024-08-10", notlar: "Büyük güncelleme: Yeni dashboard", aktif: false },
-  { id: 8, urunAdi: "CRM Yazılımı", surum: "2.9.5", tarih: "2024-06-01", notlar: "Güvenlik yamaları", aktif: false },
-  { id: 9, urunAdi: "CRM Yazılımı", surum: "2.8.0", tarih: "2024-03-22", notlar: "Çoklu dil desteği", aktif: false },
-  { id: 3, urunAdi: "E-Ticaret Paketi", surum: "2.5.0", tarih: "2025-02-01", notlar: "Ödeme entegrasyonu", aktif: true },
-  { id: 10, urunAdi: "E-Ticaret Paketi", surum: "2.4.0", tarih: "2024-10-15", notlar: "Kargo entegrasyonu", aktif: false },
-  { id: 11, urunAdi: "E-Ticaret Paketi", surum: "2.3.1", tarih: "2024-07-08", notlar: "Sepet hata düzeltmesi", aktif: false },
-  { id: 12, urunAdi: "E-Ticaret Paketi", surum: "2.2.0", tarih: "2024-04-20", notlar: "Ürün varyant desteği", aktif: false },
-  { id: 4, urunAdi: "Muhasebe Pro", surum: "4.0.0", tarih: "2025-01-10", notlar: "Yeni arayüz tasarımı", aktif: true },
-  { id: 13, urunAdi: "Muhasebe Pro", surum: "3.5.2", tarih: "2024-09-18", notlar: "E-Fatura güncellemesi", aktif: false },
-  { id: 14, urunAdi: "Muhasebe Pro", surum: "3.4.0", tarih: "2024-05-12", notlar: "KDV hesaplama düzeltmesi", aktif: false },
-  { id: 5, urunAdi: "Stok Takip Sistemi", surum: "1.0.0", tarih: "2024-12-05", notlar: "İlk sürüm", aktif: true },
-  { id: 6, urunAdi: "Mobil Uygulama Paketi", surum: "1.2.0", tarih: "2025-01-25", notlar: "iOS desteği", aktif: true },
-  { id: 15, urunAdi: "Mobil Uygulama Paketi", surum: "1.1.0", tarih: "2024-11-10", notlar: "Bildirim sistemi", aktif: false },
-  { id: 16, urunAdi: "Mobil Uygulama Paketi", surum: "1.0.0", tarih: "2024-09-01", notlar: "İlk sürüm - Android", aktif: false },
+  { id: 1, urunAdi: "CRM Yazılımı", surum: "3.2.1", tarih: "2025-01-15", duzenlenenler: "Performans iyileştirmeleri, veritabanı sorgu optimizasyonu", eklenenler: "", cikarilanlar: "", dosyaAdi: "", aktif: true },
+  { id: 2, urunAdi: "CRM Yazılımı", surum: "3.1.0", tarih: "2024-11-20", duzenlenenler: "", eklenenler: "Yeni raporlama modülü", cikarilanlar: "", dosyaAdi: "", aktif: false },
+  { id: 7, urunAdi: "CRM Yazılımı", surum: "3.0.0", tarih: "2024-08-10", duzenlenenler: "Arayüz yenilendi", eklenenler: "Yeni dashboard, gelişmiş grafikler", cikarilanlar: "Eski widget sistemi", dosyaAdi: "CRM_v3.0.0.zip", aktif: false },
+  { id: 8, urunAdi: "CRM Yazılımı", surum: "2.9.5", tarih: "2024-06-01", duzenlenenler: "Güvenlik yamaları", eklenenler: "", cikarilanlar: "", dosyaAdi: "", aktif: false },
+  { id: 9, urunAdi: "CRM Yazılımı", surum: "2.8.0", tarih: "2024-03-22", duzenlenenler: "", eklenenler: "Çoklu dil desteği", cikarilanlar: "", dosyaAdi: "", aktif: false },
+  { id: 3, urunAdi: "E-Ticaret Paketi", surum: "2.5.0", tarih: "2025-02-01", duzenlenenler: "", eklenenler: "Ödeme entegrasyonu", cikarilanlar: "", dosyaAdi: "", aktif: true },
+  { id: 10, urunAdi: "E-Ticaret Paketi", surum: "2.4.0", tarih: "2024-10-15", duzenlenenler: "", eklenenler: "Kargo entegrasyonu", cikarilanlar: "", dosyaAdi: "", aktif: false },
+  { id: 11, urunAdi: "E-Ticaret Paketi", surum: "2.3.1", tarih: "2024-07-08", duzenlenenler: "Sepet hata düzeltmesi", eklenenler: "", cikarilanlar: "", dosyaAdi: "", aktif: false },
+  { id: 12, urunAdi: "E-Ticaret Paketi", surum: "2.2.0", tarih: "2024-04-20", duzenlenenler: "", eklenenler: "Ürün varyant desteği", cikarilanlar: "", dosyaAdi: "", aktif: false },
+  { id: 4, urunAdi: "Muhasebe Pro", surum: "4.0.0", tarih: "2025-01-10", duzenlenenler: "Tüm arayüz yeniden tasarlandı", eklenenler: "Yeni arayüz tasarımı", cikarilanlar: "", dosyaAdi: "MuhasebePro_v4.0.0.zip", aktif: true },
+  { id: 13, urunAdi: "Muhasebe Pro", surum: "3.5.2", tarih: "2024-09-18", duzenlenenler: "", eklenenler: "E-Fatura güncellemesi", cikarilanlar: "", dosyaAdi: "", aktif: false },
+  { id: 14, urunAdi: "Muhasebe Pro", surum: "3.4.0", tarih: "2024-05-12", duzenlenenler: "KDV hesaplama düzeltmesi", eklenenler: "", cikarilanlar: "", dosyaAdi: "", aktif: false },
+  { id: 5, urunAdi: "Stok Takip Sistemi", surum: "1.0.0", tarih: "2024-12-05", duzenlenenler: "", eklenenler: "İlk sürüm", cikarilanlar: "", dosyaAdi: "", aktif: true },
+  { id: 6, urunAdi: "Mobil Uygulama Paketi", surum: "1.2.0", tarih: "2025-01-25", duzenlenenler: "", eklenenler: "iOS desteği", cikarilanlar: "", dosyaAdi: "", aktif: true },
+  { id: 15, urunAdi: "Mobil Uygulama Paketi", surum: "1.1.0", tarih: "2024-11-10", duzenlenenler: "", eklenenler: "Bildirim sistemi", cikarilanlar: "", dosyaAdi: "", aktif: false },
+  { id: 16, urunAdi: "Mobil Uygulama Paketi", surum: "1.0.0", tarih: "2024-09-01", duzenlenenler: "", eklenenler: "İlk sürüm - Android", cikarilanlar: "", dosyaAdi: "", aktif: false },
 ];
 
 const BASLANGIC_KULLANICILAR = [
@@ -887,10 +887,53 @@ function GrupModal({ modal, kapat, kaydet }) {
 /*  Sürümler Sekmesi                              */
 /* ============================================= */
 
+/* Sürüm notlarını özetle (accordion alt yazısı için) */
+const surumOzet = (s) => {
+  const parcalar = [];
+  if (s.duzenlenenler) parcalar.push(s.duzenlenenler);
+  if (s.eklenenler) parcalar.push(s.eklenenler);
+  if (s.cikarilanlar) parcalar.push(s.cikarilanlar);
+  return parcalar.join(" · ") || "Not eklenmemiş";
+};
+
 function SurumlerSekmesi() {
   const [surumler, setSurumler] = useState(BASLANGIC_SURUMLER);
   const [modal, setModal] = useState(null);
+  const [detayModal, setDetayModal] = useState(null);
   const [acikGruplar, setAcikGruplar] = useState({});
+  const [dosyaDegistirId, setDosyaDegistirId] = useState(null);
+  const [silOnay, setSilOnay] = useState(null);
+  const [dosyaSilOnay, setDosyaSilOnay] = useState(null);
+  const dosyaInputRef = useRef(null);
+
+  /* Dosya değiştir / kaldır */
+  const dosyaDegistir = (id) => {
+    setDosyaDegistirId(id);
+    setTimeout(() => dosyaInputRef.current?.click(), 0);
+  };
+  const dosyaKaldirOnayla = () => {
+    if (!dosyaSilOnay) return;
+    setSurumler((o) => o.map((s) => s.id === dosyaSilOnay.id ? { ...s, dosyaAdi: "" } : s));
+    if (detayModal && detayModal.id === dosyaSilOnay.id) setDetayModal((o) => ({ ...o, dosyaAdi: "" }));
+    setDosyaSilOnay(null);
+  };
+  const dosyaSecildi = (e) => {
+    const dosya = e.target.files[0];
+    if (dosya && dosyaDegistirId) {
+      setSurumler((o) => o.map((s) => s.id === dosyaDegistirId ? { ...s, dosyaAdi: dosya.name } : s));
+      if (detayModal && detayModal.id === dosyaDegistirId) setDetayModal((o) => ({ ...o, dosyaAdi: dosya.name }));
+    }
+    setDosyaDegistirId(null);
+    if (dosyaInputRef.current) dosyaInputRef.current.value = "";
+  };
+
+  /* Sürüm sil (onaylı) */
+  const surumSilOnayla = () => {
+    if (!silOnay) return;
+    setSurumler((o) => o.filter((s) => s.id !== silOnay.id));
+    if (detayModal && detayModal.id === silOnay.id) setDetayModal(null);
+    setSilOnay(null);
+  };
 
   const kaydet = (veri) => {
     if (veri.id) {
@@ -921,6 +964,9 @@ function SurumlerSekmesi() {
 
   return (
     <div>
+      {/* Gizli dosya input - dosya değiştirmek için */}
+      <input ref={dosyaInputRef} type="file" accept=".zip" onChange={dosyaSecildi} className="hidden" />
+
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-gray-500 dark:text-slate-400">{benzersizUrunSayisi} ürün, {surumler.length} sürüm kaydı</p>
         <button onClick={() => setModal("yeni")}
@@ -970,8 +1016,37 @@ function SurumlerSekmesi() {
                   </div>
                   <div className="flex items-center gap-3 mt-1">
                     <span className="text-xs text-gray-400 dark:text-slate-500">{guncel.tarih}</span>
-                    <span className="text-xs text-gray-500 dark:text-slate-400">{guncel.notlar}</span>
+                    <span className="text-xs text-gray-500 dark:text-slate-400 truncate">{surumOzet(guncel)}</span>
                   </div>
+                  {/* Dosya Gösterimi */}
+                  {guncel.dosyaAdi ? (
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200/60 dark:border-amber-500/20">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                        <span className="text-xs font-medium text-amber-700 dark:text-amber-400 max-w-[180px] truncate">{guncel.dosyaAdi}</span>
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); dosyaDegistir(guncel.id); }} title="Dosyayı Değiştir"
+                        className="w-6 h-6 rounded-md bg-blue-100 dark:bg-blue-500/15 hover:bg-blue-200 dark:hover:bg-blue-500/25 text-blue-600 dark:text-blue-400 flex items-center justify-center cursor-pointer transition-colors shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); setDosyaSilOnay(guncel); }} title="Dosyayı Kaldır"
+                        className="w-6 h-6 rounded-md bg-red-100 dark:bg-red-500/15 hover:bg-red-200 dark:hover:bg-red-500/25 text-red-600 dark:text-red-400 flex items-center justify-center cursor-pointer transition-colors shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-1.5">
+                      <button onClick={(e) => { e.stopPropagation(); dosyaDegistir(guncel.id); }}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] text-gray-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                        Dosya Ekle
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Sürüm Sayısı Rozeti */}
@@ -981,11 +1056,26 @@ function SurumlerSekmesi() {
                   </span>
                 )}
 
+                {/* Detay Butonu */}
+                <button onClick={(e) => { e.stopPropagation(); setDetayModal(guncel); }} title="Detay"
+                  className="w-8 h-8 rounded-lg bg-violet-500 hover:bg-violet-600 text-white flex items-center justify-center cursor-pointer transition-colors shadow-sm shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                </button>
+
                 {/* Düzenle Butonu */}
                 <button onClick={(e) => { e.stopPropagation(); setModal(guncel); }} title="Düzenle"
                   className="w-8 h-8 rounded-lg bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center cursor-pointer transition-colors shadow-sm shrink-0">
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                </button>
+
+                {/* Sil Butonu */}
+                <button onClick={(e) => { e.stopPropagation(); setSilOnay(guncel); }} title="Sil"
+                  className="w-8 h-8 rounded-lg bg-red-500 hover:bg-red-600 text-white flex items-center justify-center cursor-pointer transition-colors shadow-sm shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                 </button>
               </div>
 
@@ -1015,14 +1105,56 @@ function SurumlerSekmesi() {
                           </span>
                           <span className="text-xs text-gray-400 dark:text-slate-500">{s.tarih}</span>
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 truncate">{s.notlar}</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 truncate">{surumOzet(s)}</p>
+                        {/* Dosya Gösterimi */}
+                        {s.dosyaAdi ? (
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-500/10 border border-amber-200/60 dark:border-amber-500/20">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                              <span className="text-[11px] font-medium text-amber-700 dark:text-amber-400 max-w-[140px] truncate">{s.dosyaAdi}</span>
+                            </div>
+                            <button onClick={(e) => { e.stopPropagation(); dosyaDegistir(s.id); }} title="Değiştir"
+                              className="w-5 h-5 rounded bg-blue-100 dark:bg-blue-500/15 hover:bg-blue-200 dark:hover:bg-blue-500/25 text-blue-600 dark:text-blue-400 flex items-center justify-center cursor-pointer transition-colors">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                            </button>
+                            <button onClick={(e) => { e.stopPropagation(); setDosyaSilOnay(s); }} title="Kaldır"
+                              className="w-5 h-5 rounded bg-red-100 dark:bg-red-500/15 hover:bg-red-200 dark:hover:bg-red-500/25 text-red-600 dark:text-red-400 flex items-center justify-center cursor-pointer transition-colors">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                          </div>
+                        ) : (
+                          <button onClick={(e) => { e.stopPropagation(); dosyaDegistir(s.id); }}
+                            className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[10px] text-gray-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors cursor-pointer">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                            Dosya Ekle
+                          </button>
+                        )}
                       </div>
+
+                      {/* Detay */}
+                      <button onClick={() => setDetayModal(s)} title="Detay"
+                        className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-white/10 hover:bg-violet-500 hover:text-white text-gray-500 dark:text-slate-400 flex items-center justify-center cursor-pointer transition-colors shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                      </button>
 
                       {/* Düzenle */}
                       <button onClick={() => setModal(s)} title="Düzenle"
                         className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-white/10 hover:bg-blue-500 hover:text-white text-gray-500 dark:text-slate-400 flex items-center justify-center cursor-pointer transition-colors shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      </button>
+
+                      {/* Sil */}
+                      <button onClick={() => setSilOnay(s)} title="Sil"
+                        className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-white/10 hover:bg-red-500 hover:text-white text-gray-500 dark:text-slate-400 flex items-center justify-center cursor-pointer transition-colors shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>
                     </div>
                   ))}
@@ -1034,6 +1166,182 @@ function SurumlerSekmesi() {
       </div>
 
       {modal && <SurumModal modal={modal} kapat={() => setModal(null)} kaydet={kaydet} surumler={surumler} />}
+
+      {/* Silme Onay Modalı */}
+      {silOnay && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setSilOnay(null)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 text-center">
+              <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-500/15 flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Sürümü Sil</h3>
+              <p className="text-sm text-gray-500 dark:text-slate-400 mb-1">
+                <span className="font-semibold text-gray-700 dark:text-slate-300">{silOnay.urunAdi}</span> ürününün
+              </p>
+              <p className="text-sm text-gray-500 dark:text-slate-400 mb-5">
+                <span className="font-mono font-semibold text-violet-600 dark:text-violet-400">v{silOnay.surum}</span> sürümünü silmek istediğinize emin misiniz?
+              </p>
+              {silOnay.aktif && (
+                <div className="mb-4 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+                  <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">⚠ Bu güncel (aktif) sürüm. Silindikten sonra bir önceki sürüm otomatik güncel yapılmayacaktır.</p>
+                </div>
+              )}
+              <div className="flex gap-3">
+                <button onClick={() => setSilOnay(null)}
+                  className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                  Vazgeç
+                </button>
+                <button onClick={surumSilOnayla}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold cursor-pointer shadow-lg shadow-red-600/25 transition-colors">
+                  Evet, Sil
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dosya Silme Onay Modalı */}
+      {dosyaSilOnay && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setDosyaSilOnay(null)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 text-center">
+              <div className="w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-500/15 flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Dosyayı Kaldır</h3>
+              <p className="text-sm text-gray-500 dark:text-slate-400 mb-1">
+                <span className="font-semibold text-gray-700 dark:text-slate-300">{dosyaSilOnay.urunAdi} v{dosyaSilOnay.surum}</span> sürümüne ait
+              </p>
+              <p className="text-sm mb-5">
+                <span className="font-medium text-amber-600 dark:text-amber-400">{dosyaSilOnay.dosyaAdi}</span>
+                <span className="text-gray-500 dark:text-slate-400"> dosyasını kaldırmak istediğinize emin misiniz?</span>
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setDosyaSilOnay(null)}
+                  className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                  Vazgeç
+                </button>
+                <button onClick={dosyaKaldirOnayla}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold cursor-pointer shadow-lg shadow-red-600/25 transition-colors">
+                  Evet, Kaldır
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Detay Modal */}
+      {detayModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setDetayModal(null)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{detayModal.urunAdi}</h3>
+                <span className="text-xs px-2.5 py-0.5 rounded-full font-mono font-medium bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400">v{detayModal.surum}</span>
+                {detayModal.aktif && (
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">Güncel</span>
+                )}
+              </div>
+              <button onClick={() => setDetayModal(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-2 text-gray-500 dark:text-slate-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  <span>{detayModal.tarih}</span>
+                </div>
+              </div>
+
+              {/* Dosya Kartı */}
+              <div className="rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-white/[0.02] overflow-hidden">
+                {detayModal.dosyaAdi ? (
+                  <div className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-500/15 flex items-center justify-center shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-800 dark:text-white truncate">{detayModal.dosyaAdi}</p>
+                        <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-0.5">Yüklü dosya</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button onClick={() => dosyaDegistir(detayModal.id)} title="Dosyayı Değiştir"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 border border-blue-200/60 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-medium cursor-pointer transition-colors">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                          Değiştir
+                        </button>
+                        <button onClick={() => setDosyaSilOnay(detayModal)} title="Dosyayı Kaldır"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 border border-red-200/60 dark:border-red-500/20 text-red-600 dark:text-red-400 text-xs font-medium cursor-pointer transition-colors">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          Kaldır
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={() => dosyaDegistir(detayModal.id)}
+                    className="w-full p-4 flex flex-col items-center gap-2 text-gray-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-500/5 cursor-pointer transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                    <span className="text-xs font-medium">Bu sürüme dosya eklenmemiş — yüklemek için tıklayın</span>
+                  </button>
+                )}
+              </div>
+
+              {detayModal.duzenlenenler && (
+                <div className="rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                    <p className="text-xs font-semibold text-blue-700 dark:text-blue-400">Düzenlenenler</p>
+                  </div>
+                  <p className="text-sm text-blue-800 dark:text-blue-300 whitespace-pre-line">{detayModal.duzenlenenler}</p>
+                </div>
+              )}
+
+              {detayModal.eklenenler && (
+                <div className="rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                    <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Yeni Eklenenler</p>
+                  </div>
+                  <p className="text-sm text-emerald-800 dark:text-emerald-300 whitespace-pre-line">{detayModal.eklenenler}</p>
+                </div>
+              )}
+
+              {detayModal.cikarilanlar && (
+                <div className="rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" /></svg>
+                    <p className="text-xs font-semibold text-red-700 dark:text-red-400">Çıkarılanlar</p>
+                  </div>
+                  <p className="text-sm text-red-800 dark:text-red-300 whitespace-pre-line">{detayModal.cikarilanlar}</p>
+                </div>
+              )}
+
+              {!detayModal.duzenlenenler && !detayModal.eklenenler && !detayModal.cikarilanlar && (
+                <div className="text-center py-6">
+                  <p className="text-sm text-gray-400 dark:text-slate-500">Bu sürüm için detaylı not eklenmemiş.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1045,11 +1353,15 @@ function SurumModal({ modal, kapat, kaydet, surumler }) {
     urunAdi: duzenle ? modal.urunAdi : "",
     surum: duzenle ? modal.surum : "",
     tarih: duzenle ? modal.tarih : new Date().toISOString().slice(0, 10),
-    notlar: duzenle ? modal.notlar : "",
+    duzenlenenler: duzenle ? (modal.duzenlenenler || "") : "",
+    eklenenler: duzenle ? (modal.eklenenler || "") : "",
+    cikarilanlar: duzenle ? (modal.cikarilanlar || "") : "",
+    dosyaAdi: duzenle ? (modal.dosyaAdi || "") : "",
     aktif: duzenle ? modal.aktif : true,
   });
   const [oneriAcik, setOneriAcik] = useState(false);
   const ref = useRef(null);
+  const dosyaRef = useRef(null);
   const sallanma = () => { if (ref.current) { ref.current.classList.remove("sallan"); void ref.current.offsetWidth; ref.current.classList.add("sallan"); } };
 
   // Benzersiz ürün adları (öneri listesi)
@@ -1059,16 +1371,22 @@ function SurumModal({ modal, kapat, kaydet, surumler }) {
     : benzersizUrunler;
 
   const urunSec = (urunAdi) => {
-    // Seçilen ürünün en son sürümünü bul ve bilgileri otomatik doldur
     const urunSurumleri = surumler.filter((s) => s.urunAdi === urunAdi).sort((a, b) => b.id - a.id);
     const sonSurum = urunSurumleri[0];
     setForm((o) => ({
       ...o,
       urunAdi,
       surum: sonSurum ? sonSurum.surum : "",
-      notlar: "",
+      duzenlenenler: "",
+      eklenenler: "",
+      cikarilanlar: "",
     }));
     setOneriAcik(false);
+  };
+
+  const dosyaSec = (e) => {
+    const dosya = e.target.files[0];
+    if (dosya) setForm((o) => ({ ...o, dosyaAdi: dosya.name }));
   };
 
   const gonder = (e) => {
@@ -1077,20 +1395,19 @@ function SurumModal({ modal, kapat, kaydet, surumler }) {
     kaydet(form);
   };
 
-  // Seçilen ürünün mevcut sürümleri (bilgi olarak)
   const mevcutSurumler = surumler.filter((s) => s.urunAdi === form.urunAdi);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={sallanma}>
-      <div ref={ref} className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
+      <div ref={ref} className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-lg max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between shrink-0">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">{duzenle ? "Sürüm Düzenle" : "Yeni Sürüm"}</h3>
           <button onClick={kapat} className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors cursor-pointer">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
-        <form onSubmit={gonder} className="p-6 space-y-4">
+        <form onSubmit={gonder} className="p-6 space-y-4 overflow-y-auto">
           {/* Ürün Adı - otomatik doldurma */}
           <div className="relative">
             <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ürün Adı <span className="text-red-500">*</span></label>
@@ -1133,14 +1450,78 @@ function SurumModal({ modal, kapat, kaydet, surumler }) {
               <input type="text" value={form.surum} onChange={(e) => setForm((o) => ({ ...o, surum: e.target.value }))} placeholder="1.0.0" className={INPUT_STIL} required />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Tarih</label>
-              <input type="date" value={form.tarih} onChange={(e) => setForm((o) => ({ ...o, tarih: e.target.value }))} className={INPUT_STIL} />
+              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Tarih <span className="text-red-500">*</span></label>
+              <input type="date" value={form.tarih} onChange={(e) => setForm((o) => ({ ...o, tarih: e.target.value }))} className={INPUT_STIL} required />
             </div>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Notlar</label>
-            <input type="text" value={form.notlar} onChange={(e) => setForm((o) => ({ ...o, notlar: e.target.value }))} placeholder="Sürüm notları" className={INPUT_STIL} />
+
+          {/* Değişiklik Notları */}
+          <div className="space-y-3 pt-1">
+            <p className="text-xs font-semibold text-gray-600 dark:text-slate-300 uppercase tracking-wider">Değişiklik Notları</p>
+
+            <div>
+              <label className="block text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">
+                <span className="inline-flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  Neleri Düzenledin?
+                </span>
+              </label>
+              <textarea value={form.duzenlenenler} onChange={(e) => setForm((o) => ({ ...o, duzenlenenler: e.target.value }))} placeholder="Düzenlenen özellikler, hata düzeltmeleri..." className={INPUT_STIL + " resize-none"} rows={2} />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">
+                <span className="inline-flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                  Yeni Neler Ekledin?
+                </span>
+              </label>
+              <textarea value={form.eklenenler} onChange={(e) => setForm((o) => ({ ...o, eklenenler: e.target.value }))} placeholder="Yeni özellikler, modüller..." className={INPUT_STIL + " resize-none"} rows={2} />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-red-600 dark:text-red-400 mb-1">
+                <span className="inline-flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" /></svg>
+                  Neler Çıktı?
+                </span>
+              </label>
+              <textarea value={form.cikarilanlar} onChange={(e) => setForm((o) => ({ ...o, cikarilanlar: e.target.value }))} placeholder="Kaldırılan özellikler, eski modüller..." className={INPUT_STIL + " resize-none"} rows={2} />
+            </div>
           </div>
+
+          {/* ZIP Dosya Yükleme */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Dosya Yükle (ZIP)</label>
+            <input ref={dosyaRef} type="file" accept=".zip" onChange={dosyaSec} className="hidden" />
+            <div
+              onClick={() => dosyaRef.current?.click()}
+              className="flex items-center justify-center gap-3 p-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-white/10 bg-gray-50 dark:bg-white/[0.02] hover:border-blue-400 dark:hover:border-blue-500/30 hover:bg-blue-50/50 dark:hover:bg-blue-500/5 cursor-pointer transition-all"
+            >
+              {form.dosyaAdi ? (
+                <div className="flex items-center gap-2 text-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                  <span className="font-medium text-gray-700 dark:text-slate-300">{form.dosyaAdi}</span>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setForm((o) => ({ ...o, dosyaAdi: "" })); if (dosyaRef.current) dosyaRef.current.value = ""; }}
+                    className="ml-1 text-red-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 mx-auto text-gray-300 dark:text-slate-600 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                  <p className="text-xs text-gray-400 dark:text-slate-500">ZIP dosyası yüklemek için tıklayın</p>
+                </div>
+              )}
+            </div>
+          </div>
+
           {duzenle && (
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={form.aktif} onChange={(e) => setForm((o) => ({ ...o, aktif: e.target.checked }))}

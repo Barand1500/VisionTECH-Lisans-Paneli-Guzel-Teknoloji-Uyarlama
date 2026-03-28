@@ -10,6 +10,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMusteriler } from "../context/MusteriContext";
+import { useAktiviteLog } from "../context/AktiviteLogContext";
 
 /* ============================================= */
 /*  Sabit Tanımlamalar                            */
@@ -119,6 +120,7 @@ const HATA_INPUT_STIL =
 export default function MusteriEklePage() {
   const git = useNavigate();
   const { musteriler, musteriEkle } = useMusteriler();
+  const { logEkle } = useAktiviteLog();
 
   const [aktifSekme, setAktifSekme] = useState("gercek");
   const [form, setForm] = useState(bosFormOlustur());
@@ -264,6 +266,7 @@ export default function MusteriEklePage() {
 
     console.log("📦 Müşteri verisi (backend'e gönderilecek):", veri);
     musteriEkle(veri);
+    logEkle("musteri_ekleme", `"${veri.adSoyad || veri.sirketAdi || veri.yetkiliKisi || 'Yeni Müşteri'}" adlı müşteri eklendi.`);
 
     setBasarili(true);
     setTimeout(() => git("/dashboard/musteriler"), 2000);

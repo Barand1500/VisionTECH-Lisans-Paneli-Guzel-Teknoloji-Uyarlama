@@ -10,12 +10,15 @@ import './index.css'
 import App from './App.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx'
 import { MusteriProvider } from './context/MusteriContext.jsx'
+import { AktiviteLogProvider } from './context/AktiviteLogContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ThemeProvider>
       <MusteriProvider>
-        <App />
+        <AktiviteLogProvider>
+          <App />
+        </AktiviteLogProvider>
       </MusteriProvider>
     </ThemeProvider>
   </StrictMode>,

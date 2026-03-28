@@ -10,6 +10,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMusteriler } from "../context/MusteriContext";
+import { useAktiviteLog } from "../context/AktiviteLogContext";
 import KopyalaButonu from "../components/KopyalaButonu";
 
 /* ---- Sekme Tanımları ---- */
@@ -70,56 +71,6 @@ const MEVCUT_MUSTERILER = [
   { id: 5, ad: "Veri Sistemleri Ltd." },
 ];
 
-/* ---- Mock Paket Verileri (Her Müşteri için Şablon) ---- */
-const URUN_LISTESI = [
-  "Yazılım - VEMobil Ana Modül",
-  "Yazılım - VEMobil Yıllık Yenileme",
-  "Yazılım - Vega E-Dönüşüm",
-  "Yazılım - Vega Muhasebe Pro",
-  "Yazılım - Vega CRM Enterprise",
-];
-
-const PAKET_TIPLERI = ["Aktivasyon", "Yenileme", "Yükseltme"];
-
-const rastgeleTarih = (yilOnce = 0) => {
-  const d = new Date();
-  d.setFullYear(d.getFullYear() - yilOnce);
-  d.setMonth(Math.floor(Math.random() * 12));
-  d.setDate(Math.floor(Math.random() * 28) + 1);
-  return d.toISOString().slice(0, 10);
-};
-
-const tarihEkle = (tarih, gun) => {
-  const d = new Date(tarih);
-  d.setDate(d.getDate() + gun);
-  return d.toISOString().slice(0, 10);
-};
-
-const rastgeleLisansAnahtari = () => {
-  const h = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  const blok = () => Array.from({ length: 4 }, () => h[Math.floor(Math.random() * h.length)]).join("");
-  return `${blok()}-${blok()}-${blok()}-${blok()}`;
-};
-
-const mockPaketlerOlustur = () =>
-  Array.from({ length: Math.floor(Math.random() * 3) + 2 }, (_, i) => {
-    const bas = rastgeleTarih(Math.floor(Math.random() * 3));
-    return {
-      id: Date.now() + i + Math.random(),
-      urun: URUN_LISTESI[Math.floor(Math.random() * URUN_LISTESI.length)],
-      paket: PAKET_TIPLERI[Math.floor(Math.random() * PAKET_TIPLERI.length)],
-      domain: `http://ornek${i + 1}.vemobil.com:9090/`,
-      faturaNo: Math.random() > 0.5 ? `VEF${Date.now().toString().slice(-10)}` : "",
-      kullanimGunu: 365,
-      baslangicTarihi: bas,
-      bitisTarihi: tarihEkle(bas, 365),
-      kullanici: Math.random() > 0.5 ? "1 + 1" : "1",
-      fiyat: Math.random() > 0.6 ? (Math.random() * 5000).toFixed(2) : "0.00",
-      faturaGeldi: Math.random() > 0.7,
-      lisansAnahtari: rastgeleLisansAnahtari(),
-    };
-  });
-
 /* ---- Yardımcı Fonksiyonlar ---- */
 const telefonFormatla = (deger) => {
   const r = deger.replace(/\D/g, "").slice(0, 10);
@@ -130,16 +81,83 @@ const telefonFormatla = (deger) => {
   return `(${r.slice(0, 3)}) ${r.slice(3, 6)} ${r.slice(6, 8)} ${r.slice(8)}`;
 };
 
-const tarihGosterTR = (iso) => {
-  if (!iso) return "-";
-  const [y, m, d] = iso.split("-");
-  return `${d}.${m}.${y}`;
-};
+/* ---- Müşteri adı yardımcısı (ağaç bileşeni için) ---- */
+const musteriAdiGetir = (m) => m.adSoyad || m.sirketAdi || m.yetkiliKisi || `Müşteri #${m.id}`;
 
-const suAnGecmisMi = (tarih) => {
-  if (!tarih) return false;
-  return new Date(tarih) < new Date();
-};
+/* ---- Hiyerarşi: Düğümün odaklanan müşterinin altı olup olmadığını kontrol et ---- */
+function odakliAltMi(musteriId, odakliId, tumMusteriler) {
+  if (!odakliId) return false;
+  let mevcut = tumMusteriler.find((m) => m.id === musteriId);
+  while (mevcut) {
+    if (mevcut.ustMusteriId === odakliId) return true;
+    mevcut = tumMusteriler.find((m) => m.id === mevcut.ustMusteriId);
+  }
+  return false;
+}
+
+/* ============================================= */
+/*  Hiyerarşi Ağaç Düğümü                        */
+/* ============================================= */
+
+function MusteriAgacDugumu({ musteri, tumMusteriler, seviye = 0, odakliId, setOdakliId }) {
+  const altMusteriler = tumMusteriler.filter((m) => m.ustMusteriId === musteri.id);
+  const odakli = odakliId === musteri.id;
+  const altSirket = odakliAltMi(musteri.id, odakliId, tumMusteriler);
+  const soluk = odakliId !== null && odakliId !== musteri.id && !altSirket;
+
+  const tipRenkAgac = (tur) => {
+    if (tur === "gercek") return "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400";
+    if (tur === "tuzel") return "bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400";
+    return "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400";
+  };
+
+  const tipEtiketAgac = (tur) => {
+    if (tur === "gercek") return "Gerçek";
+    if (tur === "tuzel") return "Tüzel";
+    return "Yabancı";
+  };
+
+  return (
+    <div>
+      <div
+        onClick={() => setOdakliId(odakli ? null : musteri.id)}
+        className={`flex items-center gap-3 py-2.5 px-3 rounded-lg cursor-pointer transition-all duration-300 ${
+          seviye > 0 ? "ml-6 border-l-2 border-blue-200 dark:border-blue-500/30 pl-4" : ""
+        } ${
+          odakli
+            ? "bg-blue-50 dark:bg-blue-500/10 ring-2 ring-blue-400 dark:ring-blue-500/50 shadow-md"
+            : soluk
+            ? "opacity-40 hover:opacity-70"
+            : "hover:bg-gray-50 dark:hover:bg-white/5"
+        }`}
+      >
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${tipRenkAgac(musteri.tur)}`}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            {musteri.tur === "tuzel" ? (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            ) : musteri.tur === "yabanci" ? (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            )}
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={`text-sm font-medium truncate ${odakli ? "text-blue-700 dark:text-blue-300" : "text-gray-900 dark:text-white"}`}>{musteriAdiGetir(musteri)}</p>
+          <p className="text-xs text-gray-400 dark:text-slate-500">{musteri.yetkiliKisi || musteri.eposta || "—"}</p>
+        </div>
+        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+          musteri.durum === "Aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-500"
+        }`}>
+          {musteri.durum || "Aktif"}
+        </span>
+      </div>
+      {altMusteriler.map((alt) => (
+        <MusteriAgacDugumu key={alt.id} musteri={alt} tumMusteriler={tumMusteriler} seviye={seviye + 1} odakliId={odakliId} setOdakliId={setOdakliId} />
+      ))}
+    </div>
+  );
+}
 
 /* ============================================= */
 /*  Ana Bileşen                                   */
@@ -147,7 +165,8 @@ const suAnGecmisMi = (tarih) => {
 
 export default function MusterilerPage() {
   const git = useNavigate();
-  const { musteriler, musteriGuncelle } = useMusteriler();
+  const { musteriler, musteriGuncelle, musteriSil, topluSil, topluDurumGuncelle } = useMusteriler();
+  const { logEkle } = useAktiviteLog();
 
   const [arama, setArama] = useState("");
   const [sayfaBoyutu, setSayfaBoyutu] = useState(10);
@@ -155,15 +174,24 @@ export default function MusterilerPage() {
 
   /* Modal states */
   const [duzenleModal, setDuzenleModal] = useState(null);
-  const [paketModal, setPaketModal] = useState(null);
   const [lisansModal, setLisansModal] = useState(null);
+  const [silOnay, setSilOnay] = useState(null);
+  const [topluSilOnay, setTopluSilOnay] = useState(false);
+
+  /* Toplu seçim */
+  const [seciliIdler, setSeciliIdler] = useState(new Set());
+
+  /* Görünüm Toggle + Hiyerarşi odaklama */
+  const [aktifGorunum, setAktifGorunum] = useState("tablo");
+  const [odakliId, setOdakliId] = useState(null);
 
   useEffect(() => {
     const escKapat = (e) => {
       if (e.key === "Escape") {
         setDuzenleModal(null);
-        setPaketModal(null);
         setLisansModal(null);
+        setSilOnay(null);
+        setTopluSilOnay(false);
       }
     };
     window.addEventListener("keydown", escKapat);
@@ -200,6 +228,78 @@ export default function MusterilerPage() {
     if (tur === "gercek") return "Gerçek";
     if (tur === "tuzel") return "Tüzel";
     return "Yabancı";
+  };
+
+  /* ---- Müşteri Silme ---- */
+  const musteriSilIslem = (musteri) => {
+    musteriSil(musteri.id);
+    logEkle("musteri_silme", `"${musteriAdi(musteri)}" adlı müşteri silindi.`);
+    seciliIdler.delete(musteri.id);
+    setSeciliIdler(new Set(seciliIdler));
+    setSilOnay(null);
+  };
+
+  /* ---- Toplu Silme ---- */
+  const topluSilIslem = () => {
+    const silinecekler = musteriler.filter((m) => seciliIdler.has(m.id));
+    const isimler = silinecekler.map(musteriAdi).join(", ");
+    topluSil([...seciliIdler]);
+    logEkle("toplu_silme", `${silinecekler.length} müşteri toplu silindi: ${isimler}`);
+    setSeciliIdler(new Set());
+    setTopluSilOnay(false);
+  };
+
+  /* ---- Seçim Yardımcıları ---- */
+  const tekSecimToggle = (id) => {
+    const yeni = new Set(seciliIdler);
+    if (yeni.has(id)) yeni.delete(id);
+    else yeni.add(id);
+    setSeciliIdler(yeni);
+  };
+
+  const tumunuSec = () => {
+    if (seciliIdler.size === sayfalananlar.length && sayfalananlar.every((m) => seciliIdler.has(m.id))) {
+      setSeciliIdler(new Set());
+    } else {
+      setSeciliIdler(new Set(sayfalananlar.map((m) => m.id)));
+    }
+  };
+
+  const hepsiSecili = sayfalananlar.length > 0 && sayfalananlar.every((m) => seciliIdler.has(m.id));
+
+  /* ---- Hiyerarşi Yardımcıları ---- */
+  const kokMusteriler = musteriler.filter((m) => !m.ustMusteriId);
+
+  /* ---- Toplu Durum Değiştir ---- */
+  const topluDurumIslem = (yeniDurum) => {
+    const hedefler = musteriler.filter((m) => seciliIdler.has(m.id));
+    const isimler = hedefler.map(musteriAdi).join(", ");
+    topluDurumGuncelle([...seciliIdler], yeniDurum);
+    logEkle("musteri_durum", `${hedefler.length} müşteri "${yeniDurum}" yapıldı: ${isimler}`);
+    setSeciliIdler(new Set());
+  };
+
+  /* ---- Toplu Dışa Aktar (CSV) ---- */
+  const topluDisaAktar = () => {
+    const secililer = musteriler.filter((m) => seciliIdler.has(m.id));
+    const basliklar = ["Ad", "Tip", "Yetkili", "E-posta", "Telefon", "Durum"];
+    const satirlar = secililer.map((m) => [
+      musteriAdi(m),
+      tipEtiket(m.tur),
+      m.yetkiliKisi || "",
+      m.eposta || "",
+      (m.telefonlar || [])[0] || "",
+      m.durum || "",
+    ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","));
+    const csv = "\uFEFF" + [basliklar.join(","), ...satirlar].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `musteriler_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    logEkle("diger", `${secililer.length} müşteri CSV olarak dışa aktarıldı.`);
   };
 
   /* ============================================= */
@@ -297,6 +397,7 @@ export default function MusterilerPage() {
         ...(aktifSekme === "yabanci" && { adSoyad: form.adSoyad, sirketAdi: form.sirketAdi, pasaportNo: form.pasaportNo, yetkiliKisi: form.yetkiliKisi }),
       };
       musteriGuncelle(m.id, veri);
+      logEkle("musteri_guncelleme", `"${musteriAdi(m)}" adlı müşteri güncellendi.`);
       console.log("✏️ Müşteri güncellendi:", veri);
       setDuzenleModal(null);
     };
@@ -558,383 +659,6 @@ export default function MusterilerPage() {
   }
 
   /* ============================================= */
-  /*  Müşteri Paketleri Modalı - Tablo Görünümü   */
-  /* ============================================= */
-
-  function PaketModalBilesen() {
-    const m = paketModal;
-    if (!m) return null;
-
-    const [paketler, setPaketler] = useState(() => mockPaketlerOlustur());
-    const [paketArama, setPaketArama] = useState("");
-    const [paketSayfa, setPaketSayfa] = useState(1);
-    const [paketBoyut, setPaketBoyut] = useState(10);
-
-    /* Alt modal states */
-    const [cihazlarModal, setCihazlarModal] = useState(null);
-    const [silOnay, setSilOnay] = useState(null);
-    const [lisansKeyModal, setLisansKeyModal] = useState(null);
-    const [ekKullaniciModal, setEkKullaniciModal] = useState(null);
-    const [faturaModal, setFaturaModal] = useState(null);
-    const [yeniPaketModal, setYeniPaketModal] = useState(false);
-
-    /* Yeni paket form */
-    const [yeniForm, setYeniForm] = useState({
-      urun: URUN_LISTESI[0], paket: PAKET_TIPLERI[0], domain: "", faturaNo: "", kullanimGunu: 365,
-      baslangicTarihi: new Date().toISOString().slice(0, 10), kullanici: "1", fiyat: "0.00",
-    });
-
-    const filtreliPaketler = paketler.filter((p) => {
-      const q = paketArama.toLowerCase();
-      return p.urun.toLowerCase().includes(q) || p.paket.toLowerCase().includes(q) || p.domain.toLowerCase().includes(q);
-    });
-
-    const topSayfa = Math.max(1, Math.ceil(filtreliPaketler.length / paketBoyut));
-    const sayfaliPaketler = filtreliPaketler.slice((paketSayfa - 1) * paketBoyut, paketSayfa * paketBoyut);
-
-    const paketSil = (id) => {
-      setPaketler((o) => o.filter((p) => p.id !== id));
-      setSilOnay(null);
-    };
-
-    const yeniPaketEkle = () => {
-      const yeni = {
-        ...yeniForm,
-        id: Date.now() + Math.random(),
-        bitisTarihi: tarihEkle(yeniForm.baslangicTarihi, yeniForm.kullanimGunu),
-        faturaGeldi: false,
-        lisansAnahtari: rastgeleLisansAnahtari(),
-      };
-      setPaketler((o) => [yeni, ...o]);
-      setYeniPaketModal(false);
-      setYeniForm({ urun: URUN_LISTESI[0], paket: PAKET_TIPLERI[0], domain: "", faturaNo: "", kullanimGunu: 365, baslangicTarihi: new Date().toISOString().slice(0, 10), kullanici: "1", fiyat: "0.00" });
-    };
-
-    const paketRef = useRef(null);
-    const sallanmaPaket = () => { if (paketRef.current) { paketRef.current.classList.remove("sallan"); void paketRef.current.offsetWidth; paketRef.current.classList.add("sallan"); } };
-
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={sallanmaPaket}>
-        <div ref={paketRef} className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-7xl max-h-[94vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-
-          {/* Başlık */}
-          <div className="px-6 py-5 border-b border-gray-200 dark:border-white/10 flex items-center justify-between shrink-0">
-            <div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Müşteri Paketleri</h3>
-              <p className="text-sm text-gray-400 dark:text-slate-500 mt-0.5">{musteriAdi(m)}</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <button onClick={() => setYeniPaketModal(true)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-lg shadow-emerald-600/25 cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                Yeni Müşteri Paketi
-              </button>
-              <button onClick={() => setPaketModal(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-          </div>
-
-          {/* Kontroller */}
-          <div className="px-6 py-4 flex items-center justify-between border-b border-gray-200 dark:border-white/10 shrink-0">
-            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
-              <select value={paketBoyut} onChange={(e) => { setPaketBoyut(Number(e.target.value)); setPaketSayfa(1); }}
-                className="px-2 py-1.5 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-sm cursor-pointer text-gray-900 dark:text-white">
-                {[5, 10, 25].map((n) => <option key={n} value={n}>{n}</option>)}
-              </select>
-              <span>kayıt göster</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 dark:text-slate-400">Ara:</span>
-              <input type="text" value={paketArama} onChange={(e) => { setPaketArama(e.target.value); setPaketSayfa(1); }}
-                placeholder="Paket ara..." className="px-3 py-1.5 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 w-48" />
-            </div>
-          </div>
-
-          {/* Tablo */}
-          <div className="flex-1 overflow-auto">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-gray-50 dark:bg-white/[0.03]">
-                <tr className="border-b border-gray-200 dark:border-white/10">
-                  {["Ürün", "Paket", "Domain", "Fatura No", "Gün", "Başlangıç", "Bitiş", "Kullanıcı", "Fiyat", "Fatura", "İşlemler"].map((h) => (
-                    <th key={h} className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                {sayfaliPaketler.length > 0 ? sayfaliPaketler.map((p) => {
-                  const gecmis = suAnGecmisMi(p.bitisTarihi);
-                  return (
-                    <tr key={p.id} className={`transition-colors ${gecmis ? "bg-red-50 dark:bg-red-500/5" : "hover:bg-gray-50 dark:hover:bg-white/[0.02]"}`}>
-                      <td className={`px-4 py-3.5 font-medium whitespace-nowrap ${gecmis ? "text-red-700 dark:text-red-400" : "text-gray-900 dark:text-white"}`}>{p.urun}</td>
-                      <td className="px-4 py-3.5 text-gray-600 dark:text-slate-400">{p.paket}</td>
-                      <td className="px-4 py-3.5 text-gray-600 dark:text-slate-400 max-w-[220px] truncate text-xs">{p.domain || "-"}</td>
-                      <td className="px-4 py-3.5 text-gray-600 dark:text-slate-400 text-xs font-mono">{p.faturaNo || "-"}</td>
-                      <td className="px-4 py-3.5 text-gray-600 dark:text-slate-400 text-center">{p.kullanimGunu}</td>
-                      <td className="px-4 py-3.5 text-gray-600 dark:text-slate-400 whitespace-nowrap">{tarihGosterTR(p.baslangicTarihi)}</td>
-                      <td className={`px-4 py-3.5 whitespace-nowrap font-medium ${gecmis ? "text-red-600 dark:text-red-400" : "text-gray-600 dark:text-slate-400"}`}>{tarihGosterTR(p.bitisTarihi)}</td>
-                      <td className="px-4 py-3.5 text-gray-600 dark:text-slate-400 text-center">{p.kullanici}</td>
-                      <td className="px-4 py-3.5 text-gray-600 dark:text-slate-400">{Number(p.fiyat).toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</td>
-                      <td className="px-4 py-3.5 text-center">
-                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${p.faturaGeldi ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400"}`}>
-                          {p.faturaGeldi ? "EVET" : "HAYIR"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-1.5">
-                          {/* Cihazlar */}
-                          <button onClick={() => setCihazlarModal(p)} title="Cihazlar"
-                            className="w-8 h-8 rounded-lg bg-purple-500 hover:bg-purple-600 text-white flex items-center justify-center cursor-pointer transition-colors shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                          </button>
-                          {/* Sil */}
-                          <button onClick={() => setSilOnay(p)} title="Sil"
-                            className="w-8 h-8 rounded-lg bg-red-500 hover:bg-red-600 text-white flex items-center justify-center cursor-pointer transition-colors shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                          </button>
-                          {/* Lisans Anahtarı */}
-                          <button onClick={() => setLisansKeyModal(p)} title="Lisans Anahtarı"
-                            className="w-8 h-8 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center cursor-pointer transition-colors shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
-                          </button>
-                          {/* Ek Kullanıcı */}
-                          <button onClick={() => setEkKullaniciModal(p)} title="Ek Kullanıcı"
-                            className="w-8 h-8 rounded-lg bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center cursor-pointer transition-colors shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
-                          </button>
-                          {/* Fatura Bilgisi */}
-                          <button onClick={() => setFaturaModal(p)} title="Fatura Bilgisi"
-                            className="w-8 h-8 rounded-lg bg-teal-500 hover:bg-teal-600 text-white flex items-center justify-center cursor-pointer transition-colors shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                }) : (
-                  <tr>
-                    <td colSpan={11} className="px-6 py-12 text-center text-gray-400 dark:text-slate-500">Paket bulunamadı.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Sayfalama */}
-          <div className="px-6 py-3 flex items-center justify-between border-t border-gray-200 dark:border-white/10 shrink-0">
-            <p className="text-xs text-gray-500 dark:text-slate-400">
-              {filtreliPaketler.length} kayıttan {Math.min((paketSayfa - 1) * paketBoyut + 1, filtreliPaketler.length)} ile {Math.min(paketSayfa * paketBoyut, filtreliPaketler.length)} arasındakiler gösteriliyor
-            </p>
-            <div className="flex items-center gap-1">
-              <button onClick={() => setPaketSayfa((o) => Math.max(1, o - 1))} disabled={paketSayfa === 1}
-                className="px-3 py-1.5 rounded-lg text-xs text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-40 cursor-pointer">Önceki</button>
-              {Array.from({ length: topSayfa }, (_, i) => i + 1).map((s) => (
-                <button key={s} onClick={() => setPaketSayfa(s)}
-                  className={`w-7 h-7 rounded-lg text-xs font-medium cursor-pointer ${paketSayfa === s ? "bg-blue-600 text-white" : "text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-white/5"}`}>{s}</button>
-              ))}
-              <button onClick={() => setPaketSayfa((o) => Math.min(topSayfa, o + 1))} disabled={paketSayfa === topSayfa}
-                className="px-3 py-1.5 rounded-lg text-xs text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-40 cursor-pointer">Sonraki</button>
-            </div>
-          </div>
-        </div>
-
-        {/* ========== Alt Modallar ========== */}
-
-        {/* Cihazlar */}
-        {cihazlarModal && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40" onClick={() => setCihazlarModal(null)}>
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-white/10 w-full max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="font-bold text-gray-900 dark:text-white">Cihaz Yönetimi</h4>
-                <button onClick={() => setCihazlarModal(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white cursor-pointer">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              </div>
-              <div className="text-center py-8">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-500/20 mb-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                </div>
-                <p className="text-sm text-gray-500 dark:text-slate-400">Cihaz yönetimi modülü hazırlanıyor...</p>
-                <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">Bu alan yakında aktif olacaktır.</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Silme Onayı */}
-        {silOnay && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40" onClick={() => setSilOnay(null)}>
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-white/10 w-full max-w-sm mx-4 p-6" onClick={(e) => e.stopPropagation()}>
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-500/20 mb-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                </div>
-                <h4 className="font-bold text-gray-900 dark:text-white mb-2">Paketi Sil</h4>
-                <p className="text-sm text-gray-500 dark:text-slate-400 mb-1">Bu paketi silmek istediğinize emin misiniz?</p>
-                <p className="text-xs text-gray-400 dark:text-slate-500 mb-4 font-medium">{silOnay.urun}</p>
-                <div className="flex gap-3 justify-center">
-                  <button onClick={() => setSilOnay(null)}
-                    className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer">İptal</button>
-                  <button onClick={() => paketSil(silOnay.id)}
-                    className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold cursor-pointer">Evet, Sil</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Lisans Anahtarı */}
-        {lisansKeyModal && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40" onClick={() => setLisansKeyModal(null)}>
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-white/10 w-full max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="font-bold text-gray-900 dark:text-white">Lisans Anahtarı</h4>
-                <button onClick={() => setLisansKeyModal(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white cursor-pointer">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              </div>
-              <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-4 mb-4">
-                <p className="text-xs text-gray-400 dark:text-slate-500 mb-1">Mevcut Anahtar</p>
-                <p className="text-lg font-mono font-bold text-gray-900 dark:text-white tracking-wider">{lisansKeyModal.lisansAnahtari}</p>
-              </div>
-              <button
-                onClick={() => {
-                  const yeniKey = rastgeleLisansAnahtari();
-                  setPaketler((o) => o.map((p) => p.id === lisansKeyModal.id ? { ...p, lisansAnahtari: yeniKey } : p));
-                  setLisansKeyModal({ ...lisansKeyModal, lisansAnahtari: yeniKey });
-                }}
-                className="w-full px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold cursor-pointer inline-flex items-center justify-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                Yeni Anahtar Oluştur
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Ek Kullanıcı */}
-        {ekKullaniciModal && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40" onClick={() => setEkKullaniciModal(null)}>
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-white/10 w-full max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="font-bold text-gray-900 dark:text-white">Ek Kullanıcı</h4>
-                <button onClick={() => setEkKullaniciModal(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white cursor-pointer">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              </div>
-              <div className="text-center py-8">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-500/20 mb-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
-                </div>
-                <p className="text-sm text-gray-500 dark:text-slate-400">Ek kullanıcı yönetimi hazırlanıyor...</p>
-                <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">Bu alan yakında aktif olacaktır.</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Fatura Bilgisi */}
-        {faturaModal && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40" onClick={() => setFaturaModal(null)}>
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-white/10 w-full max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="font-bold text-gray-900 dark:text-white">Fatura Bilgisi</h4>
-                <button onClick={() => setFaturaModal(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white cursor-pointer">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              </div>
-              <div className="text-center py-8">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-teal-100 dark:bg-teal-500/20 mb-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-teal-600 dark:text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                </div>
-                <p className="text-sm text-gray-500 dark:text-slate-400">Fatura bilgisi modülü hazırlanıyor...</p>
-                <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">Bu alan yakında aktif olacaktır.</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Yeni Paket Ekleme */}
-        {yeniPaketModal && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40" onClick={() => setYeniPaketModal(false)}>
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-white/10 w-full max-w-lg mx-4 p-6" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-5">
-                <h4 className="font-bold text-gray-900 dark:text-white">Yeni Müşteri Paketi</h4>
-                <button onClick={() => setYeniPaketModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white cursor-pointer">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <label className={LABEL_STIL}>Ürün</label>
-                  <select value={yeniForm.urun} onChange={(e) => setYeniForm({ ...yeniForm, urun: e.target.value })}
-                    className={INPUT_STIL + " [&>option]:bg-white [&>option]:dark:bg-slate-800"}>
-                    {URUN_LISTESI.map((u) => <option key={u} value={u}>{u}</option>)}
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={LABEL_STIL}>Paket Tipi</label>
-                    <select value={yeniForm.paket} onChange={(e) => setYeniForm({ ...yeniForm, paket: e.target.value })}
-                      className={INPUT_STIL + " [&>option]:bg-white [&>option]:dark:bg-slate-800"}>
-                      {PAKET_TIPLERI.map((p) => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className={LABEL_STIL}>Kullanım Günü</label>
-                    <input type="number" value={yeniForm.kullanimGunu} onChange={(e) => setYeniForm({ ...yeniForm, kullanimGunu: Number(e.target.value) })} className={INPUT_STIL} />
-                  </div>
-                </div>
-                <div>
-                  <label className={LABEL_STIL}>Domain</label>
-                  <input type="text" value={yeniForm.domain} onChange={(e) => setYeniForm({ ...yeniForm, domain: e.target.value })} className={INPUT_STIL} placeholder="http://ornek.com:9090/" />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={LABEL_STIL}>Başlangıç Tarihi</label>
-                    <input type="date" value={yeniForm.baslangicTarihi} onChange={(e) => setYeniForm({ ...yeniForm, baslangicTarihi: e.target.value })} className={INPUT_STIL} />
-                  </div>
-                  <div>
-                    <label className={LABEL_STIL}>Fiyat</label>
-                    <input type="text" value={yeniForm.fiyat} onChange={(e) => setYeniForm({ ...yeniForm, fiyat: e.target.value })} className={INPUT_STIL} placeholder="0.00" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={LABEL_STIL}>Kullanıcı</label>
-                    <input type="text" value={yeniForm.kullanici} onChange={(e) => setYeniForm({ ...yeniForm, kullanici: e.target.value })} className={INPUT_STIL} placeholder="1 + 1" />
-                  </div>
-                  <div>
-                    <label className={LABEL_STIL}>Fatura No</label>
-                    <input type="text" value={yeniForm.faturaNo} onChange={(e) => setYeniForm({ ...yeniForm, faturaNo: e.target.value })} className={INPUT_STIL} placeholder="Opsiyonel" />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-3 pt-2">
-                  <button onClick={() => setYeniPaketModal(false)}
-                    className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer">İptal</button>
-                  <button onClick={yeniPaketEkle}
-                    className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold cursor-pointer">Paket Ekle</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  /* ============================================= */
   /*  Lisans Belgesi Modalı                        */
   /* ============================================= */
 
@@ -1027,8 +751,65 @@ export default function MusterilerPage() {
   return (
     <div>
       <DuzenleModalBilesen />
-      <PaketModalBilesen />
       <LisansModalBilesen />
+
+      {/* ---- Silme Onay Modalı ---- */}
+      {silOnay && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setSilOnay(null)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 text-center">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-red-100 dark:bg-red-500/20 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Müşteri Silinecek</h3>
+              <p className="text-sm text-gray-500 dark:text-slate-400">
+                <span className="font-semibold text-gray-700 dark:text-white">"{musteriAdi(silOnay)}"</span> adlı müşteriyi silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
+              </p>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-white/10 flex justify-end gap-3">
+              <button onClick={() => setSilOnay(null)}
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer">İptal</button>
+              <button onClick={() => musteriSilIslem(silOnay)}
+                className="px-5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold cursor-pointer inline-flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                Sil
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---- Toplu Silme Onay Modalı ---- */}
+      {topluSilOnay && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setTopluSilOnay(false)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 text-center">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-red-100 dark:bg-red-500/20 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Toplu Silme</h3>
+              <p className="text-sm text-gray-500 dark:text-slate-400">
+                Seçili <span className="font-semibold text-gray-700 dark:text-white">{seciliIdler.size} müşteri</span> silinecek. Bu işlem geri alınamaz.
+              </p>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-white/10 flex justify-end gap-3">
+              <button onClick={() => setTopluSilOnay(false)}
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer">İptal</button>
+              <button onClick={topluSilIslem}
+                className="px-5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold cursor-pointer inline-flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                {seciliIdler.size} Müşteriyi Sil
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Başlık */}
       <div className="mb-8 flex items-center justify-between">
@@ -1057,12 +838,27 @@ export default function MusterilerPage() {
         <div className="rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 overflow-hidden">
           {/* Kontroller */}
           <div className="px-6 py-4 flex items-center justify-between border-b border-gray-200 dark:border-white/10">
-            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
-              <select value={sayfaBoyutu} onChange={(e) => { setSayfaBoyutu(Number(e.target.value)); setAktifSayfa(1); }}
-                className="px-2 py-1.5 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white text-sm cursor-pointer">
-                {[5, 10, 25, 50].map((n) => <option key={n} value={n}>{n}</option>)}
-              </select>
-              <span>kayıt göster</span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
+                <select value={sayfaBoyutu} onChange={(e) => { setSayfaBoyutu(Number(e.target.value)); setAktifSayfa(1); }}
+                  className="px-2 py-1.5 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white text-sm cursor-pointer">
+                  {[5, 10, 25, 50].map((n) => <option key={n} value={n}>{n}</option>)}
+                </select>
+                <span>kayıt göster</span>
+              </div>
+              {/* Görünüm Toggle */}
+              <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-lg border border-gray-200 dark:border-white/10">
+                <button onClick={() => setAktifGorunum("tablo")}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer ${aktifGorunum === "tablo" ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm" : "text-gray-500 dark:text-slate-400"}`}>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
+                </button>
+                <button onClick={() => setAktifGorunum("hiyerarsi")}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer ${aktifGorunum === "hiyerarsi" ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm" : "text-gray-500 dark:text-slate-400"}`}>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" /></svg>
+                </button>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600 dark:text-slate-400">Ara:</span>
@@ -1071,13 +867,63 @@ export default function MusterilerPage() {
             </div>
           </div>
 
-          {/* Tablo */}
+          {/* Toplu İşlem Barı */}
+          {seciliIdler.size > 0 && (
+            <div className="px-6 py-3 bg-blue-50 dark:bg-blue-500/10 border-b border-blue-200 dark:border-blue-500/20 flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                  {seciliIdler.size} müşteri seçildi
+                </span>
+                <button onClick={() => setSeciliIdler(new Set())}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 underline cursor-pointer">Seçimi Temizle</button>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Aktif Yap */}
+                <button onClick={() => topluDurumIslem("Aktif")}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                  Aktif Yap
+                </button>
+                {/* Pasif Yap */}
+                <button onClick={() => topluDurumIslem("Pasif")}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-500 hover:bg-gray-600 text-white text-xs font-semibold cursor-pointer transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                  Pasif Yap
+                </button>
+                {/* CSV Dışa Aktar */}
+                <button onClick={topluDisaAktar}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold cursor-pointer transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                  CSV İndir
+                </button>
+                {/* Toplu Sil */}
+                <button onClick={() => setTopluSilOnay(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold cursor-pointer transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  Toplu Sil
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Tablo Görünümü */}
+          {aktifGorunum === "tablo" && (
+          <>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50 dark:bg-white/[0.03]">
+                  <th className="px-4 py-3 w-12">
+                    <input type="checkbox" checked={hepsiSecili} onChange={tumunuSec}
+                      className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Müşteri Adı</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Tipi</th>
+
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Yetkili Kişi</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Telefon</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">E-posta</th>
@@ -1087,7 +933,11 @@ export default function MusterilerPage() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-white/5">
                 {sayfalananlar.map((m) => (
-                  <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                  <tr key={m.id} className={`hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors ${seciliIdler.has(m.id) ? "bg-blue-50/50 dark:bg-blue-500/5" : ""}`}>
+                    <td className="px-4 py-4">
+                      <input type="checkbox" checked={seciliIdler.has(m.id)} onChange={() => tekSecimToggle(m.id)}
+                        className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                    </td>
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">{musteriAdi(m)}</td>
                     <td className="px-4 py-4">
                       <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${tipRenk(m.tur)}`}>{tipEtiket(m.tur)}</span>
@@ -1107,7 +957,7 @@ export default function MusterilerPage() {
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                         </button>
-                        <button onClick={() => setPaketModal(m)} title="Müşteri Paketleri"
+                        <button onClick={() => git(`/dashboard/musteri-paketleri/${m.id}`)} title="Müşteri Paketleri"
                           className="w-8 h-8 rounded-lg bg-teal-500 hover:bg-teal-600 text-white flex items-center justify-center cursor-pointer">
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
@@ -1116,6 +966,11 @@ export default function MusterilerPage() {
                           className="w-8 h-8 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center cursor-pointer">
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        </button>
+                        <button onClick={() => setSilOnay(m)} title="Sil"
+                          className="w-8 h-8 rounded-lg bg-red-500 hover:bg-red-600 text-white flex items-center justify-center cursor-pointer">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                       </div>
                     </td>
@@ -1141,6 +996,28 @@ export default function MusterilerPage() {
                 className="px-3 py-1.5 rounded-lg text-sm text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-40 cursor-pointer">Sonraki</button>
             </div>
           </div>
+          </>
+          )}
+
+          {/* Hiyerarşi Ağacı Görünümü */}
+          {aktifGorunum === "hiyerarsi" && (
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Müşteri Hiyerarşisi</h3>
+                {odakliId !== null && (
+                  <button onClick={() => setOdakliId(null)}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 cursor-pointer font-medium">Odağı Kaldır</button>
+                )}
+              </div>
+              <div className="space-y-1">
+                {kokMusteriler.length > 0 ? kokMusteriler.map((m) => (
+                  <MusteriAgacDugumu key={m.id} musteri={m} tumMusteriler={musteriler} odakliId={odakliId} setOdakliId={setOdakliId} />
+                )) : (
+                  <p className="text-center text-gray-400 dark:text-slate-500 py-8">Henüz müşteri kaydı bulunmamaktadır.</p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

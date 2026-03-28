@@ -15,6 +15,8 @@ import BayilerPage from "./pages/BayilerPage";
 import LisansYonetimiPage from "./pages/LisansYonetimiPage";
 import YonetimPage from "./pages/YonetimPage";
 import RaporlarPage from "./pages/RaporlarPage";
+import MusteriPaketleriPage from "./pages/MusteriPaketleriPage";
+import AktiviteLoguPage from "./pages/AktiviteLoguPage";
 
 function App() {
   return (
@@ -37,6 +39,9 @@ function App() {
           {/* Musteri Ekleme Sayfasi */}
           <Route path="musteri-ekle" element={<MusteriEklePage />} />
 
+          {/* Musteri Paketleri Sayfasi */}
+          <Route path="musteri-paketleri/:id" element={<MusteriPaketleriPage />} />
+
           {/* Bayiler Sayfasi */}
           <Route path="bayiler" element={<BayilerPage />} />
 
@@ -45,6 +50,9 @@ function App() {
 
           {/* Raporlar Sayfasi */}
           <Route path="raporlar" element={<RaporlarPage />} />
+
+          {/* Aktivite Logu Sayfasi */}
+          <Route path="aktivite-logu" element={<AktiviteLoguPage />} />
 
           {/* Lisans Yonetimi Sayfasi - simdilik pasif */}
           {/* <Route path="yonetim/lisanslar" element={<LisansYonetimiPage />} /> */}
