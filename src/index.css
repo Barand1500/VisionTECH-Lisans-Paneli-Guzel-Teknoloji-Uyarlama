@@ -18,3 +18,15 @@
   75% { transform: translateX(-2px); }
   90% { transform: translateX(1px); }
 }
+
+/* ---- Dashboard Kart Giriş Animasyonu ---- */
+@keyframes kartGir {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

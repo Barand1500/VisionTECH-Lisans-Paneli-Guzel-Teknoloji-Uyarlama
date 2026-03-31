@@ -7,45 +7,11 @@
 /* ============================================= */
 
 import { useState, useRef, useEffect } from "react";
+import { apiGet, apiPost, apiPut } from "../yardimcilar/api";
 
 /* ============================================= */
-/*  Sabitler ve Mock Veri                          */
+/*  Sabitler                                       */
 /* ============================================= */
-
-/** Satılabilir ürün/paket listesi */
-const PAKETLER = [
-  "Vega E-Dönüşüm",
-  "VEMobil Ana Modül",
-  "Vega Muhasebe Pro",
-  "Vega CRM Lite",
-  "Vega CRM Enterprise",
-  "Vega Stok Yönetimi",
-  "Vega İK Modülü",
-  "Vega Raporlama",
-];
-
-/** Mevcut müşteriler (backend'den gelecek) */
-const MEVCUT_MUSTERILER = [
-  { id: 1, ad: "Ercan Güzel" },
-  { id: 2, ad: "Mehmet Yılmaz" },
-  { id: 3, ad: "Ayşe Kara" },
-  { id: 4, ad: "ABC Teknoloji A.Ş." },
-  { id: 5, ad: "Veri Sistemleri Ltd." },
-  { id: 6, ad: "Mega Bilişim A.Ş." },
-  { id: 7, ad: "Anadolu Teknoloji" },
-];
-
-/** Başlangıç lisans verileri */
-const BASLANGIC_LISANSLAR = [
-  { id: 1, musteriId: 4, musteriAd: "ABC Teknoloji A.Ş.", paket: "Vega E-Dönüşüm", domain: "abc-teknoloji.com.tr", baslangic: "2025-01-15", bitis: "2026-01-15", durum: "aktif" },
-  { id: 2, musteriId: 2, musteriAd: "Mehmet Yılmaz", paket: "VEMobil Ana Modül", domain: "192.168.1.50", baslangic: "2025-06-01", bitis: "2026-06-01", durum: "aktif" },
-  { id: 3, musteriId: 5, musteriAd: "Veri Sistemleri Ltd.", paket: "Vega CRM Enterprise", domain: "veri-crm.com", baslangic: "2024-03-10", bitis: "2026-03-10", durum: "aktif" },
-  { id: 4, musteriId: 1, musteriAd: "Ercan Güzel", paket: "Vega Muhasebe Pro", domain: "ercan-muhasebe.com", baslangic: "2024-11-01", bitis: "2025-11-01", durum: "aktif" },
-  { id: 5, musteriId: 6, musteriAd: "Mega Bilişim A.Ş.", paket: "Vega İK Modülü", domain: "mega-ik.internal", baslangic: "2025-02-20", bitis: "2027-02-20", durum: "aktif" },
-  { id: 6, musteriId: 3, musteriAd: "Ayşe Kara", paket: "Vega CRM Lite", domain: "ayse-crm.com.tr", baslangic: "2024-06-15", bitis: "2025-06-15", durum: "aktif" },
-  { id: 7, musteriId: 7, musteriAd: "Anadolu Teknoloji", paket: "Vega Stok Yönetimi", domain: "anadolu-stok.net", baslangic: "2023-09-01", bitis: "2025-09-01", durum: "dondurulmuş" },
-  { id: 8, musteriId: 4, musteriAd: "ABC Teknoloji A.Ş.", paket: "Vega Raporlama", domain: "abc-rapor.com.tr", baslangic: "2024-01-01", bitis: "2025-01-01", durum: "aktif" },
-];
 
 /** Süre seçenekleri */
 const SURE_SECENEKLERI = [
@@ -158,7 +124,9 @@ function aySonrasiTarih(aySayisi) {
 /* ============================================= */
 
 export default function LisansYonetimiPage() {
-  const [lisanslar, setLisanslar] = useState(BASLANGIC_LISANSLAR);
+  const [lisanslar, setLisanslar] = useState([]);
+  const [musteriler, setMusteriler] = useState([]);
+  const [paketListesi, setPaketListesi] = useState([]);
   const [arama, setArama] = useState("");
   const [kartFiltre, setKartFiltre] = useState(null);
   const [formAcik, setFormAcik] = useState(false);
@@ -174,6 +142,36 @@ export default function LisansYonetimiPage() {
   /* ---- Yeni Lisans Form State ---- */
   const bosForm = { paket: "", domain: "", sureTipi: 12, ozelBitis: "" };
   const [form, setForm] = useState(bosForm);
+
+  /* ---- Backend'den veri çek ---- */
+  const verileriYukle = async () => {
+    try {
+      const [lRes, mRes, uRes] = await Promise.all([
+        apiGet("/lisanslar"),
+        apiGet("/musteriler"),
+        apiGet("/urunler"),
+      ]);
+      setLisanslar(lRes.veri.map((l) => ({
+        id: l.id,
+        musteriId: l.musteri_id,
+        musteriAd: l.musteri_adi || "Bilinmiyor",
+        paket: l.urun_adi || l.paket_adi || "Bilinmiyor",
+        domain: l.domain || "",
+        baslangic: l.baslangic_tarihi,
+        bitis: l.bitis_tarihi,
+        durum: l.durum === "suresi-dolmus" ? "aktif" : l.durum,
+      })));
+      setMusteriler(mRes.veri.map((m) => ({
+        id: m.id,
+        ad: m.ad_soyad || m.sirket_adi || "Bilinmiyor",
+      })));
+      setPaketListesi(uRes.veri.map((u) => u.ad));
+    } catch (e) {
+      console.error("Lisans verileri yuklenemedi:", e);
+    }
+  };
+
+  useEffect(() => { verileriYukle(); }, []);
 
   /* ---- Autocomplete dışına tıklama ---- */
   useEffect(() => {
@@ -206,7 +204,7 @@ export default function LisansYonetimiPage() {
   };
 
   /* ---- Filtrelenmiş müşteriler ---- */
-  const filtrelenmisMusteri = MEVCUT_MUSTERILER.filter((m) =>
+  const filtrelenmisMusteri = musteriler.filter((m) =>
     m.ad.toLowerCase().includes(musteriArama.toLowerCase())
   );
 
@@ -246,7 +244,7 @@ export default function LisansYonetimiPage() {
   };
 
   /* ---- Yeni Lisans Kaydet ---- */
-  const lisansKaydet = (e) => {
+  const lisansKaydet = async (e) => {
     e.preventDefault();
     if (!formuDogrula()) return;
 
@@ -255,59 +253,55 @@ export default function LisansYonetimiPage() {
       ? form.ozelBitis
       : aySonrasiTarih(form.sureTipi);
 
-    const yeniLisans = {
-      id: Date.now(),
-      musteriId: secilenMusteri.id,
-      musteriAd: secilenMusteri.ad,
-      paket: form.paket,
-      domain: form.domain,
-      baslangic: bugun,
-      bitis: bitisTarihi,
-      durum: "aktif",
-    };
-
-    console.log("🔑 Yeni lisans verisi (backend'e gönderilecek):", yeniLisans);
-
-    /*
-      TODO: Backend API çağrısı
-      const yanit = await fetch('/api/lisanslar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(yeniLisans),
+    try {
+      await apiPost("/lisanslar", {
+        musteri_id: secilenMusteri.id,
+        urun_id: null,
+        paket_id: null,
+        baslangic_tarihi: bugun,
+        bitis_tarihi: bitisTarihi,
+        durum: "aktif",
+        domain: form.domain,
       });
-    */
-
-    setLisanslar((o) => [...o, yeniLisans]);
-    setForm(bosForm);
-    setSecilenMusteri(null);
-    setMusteriArama("");
-    setHatalar({});
-    setFormAcik(false);
+      await verileriYukle();
+      setForm(bosForm);
+      setSecilenMusteri(null);
+      setMusteriArama("");
+      setHatalar({});
+      setFormAcik(false);
+    } catch (err) {
+      console.error("Lisans kaydetme hatasi:", err);
+    }
   };
 
   /* ---- Lisans Yenile (süresini 1 yıl uzat) ---- */
-  const lisansYenile = (id) => {
-    setLisanslar((o) =>
-      o.map((l) => {
-        if (l.id !== id) return l;
-        const yeniBitis = new Date(l.bitis);
-        yeniBitis.setFullYear(yeniBitis.getFullYear() + 1);
-        console.log(`🔄 Lisans yenilendi (ID: ${id}) → Yeni bitiş: ${yeniBitis.toISOString().slice(0, 10)}`);
-        return { ...l, bitis: yeniBitis.toISOString().slice(0, 10), durum: "aktif" };
-      })
-    );
+  const lisansYenile = async (id) => {
+    const lisans = lisanslar.find((l) => l.id === id);
+    if (!lisans) return;
+    const yeniBitis = new Date(lisans.bitis);
+    yeniBitis.setFullYear(yeniBitis.getFullYear() + 1);
+    try {
+      await apiPut(`/lisanslar/${id}`, {
+        bitis_tarihi: yeniBitis.toISOString().slice(0, 10),
+        durum: "aktif",
+      });
+      await verileriYukle();
+    } catch (err) {
+      console.error("Lisans yenileme hatasi:", err);
+    }
   };
 
   /* ---- Lisans Dondur/Aktifleştir ---- */
-  const lisansDondur = (id) => {
-    setLisanslar((o) =>
-      o.map((l) => {
-        if (l.id !== id) return l;
-        const yeniDurum = l.durum === "dondurulmuş" ? "aktif" : "dondurulmuş";
-        console.log(`❄️ Lisans durum değişikliği (ID: ${id}) → ${yeniDurum}`);
-        return { ...l, durum: yeniDurum };
-      })
-    );
+  const lisansDondur = async (id) => {
+    const lisans = lisanslar.find((l) => l.id === id);
+    if (!lisans) return;
+    const yeniDurum = lisans.durum === "dondurulmuş" ? "aktif" : "dondurulmuş";
+    try {
+      await apiPut(`/lisanslar/${id}`, { durum: yeniDurum });
+      await verileriYukle();
+    } catch (err) {
+      console.error("Lisans dondurma hatasi:", err);
+    }
   };
 
   /* ---- Özet İstatistikler ---- */
@@ -598,7 +592,7 @@ export default function LisansYonetimiPage() {
                   className={(hatalar.paket ? INPUT_STIL.replace("border-gray-300 dark:border-white/10", "border-red-400 dark:border-red-500/40") : INPUT_STIL) + " [&>option]:bg-white [&>option]:dark:bg-slate-800 [&>option]:text-gray-900 [&>option]:dark:text-white"}
                 >
                   <option value="">Paket seçiniz...</option>
-                  {PAKETLER.map((p) => (
+                  {paketListesi.map((p) => (
                     <option key={p} value={p}>{p}</option>
                   ))}
                 </select>

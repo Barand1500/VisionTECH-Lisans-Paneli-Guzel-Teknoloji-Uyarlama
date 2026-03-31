@@ -5,8 +5,9 @@
 /*  Gece/Gündüz modu destekli                    */
 /* ============================================= */
 
-import { useState, useRef } from "react";
-import KopyalaButonu from "../components/KopyalaButonu";
+import { useState, useRef, useEffect } from "react";
+import KopyalaButonu from "../bilesenler/KopyalaButonu";
+import { apiGet, apiPost, apiPut, apiDelete } from "../yardimcilar/api";
 
 /* ============================================= */
 /*  Sabitler                                      */
@@ -42,10 +43,18 @@ const SEKMELER = [
     id: "kullanicilar", etiket: "Kullanıcılar",
     ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>,
   },
+  {
+    id: "roller", etiket: "Roller",
+    ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>,
+  },
+  {
+    id: "veriYedekleme", etiket: "Veri Yedekleme",
+    ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>,
+  },
 ];
 
 /* ============================================= */
-/*  Mock Veriler                                  */
+/*  Sabitler (Dropdown Seçenekleri)                */
 /* ============================================= */
 
 const URUN_GRUPLARI = [
@@ -59,100 +68,7 @@ const UYGULAMA_TIPLERI = ["WEB", "WINDOWS", "MOBİL", "API", "-"];
 
 const PAKET_TIPLERI = ["AKTİVASYON", "EK KULLANICI", "YENİLEME", "UPGRADE", "DENEME", "BAKIM"];
 
-const BASLANGIC_PAKETLER = [
-  { id: 1, urunId: 11, urunAdi: "Kurumsal E-Posta 5GB", tipi: "AKTİVASYON", adi: "Business Starter - Aktivasyon", kullanimGunu: 365, fiyati: 0, kullaniciSayisi: 1, aktif: true },
-  { id: 2, urunId: 11, urunAdi: "Kurumsal E-Posta 5GB", tipi: "EK KULLANICI", adi: "Business Starter - Ek Kullanıcı", kullanimGunu: 365, fiyati: 0, kullaniciSayisi: 0, aktif: true },
-  { id: 3, urunId: 11, urunAdi: "Kurumsal E-Posta 5GB", tipi: "YENİLEME", adi: "Business Starter - Yenileme", kullanimGunu: 365, fiyati: 0, kullaniciSayisi: 1, aktif: true },
-  { id: 4, urunId: 12, urunAdi: "Kurumsal E-Posta 10GB", tipi: "AKTİVASYON", adi: "Business Plus - Aktivasyon", kullanimGunu: 365, fiyati: 120, kullaniciSayisi: 1, aktif: true },
-  { id: 5, urunId: 12, urunAdi: "Kurumsal E-Posta 10GB", tipi: "YENİLEME", adi: "Business Plus - Yenileme", kullanimGunu: 365, fiyati: 100, kullaniciSayisi: 1, aktif: true },
-  { id: 6, urunId: 8, urunAdi: "CRM Yazılımı", tipi: "AKTİVASYON", adi: "CRM Pro - Aktivasyon", kullanimGunu: 365, fiyati: 2500, kullaniciSayisi: 5, aktif: true },
-  { id: 7, urunId: 8, urunAdi: "CRM Yazılımı", tipi: "EK KULLANICI", adi: "CRM Pro - Ek Kullanıcı", kullanimGunu: 365, fiyati: 500, kullaniciSayisi: 0, aktif: true },
-  { id: 8, urunId: 8, urunAdi: "CRM Yazılımı", tipi: "YENİLEME", adi: "CRM Pro - Yenileme", kullanimGunu: 365, fiyati: 2000, kullaniciSayisi: 5, aktif: true },
-  { id: 9, urunId: 8, urunAdi: "CRM Yazılımı", tipi: "UPGRADE", adi: "CRM Pro - Enterprise Upgrade", kullanimGunu: 365, fiyati: 3500, kullaniciSayisi: 10, aktif: true },
-  { id: 10, urunId: 9, urunAdi: "E-Ticaret Paketi", tipi: "AKTİVASYON", adi: "E-Ticaret Başlangıç", kullanimGunu: 365, fiyati: 1500, kullaniciSayisi: 2, aktif: true },
-  { id: 11, urunId: 9, urunAdi: "E-Ticaret Paketi", tipi: "BAKIM", adi: "E-Ticaret Bakım Paketi", kullanimGunu: 365, fiyati: 800, kullaniciSayisi: 0, aktif: true },
-  { id: 12, urunId: 5, urunAdi: "Başlangıç Hosting", tipi: "AKTİVASYON", adi: "Hosting Başlangıç - Aktivasyon", kullanimGunu: 365, fiyati: 250, kullaniciSayisi: 1, aktif: true },
-  { id: 13, urunId: 5, urunAdi: "Başlangıç Hosting", tipi: "YENİLEME", adi: "Hosting Başlangıç - Yenileme", kullanimGunu: 365, fiyati: 200, kullaniciSayisi: 1, aktif: true },
-  { id: 14, urunId: 6, urunAdi: "Profesyonel Hosting", tipi: "AKTİVASYON", adi: "Hosting Pro - Aktivasyon", kullanimGunu: 365, fiyati: 500, kullaniciSayisi: 1, aktif: true },
-  { id: 15, urunId: 10, urunAdi: "Muhasebe Pro", tipi: "AKTİVASYON", adi: "Muhasebe Pro - Lisans", kullanimGunu: 365, fiyati: 3000, kullaniciSayisi: 3, aktif: true },
-  { id: 16, urunId: 10, urunAdi: "Muhasebe Pro", tipi: "EK KULLANICI", adi: "Muhasebe Pro - Ek Kullanıcı", kullanimGunu: 365, fiyati: 600, kullaniciSayisi: 0, aktif: true },
-  { id: 17, urunId: 13, urunAdi: "Standart SSL", tipi: "AKTİVASYON", adi: "SSL Standart - 1 Yıl", kullanimGunu: 365, fiyati: 150, kullaniciSayisi: 0, aktif: true },
-  { id: 18, urunId: 15, urunAdi: "Toplu SMS 1000", tipi: "AKTİVASYON", adi: "1000 SMS Paketi", kullanimGunu: 180, fiyati: 200, kullaniciSayisi: 0, aktif: true },
-];
 
-const BASLANGIC_URUNLER = [
-  { id: 1, grubu: "Alan Adı", adi: ".com.tr Alan Adı", urunTipi: "DOMAIN", uygulamaTipi: "-", ozelProje: false, aktif: true },
-  { id: 2, grubu: "Alan Adı", adi: ".com Alan Adı", urunTipi: "DOMAIN", uygulamaTipi: "-", ozelProje: false, aktif: true },
-  { id: 3, grubu: "Alan Adı", adi: ".net Alan Adı", urunTipi: "DOMAIN", uygulamaTipi: "-", ozelProje: false, aktif: true },
-  { id: 4, grubu: "Alan Adı", adi: ".org Alan Adı", urunTipi: "DOMAIN", uygulamaTipi: "-", ozelProje: false, aktif: false },
-  { id: 5, grubu: "Hosting", adi: "Başlangıç Hosting", urunTipi: "HOSTING", uygulamaTipi: "WEB", ozelProje: false, aktif: true },
-  { id: 6, grubu: "Hosting", adi: "Profesyonel Hosting", urunTipi: "HOSTING", uygulamaTipi: "WEB", ozelProje: false, aktif: true },
-  { id: 7, grubu: "Hosting", adi: "Kurumsal Hosting", urunTipi: "HOSTING", uygulamaTipi: "WEB", ozelProje: false, aktif: true },
-  { id: 8, grubu: "Yazılım", adi: "CRM Yazılımı", urunTipi: "YAZILIM", uygulamaTipi: "WINDOWS", ozelProje: true, aktif: true },
-  { id: 9, grubu: "Yazılım", adi: "E-Ticaret Paketi", urunTipi: "YAZILIM", uygulamaTipi: "WEB", ozelProje: false, aktif: true },
-  { id: 10, grubu: "Yazılım", adi: "Muhasebe Pro", urunTipi: "YAZILIM", uygulamaTipi: "WINDOWS", ozelProje: true, aktif: true },
-  { id: 11, grubu: "E-Posta", adi: "Kurumsal E-Posta 5GB", urunTipi: "E-POSTA", uygulamaTipi: "WEB", ozelProje: false, aktif: true },
-  { id: 12, grubu: "E-Posta", adi: "Kurumsal E-Posta 10GB", urunTipi: "E-POSTA", uygulamaTipi: "WEB", ozelProje: false, aktif: true },
-  { id: 13, grubu: "SSL", adi: "Standart SSL", urunTipi: "SSL", uygulamaTipi: "-", ozelProje: false, aktif: true },
-  { id: 14, grubu: "SSL", adi: "Wildcard SSL", urunTipi: "SSL", uygulamaTipi: "-", ozelProje: false, aktif: true },
-  { id: 15, grubu: "SMS", adi: "Toplu SMS 1000", urunTipi: "SMS", uygulamaTipi: "API", ozelProje: false, aktif: true },
-  { id: 16, grubu: "SMS", adi: "Toplu SMS 5000", urunTipi: "SMS", uygulamaTipi: "API", ozelProje: false, aktif: false },
-  { id: 17, grubu: "Sunucu", adi: "VPS Başlangıç", urunTipi: "SUNUCU", uygulamaTipi: "-", ozelProje: false, aktif: true },
-  { id: 18, grubu: "Sunucu", adi: "VPS Profesyonel", urunTipi: "SUNUCU", uygulamaTipi: "-", ozelProje: false, aktif: true },
-  { id: 19, grubu: "KEP", adi: "KEP Hesabı Bireysel", urunTipi: "KEP", uygulamaTipi: "WEB", ozelProje: false, aktif: true },
-  { id: 20, grubu: "KEP", adi: "KEP Hesabı Kurumsal", urunTipi: "KEP", uygulamaTipi: "WEB", ozelProje: false, aktif: true },
-  { id: 21, grubu: "E-Tuğra", adi: "E-İmza Başlangıç", urunTipi: "E-TUĞRA", uygulamaTipi: "WINDOWS", ozelProje: false, aktif: true },
-  { id: 22, grubu: "E-Tuğra", adi: "E-İmza Profesyonel", urunTipi: "E-TUĞRA", uygulamaTipi: "WINDOWS", ozelProje: false, aktif: false },
-  { id: 23, grubu: "Diğer", adi: "Bakım Anlaşması Temel", urunTipi: "BAKIM ANLAŞMASI", uygulamaTipi: "-", ozelProje: false, aktif: true },
-  { id: 24, grubu: "Diğer", adi: "Bakım Anlaşması Pro", urunTipi: "BAKIM ANLAŞMASI", uygulamaTipi: "-", ozelProje: false, aktif: true },
-  { id: 25, grubu: "Bulut Hizmetleri", adi: "Bulut Depolama 50GB", urunTipi: "HOSTING", uygulamaTipi: "WEB", ozelProje: false, aktif: true },
-  { id: 26, grubu: "Yazılım", adi: "Stok Takip Sistemi", urunTipi: "YAZILIM", uygulamaTipi: "WEB", ozelProje: true, aktif: true },
-  { id: 27, grubu: "Hosting", adi: "WordPress Hosting", urunTipi: "HOSTING", uygulamaTipi: "WEB", ozelProje: false, aktif: true },
-  { id: 28, grubu: "Alan Adı", adi: ".com.tr Alan Adı (2 Yıl)", urunTipi: "DOMAIN", uygulamaTipi: "-", ozelProje: false, aktif: true },
-  { id: 29, grubu: "Yazılım", adi: "Mobil Uygulama Paketi", urunTipi: "YAZILIM", uygulamaTipi: "MOBİL", ozelProje: true, aktif: false },
-  { id: 30, grubu: "SSL", adi: "EV SSL Sertifikası", urunTipi: "SSL", uygulamaTipi: "-", ozelProje: false, aktif: true },
-];
-
-const BASLANGIC_URUN_GRUPLARI_VERI = [
-  { id: 1, ad: "Alan Adı", aciklama: "Domain ve alan adı hizmetleri", aktif: true },
-  { id: 2, ad: "Diğer", aciklama: "Diğer hizmetler ve bakım anlaşmaları", aktif: true },
-  { id: 3, ad: "E-Posta", aciklama: "Kurumsal e-posta çözümleri", aktif: true },
-  { id: 4, ad: "E-Tuğra", aciklama: "Elektronik imza hizmetleri", aktif: true },
-  { id: 5, ad: "Hosting", aciklama: "Web barındırma hizmetleri", aktif: true },
-  { id: 6, ad: "KEP", aciklama: "Kayıtlı elektronik posta", aktif: true },
-  { id: 7, ad: "SMS", aciklama: "Toplu SMS hizmetleri", aktif: true },
-  { id: 8, ad: "SSL", aciklama: "SSL sertifika hizmetleri", aktif: true },
-  { id: 9, ad: "Sunucu", aciklama: "VPS ve sunucu hizmetleri", aktif: true },
-  { id: 10, ad: "Yazılım", aciklama: "Yazılım ürünleri ve lisanslar", aktif: true },
-  { id: 11, ad: "Bulut Hizmetleri", aciklama: "Bulut depolama ve servisleri", aktif: true },
-];
-
-const BASLANGIC_SURUMLER = [
-  { id: 1, urunAdi: "CRM Yazılımı", surum: "3.2.1", tarih: "2025-01-15", duzenlenenler: "Performans iyileştirmeleri, veritabanı sorgu optimizasyonu", eklenenler: "", cikarilanlar: "", dosyaAdi: "", aktif: true },
-  { id: 2, urunAdi: "CRM Yazılımı", surum: "3.1.0", tarih: "2024-11-20", duzenlenenler: "", eklenenler: "Yeni raporlama modülü", cikarilanlar: "", dosyaAdi: "", aktif: false },
-  { id: 7, urunAdi: "CRM Yazılımı", surum: "3.0.0", tarih: "2024-08-10", duzenlenenler: "Arayüz yenilendi", eklenenler: "Yeni dashboard, gelişmiş grafikler", cikarilanlar: "Eski widget sistemi", dosyaAdi: "CRM_v3.0.0.zip", aktif: false },
-  { id: 8, urunAdi: "CRM Yazılımı", surum: "2.9.5", tarih: "2024-06-01", duzenlenenler: "Güvenlik yamaları", eklenenler: "", cikarilanlar: "", dosyaAdi: "", aktif: false },
-  { id: 9, urunAdi: "CRM Yazılımı", surum: "2.8.0", tarih: "2024-03-22", duzenlenenler: "", eklenenler: "Çoklu dil desteği", cikarilanlar: "", dosyaAdi: "", aktif: false },
-  { id: 3, urunAdi: "E-Ticaret Paketi", surum: "2.5.0", tarih: "2025-02-01", duzenlenenler: "", eklenenler: "Ödeme entegrasyonu", cikarilanlar: "", dosyaAdi: "", aktif: true },
-  { id: 10, urunAdi: "E-Ticaret Paketi", surum: "2.4.0", tarih: "2024-10-15", duzenlenenler: "", eklenenler: "Kargo entegrasyonu", cikarilanlar: "", dosyaAdi: "", aktif: false },
-  { id: 11, urunAdi: "E-Ticaret Paketi", surum: "2.3.1", tarih: "2024-07-08", duzenlenenler: "Sepet hata düzeltmesi", eklenenler: "", cikarilanlar: "", dosyaAdi: "", aktif: false },
-  { id: 12, urunAdi: "E-Ticaret Paketi", surum: "2.2.0", tarih: "2024-04-20", duzenlenenler: "", eklenenler: "Ürün varyant desteği", cikarilanlar: "", dosyaAdi: "", aktif: false },
-  { id: 4, urunAdi: "Muhasebe Pro", surum: "4.0.0", tarih: "2025-01-10", duzenlenenler: "Tüm arayüz yeniden tasarlandı", eklenenler: "Yeni arayüz tasarımı", cikarilanlar: "", dosyaAdi: "MuhasebePro_v4.0.0.zip", aktif: true },
-  { id: 13, urunAdi: "Muhasebe Pro", surum: "3.5.2", tarih: "2024-09-18", duzenlenenler: "", eklenenler: "E-Fatura güncellemesi", cikarilanlar: "", dosyaAdi: "", aktif: false },
-  { id: 14, urunAdi: "Muhasebe Pro", surum: "3.4.0", tarih: "2024-05-12", duzenlenenler: "KDV hesaplama düzeltmesi", eklenenler: "", cikarilanlar: "", dosyaAdi: "", aktif: false },
-  { id: 5, urunAdi: "Stok Takip Sistemi", surum: "1.0.0", tarih: "2024-12-05", duzenlenenler: "", eklenenler: "İlk sürüm", cikarilanlar: "", dosyaAdi: "", aktif: true },
-  { id: 6, urunAdi: "Mobil Uygulama Paketi", surum: "1.2.0", tarih: "2025-01-25", duzenlenenler: "", eklenenler: "iOS desteği", cikarilanlar: "", dosyaAdi: "", aktif: true },
-  { id: 15, urunAdi: "Mobil Uygulama Paketi", surum: "1.1.0", tarih: "2024-11-10", duzenlenenler: "", eklenenler: "Bildirim sistemi", cikarilanlar: "", dosyaAdi: "", aktif: false },
-  { id: 16, urunAdi: "Mobil Uygulama Paketi", surum: "1.0.0", tarih: "2024-09-01", duzenlenenler: "", eklenenler: "İlk sürüm - Android", cikarilanlar: "", dosyaAdi: "", aktif: false },
-];
-
-const BASLANGIC_KULLANICILAR = [
-  { id: 1, ad: "Ercan Güzel", eposta: "ercan@guzelteknoloji.com", rol: "Admin", durum: "aktif", sonGiris: "2025-02-10 14:30" },
-  { id: 2, ad: "Semihcan Güzel", eposta: "semihcan@guzelteknoloji.com", rol: "Editör", durum: "aktif", sonGiris: "2025-02-10 09:15" },
-  { id: 3, ad: "Baran Ürüncan", eposta: "baran@guzelteknoloji.com", rol: "Görüntüleyici", durum: "pasif", sonGiris: "2025-01-28 16:45" },
-  { id: 4, ad: "Süleyman Güzel", eposta: "suleyman@guzelteknoloji.com", rol: "Admin", durum: "aktif", sonGiris: "2025-02-09 11:20" },
-  { id: 5, ad: "Aykut", eposta: "aykut@guzelteknoloji.com", rol: "Editör", durum: "aktif", sonGiris: "2025-02-10 08:50" },
-];
 
 /* ============================================= */
 /*  Ana Bileşen                                   */
@@ -192,6 +108,8 @@ export default function YonetimPage() {
       {aktifSekme === "urunGruplari" && <UrunGruplariSekmesi />}
       {aktifSekme === "surumler" && <SurumlerSekmesi />}
       {aktifSekme === "kullanicilar" && <KullanicilarSekmesi />}
+      {aktifSekme === "roller" && <RollerSekmesi />}
+      {aktifSekme === "veriYedekleme" && <VeriYedeklemeSekmesi />}
     </div>
   );
 }
@@ -201,14 +119,48 @@ export default function YonetimPage() {
 /* ============================================= */
 
 function UrunlerSekmesi() {
-  const [urunler, setUrunler] = useState(BASLANGIC_URUNLER);
-  const [paketler, setPaketler] = useState(BASLANGIC_PAKETLER);
+  const [urunler, setUrunler] = useState([]);
+  const [paketler, setPaketler] = useState([]);
   const [filtreGrup, setFiltreGrup] = useState("");
   const [filtreDurum, setFiltreDurum] = useState("");
   const [sayfa, setSayfa] = useState(1);
   const [modal, setModal] = useState(null); // null | "yeni" | urunObjesi (düzenleme)
   const [paketModal, setPaketModal] = useState(null); // null | urunObjesi (paketleri göster)
   const sayfaBasi = 10;
+
+  const verileriYukle = async () => {
+    try {
+      const [uRes, pRes] = await Promise.all([
+        apiGet("/urunler"),
+        apiGet("/urunler/paketler/tumu"),
+      ]);
+      setUrunler(uRes.veri.map((u) => ({
+        id: u.id,
+        grubu: u.grup_adi || "",
+        adi: u.ad,
+        urunTipi: u.urun_tipi || "",
+        uygulamaTipi: u.uygulama_tipi || "-",
+        ozelProje: !!u.ozel_proje,
+        aktif: !!u.aktif,
+        grup_id: u.grup_id,
+      })));
+      setPaketler(pRes.veri.map((p) => ({
+        id: p.id,
+        urunId: p.urun_id,
+        urunAdi: p.urun_adi || "",
+        tipi: p.tipi || "",
+        adi: p.ad,
+        kullanimGunu: p.kullanim_gunu || 365,
+        fiyati: p.fiyat || 0,
+        kullaniciSayisi: p.kullanici_sayisi || 0,
+        aktif: !!p.aktif,
+      })));
+    } catch (e) {
+      console.error("Urun verileri yuklenemedi:", e);
+    }
+  };
+
+  useEffect(() => { verileriYukle(); }, []);
 
   /* ---- Filtreleme ---- */
   const filtrelenmis = urunler.filter((u) => {
@@ -224,19 +176,36 @@ function UrunlerSekmesi() {
   const sifirla = () => { setFiltreGrup(""); setFiltreDurum(""); setSayfa(1); };
 
   /* ---- Ürün Kaydet (Ekle veya Güncelle) ---- */
-  const urunKaydet = (veri) => {
-    if (veri.id) {
-      setUrunler((o) => o.map((u) => u.id === veri.id ? { ...u, ...veri } : u));
-    } else {
-      const yeniId = Math.max(...urunler.map((u) => u.id), 0) + 1;
-      setUrunler((o) => [...o, { ...veri, id: yeniId }]);
+  const urunKaydet = async (veri) => {
+    try {
+      const gonder = {
+        grup_id: veri.grup_id || null,
+        ad: veri.adi,
+        urun_tipi: veri.urunTipi,
+        uygulama_tipi: veri.uygulamaTipi,
+        ozel_proje: veri.ozelProje,
+        aktif: veri.aktif,
+      };
+      if (veri.id) {
+        await apiPut(`/urunler/${veri.id}`, gonder);
+      } else {
+        await apiPost("/urunler", gonder);
+      }
+      await verileriYukle();
+      setModal(null);
+    } catch (e) {
+      console.error("Urun kaydetme hatasi:", e);
     }
-    setModal(null);
   };
 
   /* ---- Ürün Sil ---- */
-  const urunSil = (id) => {
-    setUrunler((o) => o.filter((u) => u.id !== id));
+  const urunSil = async (id) => {
+    try {
+      await apiDelete(`/urunler/${id}`);
+      await verileriYukle();
+    } catch (e) {
+      console.error("Urun silme hatasi:", e);
+    }
   };
 
   return (
@@ -381,7 +350,7 @@ function UrunlerSekmesi() {
       {modal && <UrunModal modal={modal} kapat={() => setModal(null)} kaydet={urunKaydet} />}
 
       {/* ---- Paketler Modalı ---- */}
-      {paketModal && <PaketlerModal urun={paketModal} kapat={() => setPaketModal(null)} paketler={paketler} setPaketler={setPaketler} tumUrunler={urunler} />}
+      {paketModal && <PaketlerModal urun={paketModal} kapat={() => setPaketModal(null)} paketler={paketler} setPaketler={setPaketler} tumUrunler={urunler} paketleriYenile={verileriYukle} />}
     </div>
   );
 }
@@ -390,7 +359,7 @@ function UrunlerSekmesi() {
 /*  Paketler Modalı (Ürünün Paketleri)           */
 /* ============================================= */
 
-function PaketlerModal({ urun, kapat, paketler, setPaketler, tumUrunler }) {
+function PaketlerModal({ urun, kapat, paketler, setPaketler, tumUrunler, paketleriYenile }) {
   const [arama, setArama] = useState("");
   const [sayfa, setSayfa] = useState(1);
   const [paketForm, setPaketForm] = useState(null); // null | "yeni" | paketObjesi
@@ -406,18 +375,36 @@ function PaketlerModal({ urun, kapat, paketler, setPaketler, tumUrunler }) {
   const toplamSayfa = Math.ceil(filtrelenmis.length / sayfaBasi);
   const sayfaPaketler = filtrelenmis.slice((sayfa - 1) * sayfaBasi, sayfa * sayfaBasi);
 
-  const paketKaydet = (veri) => {
-    if (veri.id) {
-      setPaketler((o) => o.map((p) => p.id === veri.id ? { ...p, ...veri } : p));
-    } else {
-      const yeniId = Math.max(...paketler.map((p) => p.id), 0) + 1;
-      setPaketler((o) => [...o, { ...veri, id: yeniId, urunId: urun.id, urunAdi: urun.adi }]);
+  const paketKaydet = async (veri) => {
+    try {
+      const gonder = {
+        urun_id: veri.urunId || urun.id,
+        ad: veri.adi,
+        tipi: veri.tipi,
+        kullanim_gunu: veri.kullanimGunu,
+        fiyat: veri.fiyati,
+        kullanici_sayisi: veri.kullaniciSayisi,
+        aktif: veri.aktif,
+      };
+      if (veri.id) {
+        await apiPut(`/urunler/paketler/${veri.id}`, gonder);
+      } else {
+        await apiPost("/urunler/paketler", gonder);
+      }
+      await paketleriYenile();
+      setPaketForm(null);
+    } catch (e) {
+      console.error("Paket kaydetme hatasi:", e);
     }
-    setPaketForm(null);
   };
 
-  const paketSil = (id) => {
-    setPaketler((o) => o.filter((p) => p.id !== id));
+  const paketSil = async (id) => {
+    try {
+      await apiDelete(`/urunler/paketler/${id}`);
+      await paketleriYenile();
+    } catch (e) {
+      console.error("Paket silme hatasi:", e);
+    }
   };
 
   return (
@@ -766,17 +753,38 @@ function UrunModal({ modal, kapat, kaydet }) {
 /* ============================================= */
 
 function UrunGruplariSekmesi() {
-  const [gruplar, setGruplar] = useState(BASLANGIC_URUN_GRUPLARI_VERI);
+  const [gruplar, setGruplar] = useState([]);
   const [modal, setModal] = useState(null); // null | "yeni" | grupObjesi
 
-  const kaydet = (veri) => {
-    if (veri.id) {
-      setGruplar((o) => o.map((g) => g.id === veri.id ? { ...g, ...veri } : g));
-    } else {
-      const yeniId = Math.max(...gruplar.map((g) => g.id), 0) + 1;
-      setGruplar((o) => [...o, { ...veri, id: yeniId }]);
+  const verileriYukle = async () => {
+    try {
+      const res = await apiGet("/urunler/gruplar");
+      setGruplar(res.veri.map((g) => ({
+        id: g.id,
+        ad: g.ad,
+        aciklama: g.aciklama || "",
+        aktif: !!g.aktif,
+      })));
+    } catch (e) {
+      console.error("Grup verileri yuklenemedi:", e);
     }
-    setModal(null);
+  };
+
+  useEffect(() => { verileriYukle(); }, []);
+
+  const kaydet = async (veri) => {
+    try {
+      const gonder = { ad: veri.ad, aciklama: veri.aciklama, aktif: veri.aktif };
+      if (veri.id) {
+        await apiPut(`/urunler/gruplar/${veri.id}`, gonder);
+      } else {
+        await apiPost("/urunler/gruplar", gonder);
+      }
+      await verileriYukle();
+      setModal(null);
+    } catch (e) {
+      console.error("Grup kaydetme hatasi:", e);
+    }
   };
 
   return (
@@ -897,7 +905,7 @@ const surumOzet = (s) => {
 };
 
 function SurumlerSekmesi() {
-  const [surumler, setSurumler] = useState(BASLANGIC_SURUMLER);
+  const [surumler, setSurumler] = useState([]);
   const [modal, setModal] = useState(null);
   const [detayModal, setDetayModal] = useState(null);
   const [acikGruplar, setAcikGruplar] = useState({});
@@ -905,6 +913,27 @@ function SurumlerSekmesi() {
   const [silOnay, setSilOnay] = useState(null);
   const [dosyaSilOnay, setDosyaSilOnay] = useState(null);
   const dosyaInputRef = useRef(null);
+
+  const verileriYukle = async () => {
+    try {
+      const res = await apiGet("/surumler");
+      setSurumler(res.veri.map((s) => ({
+        id: s.id,
+        urunAdi: s.urun_adi || "",
+        surum: s.surum,
+        tarih: s.tarih ? s.tarih.slice(0, 10) : "",
+        duzenlenenler: s.duzenlenenler || "",
+        eklenenler: s.eklenenler || "",
+        cikarilanlar: s.cikarilanlar || "",
+        dosyaAdi: s.dosya_adi || "",
+        aktif: !!s.aktif,
+      })));
+    } catch (e) {
+      console.error("Surum verileri yuklenemedi:", e);
+    }
+  };
+
+  useEffect(() => { verileriYukle(); }, []);
 
   /* Dosya değiştir / kaldır */
   const dosyaDegistir = (id) => {
@@ -928,24 +957,40 @@ function SurumlerSekmesi() {
   };
 
   /* Sürüm sil (onaylı) */
-  const surumSilOnayla = () => {
+  const surumSilOnayla = async () => {
     if (!silOnay) return;
-    setSurumler((o) => o.filter((s) => s.id !== silOnay.id));
-    if (detayModal && detayModal.id === silOnay.id) setDetayModal(null);
-    setSilOnay(null);
+    try {
+      await apiDelete(`/surumler/${silOnay.id}`);
+      await verileriYukle();
+      if (detayModal && detayModal.id === silOnay.id) setDetayModal(null);
+      setSilOnay(null);
+    } catch (e) {
+      console.error("Surum silme hatasi:", e);
+    }
   };
 
-  const kaydet = (veri) => {
-    if (veri.id) {
-      setSurumler((o) => o.map((s) => s.id === veri.id ? { ...s, ...veri } : s));
-    } else {
-      const yeniId = Math.max(...surumler.map((s) => s.id), 0) + 1;
-      setSurumler((o) => [
-        ...o.map((s) => s.urunAdi === veri.urunAdi && s.aktif ? { ...s, aktif: false } : s),
-        { ...veri, id: yeniId, aktif: true },
-      ]);
+  const kaydet = async (veri) => {
+    try {
+      const gonder = {
+        urun_adi: veri.urunAdi,
+        surum: veri.surum,
+        tarih: veri.tarih,
+        duzenlenenler: veri.duzenlenenler,
+        eklenenler: veri.eklenenler,
+        cikarilanlar: veri.cikarilanlar,
+        dosya_adi: veri.dosyaAdi,
+        aktif: veri.aktif,
+      };
+      if (veri.id) {
+        await apiPut(`/surumler/${veri.id}`, gonder);
+      } else {
+        await apiPost("/surumler", gonder);
+      }
+      await verileriYukle();
+      setModal(null);
+    } catch (e) {
+      console.error("Surum kaydetme hatasi:", e);
     }
-    setModal(null);
   };
 
   /* ---- Ürün adına göre grupla, her grupta tarihe göre sırala (en yeni ilk) ---- */
@@ -1548,27 +1593,54 @@ function SurumModal({ modal, kapat, kaydet, surumler }) {
 /* ============================================= */
 
 function KullanicilarSekmesi() {
-  const [kullanicilar, setKullanicilar] = useState(BASLANGIC_KULLANICILAR);
+  const [kullanicilar, setKullanicilar] = useState([]);
   const [modal, setModal] = useState(null);
   const [bildirim, setBildirim] = useState(null);
+  const [yukleniyor, setYukleniyor] = useState(true);
 
-  const kaydet = (veri) => {
-    const yeniKayit = !veri.id;
-    if (veri.id) {
-      setKullanicilar((o) => o.map((k) => k.id === veri.id ? { ...k, ...veri } : k));
-    } else {
-      const yeniId = Math.max(...kullanicilar.map((k) => k.id), 0) + 1;
-      setKullanicilar((o) => [...o, { ...veri, id: yeniId }]);
-    }
-    setModal(null);
-    if (yeniKayit && veri.eposta) {
-      setBildirim(`${veri.eposta} adresine davet e-postası gönderildi.`);
+  const kullanicilariGetir = () => {
+    setYukleniyor(true);
+    apiGet("/yetki/kullanicilar")
+      .then((v) => setKullanicilar(v.veri))
+      .catch((h) => setBildirim("Kullanıcılar yüklenemedi: " + h.message))
+      .finally(() => setYukleniyor(false));
+  };
+
+  useEffect(() => { kullanicilariGetir(); }, []);
+
+  /* rol map: backend enum → frontend label */
+  const rolMap = { admin: "Admin", kullanici: "Editör", izleyici: "Görüntüleyici" };
+  const rolLabel = (r) => rolMap[r] || r;
+
+  const kaydet = async (veri) => {
+    try {
+      if (veri.id) {
+        /* Güncelleme */
+        const gonderilecek = { ad_soyad: veri.ad_soyad, eposta: veri.eposta, rol: veri.rol, aktif: veri.aktif === "aktif" || veri.aktif === true };
+        if (veri.sifre) gonderilecek.sifre = veri.sifre;
+        await apiPut("/yetki/kullanicilar/" + veri.id, gonderilecek);
+      } else {
+        /* Yeni kayıt */
+        await apiPost("/yetki/kullanicilar", { ad_soyad: veri.ad_soyad, eposta: veri.eposta, sifre: veri.sifre, rol: veri.rol, aktif: veri.aktif === "aktif" || veri.aktif === true });
+      }
+      setModal(null);
+      kullanicilariGetir();
+      setBildirim(veri.id ? "Kullanıcı güncellendi." : "Kullanıcı eklendi.");
+      setTimeout(() => setBildirim(null), 3000);
+    } catch (h) {
+      setBildirim("Hata: " + h.message);
       setTimeout(() => setBildirim(null), 4000);
     }
   };
 
-  const sil = (id) => {
-    setKullanicilar((o) => o.filter((k) => k.id !== id));
+  const sil = async (id) => {
+    try {
+      await apiDelete("/yetki/kullanicilar/" + id);
+      kullanicilariGetir();
+    } catch (h) {
+      setBildirim("Silme hatası: " + h.message);
+      setTimeout(() => setBildirim(null), 4000);
+    }
   };
 
   return (
@@ -1598,25 +1670,25 @@ function KullanicilarSekmesi() {
                 <td className="px-4 py-3.5">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
-                      <span className="text-xs font-bold text-blue-700 dark:text-blue-400">{k.ad.split(" ").map((x) => x[0]).join("")}</span>
+                      <span className="text-xs font-bold text-blue-700 dark:text-blue-400">{(k.ad_soyad || "").split(" ").map((x) => x[0]).join("")}</span>
                     </div>
-                    <span className="font-medium text-gray-900 dark:text-white">{k.ad}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">{k.ad_soyad}</span>
                   </div>
                 </td>
                 <td className="px-4 py-3.5 text-gray-600 dark:text-slate-400 text-sm"><span className="inline-flex items-center group">{k.eposta}<KopyalaButonu metin={k.eposta} /></span></td>
                 <td className="px-4 py-3.5">
                   <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                    k.rol === "Admin" ? "bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400"
-                    : k.rol === "Editör" ? "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400"
+                    k.rol === "admin" ? "bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400"
+                    : k.rol === "kullanici" ? "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400"
                     : "bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-slate-400"
-                  }`}>{k.rol}</span>
+                  }`}>{rolLabel(k.rol)}</span>
                 </td>
                 <td className="px-4 py-3.5">
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${k.durum === "aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400"}`}>
-                    {k.durum === "aktif" ? "Aktif" : "Pasif"}
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${k.aktif ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400"}`}>
+                    {k.aktif ? "Aktif" : "Pasif"}
                   </span>
                 </td>
-                <td className="px-4 py-3.5 text-gray-600 dark:text-slate-400 text-sm">{k.sonGiris}</td>
+                <td className="px-4 py-3.5 text-gray-600 dark:text-slate-400 text-sm">{k.son_giris ? new Date(k.son_giris).toLocaleString("tr-TR") : "-"}</td>
                 <td className="px-4 py-3.5">
                   <div className="flex items-center gap-1.5">
                     <button onClick={() => setModal(k)} title="Düzenle"
@@ -1655,18 +1727,24 @@ function KullaniciModal({ modal, kapat, kaydet }) {
   const duzenle = modal !== "yeni";
   const [form, setForm] = useState({
     id: duzenle ? modal.id : null,
-    ad: duzenle ? modal.ad : "",
+    ad_soyad: duzenle ? modal.ad_soyad : "",
     eposta: duzenle ? modal.eposta : "",
-    rol: duzenle ? modal.rol : "Görüntüleyici",
-    durum: duzenle ? modal.durum : "aktif",
-    sonGiris: duzenle ? modal.sonGiris : "-",
+    sifre: "",
+    rol: duzenle ? modal.rol : "izleyici",
+    aktif: duzenle ? (modal.aktif ? "aktif" : "pasif") : "aktif",
   });
+  const [roller, setRoller] = useState([]);
   const ref = useRef(null);
   const sallanma = () => { if (ref.current) { ref.current.classList.remove("sallan"); void ref.current.offsetWidth; ref.current.classList.add("sallan"); } };
 
+  useEffect(() => {
+    apiGet("/roller").then((res) => setRoller(res.veri || [])).catch(() => {});
+  }, []);
+
   const gonder = (e) => {
     e.preventDefault();
-    if (!form.ad || !form.eposta) return;
+    if (!form.ad_soyad || !form.eposta) return;
+    if (!duzenle && !form.sifre) return;
     kaydet(form);
   };
 
@@ -1683,23 +1761,33 @@ function KullaniciModal({ modal, kapat, kaydet }) {
         <form onSubmit={gonder} className="p-6 space-y-4">
           <div>
             <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ad Soyad <span className="text-red-500">*</span></label>
-            <input type="text" value={form.ad} onChange={(e) => setForm((o) => ({ ...o, ad: e.target.value }))} className={INPUT_STIL} required />
+            <input type="text" value={form.ad_soyad} onChange={(e) => setForm((o) => ({ ...o, ad_soyad: e.target.value }))} className={INPUT_STIL} required />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">E-Posta <span className="text-red-500">*</span></label>
             <input type="email" value={form.eposta} onChange={(e) => setForm((o) => ({ ...o, eposta: e.target.value }))} className={INPUT_STIL} required />
           </div>
           <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Şifre {!duzenle && <span className="text-red-500">*</span>}{duzenle && <span className="text-gray-400 text-[10px]">(boş bırakılırsa değişmez)</span>}</label>
+            <input type="password" value={form.sifre} onChange={(e) => setForm((o) => ({ ...o, sifre: e.target.value }))} className={INPUT_STIL} required={!duzenle} placeholder={duzenle ? "••••••••" : ""} />
+          </div>
+          <div>
             <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Rol</label>
             <select value={form.rol} onChange={(e) => setForm((o) => ({ ...o, rol: e.target.value }))} className={INPUT_STIL}>
-              <option value="Admin">Admin</option>
-              <option value="Editör">Editör</option>
-              <option value="Görüntüleyici">Görüntüleyici</option>
+              {roller.length > 0 ? roller.map((r) => (
+                <option key={r.id} value={r.ad}>{r.ad.charAt(0).toUpperCase() + r.ad.slice(1)}</option>
+              )) : (
+                <>
+                  <option value="admin">Admin</option>
+                  <option value="kullanici">Editör</option>
+                  <option value="izleyici">Görüntüleyici</option>
+                </>
+              )}
             </select>
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Durum</label>
-            <select value={form.durum} onChange={(e) => setForm((o) => ({ ...o, durum: e.target.value }))} className={INPUT_STIL}>
+            <select value={form.aktif} onChange={(e) => setForm((o) => ({ ...o, aktif: e.target.value }))} className={INPUT_STIL}>
               <option value="aktif">Aktif</option>
               <option value="pasif">Pasif</option>
             </select>
@@ -1714,6 +1802,465 @@ function KullaniciModal({ modal, kapat, kaydet }) {
           </div>
         </form>
       </div>
+    </div>
+  );
+}
+
+/* ============================================= */
+/*  Roller Sekmesi                                */
+/* ============================================= */
+
+/* İzin tanımları — anahtar → etiket */
+const IZIN_TANIMLARI = {
+  ozet:            { etiket: "Özet Paneli" },
+  musteriler:      { etiket: "Müşteriler" },
+  bayiler:         { etiket: "Bayiler" },
+  yonetim:         { etiket: "Yönetim" },
+  lisans_yonetimi: { etiket: "Lisans Yönetimi" },
+  raporlar:        { etiket: "Raporlar" },
+  takvim:          { etiket: "Takvim" },
+  aktivite_logu:   { etiket: "Aktivite Logu" },
+  yedekleme:       { etiket: "Yedekleme" },
+};
+
+const TUM_IZIN_ANAHTARLARI = Object.keys(IZIN_TANIMLARI);
+
+function RollerSekmesi() {
+  const [roller, setRoller] = useState([]);
+  const [modal, setModal] = useState(null);
+  const [yukleniyor, setYukleniyor] = useState(true);
+
+  const rolleriGetir = async () => {
+    setYukleniyor(true);
+    try {
+      const res = await apiGet("/roller");
+      setRoller(res.veri || []);
+    } catch (e) {
+      console.error("Roller yuklenemedi:", e);
+    } finally {
+      setYukleniyor(false);
+    }
+  };
+
+  useEffect(() => { rolleriGetir(); }, []);
+
+  const kaydet = async (veri) => {
+    try {
+      const gonder = { ad: veri.ad, aciklama: veri.aciklama, izinler: veri.izinler, aktif: veri.aktif };
+      if (veri.id) {
+        await apiPut("/roller/" + veri.id, gonder);
+      } else {
+        await apiPost("/roller", gonder);
+      }
+      setModal(null);
+      rolleriGetir();
+    } catch (e) {
+      console.error("Rol kaydetme hatasi:", e);
+    }
+  };
+
+  const sil = async (id) => {
+    try {
+      await apiDelete("/roller/" + id);
+      rolleriGetir();
+    } catch (e) {
+      alert(e.message || "Silme hatası oluştu.");
+    }
+  };
+
+  return (
+    <div>
+      {/* ---- Üst Bar ---- */}
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm text-gray-500 dark:text-slate-400">{roller.length} rol tanımlı</p>
+        <button onClick={() => setModal("yeni")}
+          className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-lg shadow-emerald-600/25 transition-colors cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+          Yeni Rol
+        </button>
+      </div>
+
+      {/* ---- Rol Kartları ---- */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+        {roller.map((rol) => {
+          const izinler = Array.isArray(rol.izinler) ? rol.izinler : [];
+          return (
+            <div key={rol.id} className="rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 overflow-hidden transition-all hover:shadow-md hover:border-gray-300 dark:hover:border-white/20">
+              {/* Kart Başlık */}
+              <div className="px-5 py-4 flex items-start justify-between">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                    rol.ad === "admin" ? "bg-violet-100 dark:bg-violet-500/15" :
+                    rol.ad === "kullanici" ? "bg-blue-100 dark:bg-blue-500/15" :
+                    rol.ad === "izleyici" ? "bg-gray-100 dark:bg-white/10" :
+                    "bg-amber-100 dark:bg-amber-500/15"
+                  }`}>
+                    <svg xmlns="http://www.w3.org/2000/svg" className={`w-5 h-5 ${
+                      rol.ad === "admin" ? "text-violet-600 dark:text-violet-400" :
+                      rol.ad === "kullanici" ? "text-blue-600 dark:text-blue-400" :
+                      rol.ad === "izleyici" ? "text-gray-500 dark:text-slate-400" :
+                      "text-amber-600 dark:text-amber-400"
+                    }`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-bold text-gray-900 dark:text-white capitalize truncate">{rol.ad}</h4>
+                      {rol.varsayilan ? (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-400 font-medium shrink-0">SİSTEM</span>
+                      ) : null}
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5 line-clamp-1">{rol.aciklama || "—"}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 shrink-0 ml-2">
+                  <button onClick={() => setModal(rol)} title="Düzenle"
+                    className="w-7 h-7 rounded-lg bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center cursor-pointer transition-colors shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  </button>
+                  {!rol.varsayilan && (
+                    <button onClick={() => sil(rol.id)} title="Sil"
+                      className="w-7 h-7 rounded-lg bg-red-500 hover:bg-red-600 text-white flex items-center justify-center cursor-pointer transition-colors shadow-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* İzin Çipleri */}
+              <div className="px-5 pb-4">
+                <p className="text-[10px] font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2">Erişim İzinleri ({izinler.length}/{TUM_IZIN_ANAHTARLARI.length})</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {TUM_IZIN_ANAHTARLARI.map((anahtar) => {
+                    const aktif = izinler.includes(anahtar);
+                    const tanim = IZIN_TANIMLARI[anahtar];
+                    return (
+                      <span key={anahtar} className={`inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-md font-medium transition-all ${
+                        aktif
+                          ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20"
+                          : "bg-gray-50 dark:bg-white/[0.03] text-gray-400 dark:text-slate-600 border border-gray-200 dark:border-white/5 line-through opacity-50"
+                      }`}>
+                        {aktif ? (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                        )}
+                        {tanim.etiket}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Kart Alt Bilgi */}
+              <div className="px-5 py-2.5 border-t border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02] flex items-center justify-between">
+                <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${rol.aktif ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400"}`}>
+                  {rol.aktif ? "Aktif" : "Pasif"}
+                </span>
+                <span className="text-[11px] text-gray-400 dark:text-slate-500">
+                  {rol.olusturma_tarihi ? new Date(rol.olusturma_tarihi).toLocaleDateString("tr-TR") : ""}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {yukleniyor && roller.length === 0 && (
+        <div className="flex items-center justify-center py-16 text-gray-400 dark:text-slate-500 text-sm">Yükleniyor...</div>
+      )}
+
+      {modal && <RolModal modal={modal} kapat={() => setModal(null)} kaydet={kaydet} />}
+    </div>
+  );
+}
+
+/* ============================================= */
+/*  Rol Oluştur/Düzenle Modalı                   */
+/* ============================================= */
+
+function RolModal({ modal, kapat, kaydet }) {
+  const duzenle = modal !== "yeni";
+  const mevcutIzinler = duzenle && Array.isArray(modal.izinler) ? modal.izinler : [];
+  const [form, setForm] = useState({
+    id: duzenle ? modal.id : null,
+    ad: duzenle ? modal.ad : "",
+    aciklama: duzenle ? (modal.aciklama || "") : "",
+    izinler: duzenle ? [...mevcutIzinler] : [],
+    aktif: duzenle ? !!modal.aktif : true,
+  });
+  const ref = useRef(null);
+  const sallanma = () => { if (ref.current) { ref.current.classList.remove("sallan"); void ref.current.offsetWidth; ref.current.classList.add("sallan"); } };
+
+  const izinToggle = (anahtar) => {
+    setForm((o) => ({
+      ...o,
+      izinler: o.izinler.includes(anahtar)
+        ? o.izinler.filter((i) => i !== anahtar)
+        : [...o.izinler, anahtar],
+    }));
+  };
+
+  const tumunuSec = () => setForm((o) => ({ ...o, izinler: [...TUM_IZIN_ANAHTARLARI] }));
+  const tumunuKaldir = () => setForm((o) => ({ ...o, izinler: [] }));
+
+  const gonder = (e) => {
+    e.preventDefault();
+    if (!form.ad.trim()) return;
+    if (form.izinler.length === 0) return;
+    kaydet(form);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={sallanma}>
+      <div ref={ref} className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+        {/* Başlık */}
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-violet-100 dark:bg-violet-500/15 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4.5 h-4.5 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">{duzenle ? "Rol Düzenle" : "Yeni Rol"}</h3>
+          </div>
+          <button onClick={kapat} className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        <form onSubmit={gonder} className="p-6 space-y-5">
+          {/* Rol Adı */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Rol Adı <span className="text-red-500">*</span></label>
+            <input type="text" value={form.ad} onChange={(e) => setForm((o) => ({ ...o, ad: e.target.value }))} className={INPUT_STIL} placeholder="Örn: muhasebeci" required />
+          </div>
+
+          {/* Açıklama */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Açıklama</label>
+            <input type="text" value={form.aciklama} onChange={(e) => setForm((o) => ({ ...o, aciklama: e.target.value }))} className={INPUT_STIL} placeholder="Rolün kısa açıklaması" />
+          </div>
+
+          {/* İzinler */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300">Erişim İzinleri <span className="text-red-500">*</span></label>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={tumunuSec} className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">Tümünü Seç</button>
+                <span className="text-gray-300 dark:text-slate-600">|</span>
+                <button type="button" onClick={tumunuKaldir} className="text-[11px] text-red-500 dark:text-red-400 hover:underline cursor-pointer">Temizle</button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {TUM_IZIN_ANAHTARLARI.map((anahtar) => {
+                const tanim = IZIN_TANIMLARI[anahtar];
+                const secili = form.izinler.includes(anahtar);
+                return (
+                  <button
+                    key={anahtar}
+                    type="button"
+                    onClick={() => izinToggle(anahtar)}
+                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border text-left text-sm font-medium transition-all cursor-pointer ${
+                      secili
+                        ? "border-blue-300 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400"
+                        : "border-gray-200 dark:border-white/10 bg-white dark:bg-white/[0.02] text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all ${
+                      secili ? "border-blue-500 bg-blue-500" : "border-gray-300 dark:border-white/20"
+                    }`}>
+                      {secili && (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                      )}
+                    </div>
+                    {tanim.etiket}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-2">{form.izinler.length}/{TUM_IZIN_ANAHTARLARI.length} modül seçili</p>
+          </div>
+
+          {/* Durum */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Durum</label>
+            <select value={form.aktif ? "aktif" : "pasif"} onChange={(e) => setForm((o) => ({ ...o, aktif: e.target.value === "aktif" }))} className={INPUT_STIL}>
+              <option value="aktif">Aktif</option>
+              <option value="pasif">Pasif</option>
+            </select>
+          </div>
+
+          {/* Butonlar */}
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={kapat}
+              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer">İptal</button>
+            <button type="submit"
+              className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold cursor-pointer">
+              {duzenle ? "Güncelle" : "Kaydet"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================= */
+/*  Veri Yedekleme Sekmesi                        */
+/* ============================================= */
+function VeriYedeklemeSekmesi() {
+  const [loglar, setLoglar] = useState([]);
+  const [yukleniyor, setYukleniyor] = useState(true);
+
+  const loglariGetir = async () => {
+    setYukleniyor(true);
+    try {
+      const cevap = await apiGet("/yedekleme/loglar");
+      setLoglar(Array.isArray(cevap) ? cevap : (cevap?.veri || []));
+    } catch {
+      setLoglar([]);
+    } finally {
+      setYukleniyor(false);
+    }
+  };
+
+  useEffect(() => { loglariGetir(); }, []);
+
+  const boyutFormatla = (byte) => {
+    if (!byte) return "—";
+    if (byte < 1024) return byte + " B";
+    if (byte < 1024 * 1024) return (byte / 1024).toFixed(1) + " KB";
+    return (byte / (1024 * 1024)).toFixed(2) + " MB";
+  };
+
+  const tarihFormatla = (t) => {
+    if (!t) return "—";
+    const d = new Date(t);
+    return d.toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric" }) +
+      " " + d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Başlık */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Yedekleme Geçmişi</h3>
+          <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+            Tüm yedek alma ve geri yükleme işlemlerinin kaydı
+          </p>
+        </div>
+        <button onClick={loglariGetir}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-medium hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Yenile
+        </button>
+      </div>
+
+      {/* Tablo */}
+      {yukleniyor ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      ) : loglar.length === 0 ? (
+        <div className="text-center py-16">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 mx-auto text-gray-300 dark:text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+          </svg>
+          <p className="text-sm text-gray-500 dark:text-slate-400">Henüz yedekleme kaydı bulunmuyor</p>
+          <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">Kenar çubuğundaki "Veri Yedekle" butonunu kullanarak yedekleme yapabilirsiniz</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-white/[0.06]">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 dark:bg-white/[0.02] border-b border-gray-200 dark:border-white/[0.06]">
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Tarih</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Kullanıcı</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">İşlem</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Dosya</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Boyut</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Tablolar</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Kayıtlar</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Durum</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-white/[0.04]">
+              {loglar.map((log) => (
+                <tr key={log.id} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-slate-300 whitespace-nowrap">{tarihFormatla(log.tarih)}</td>
+                  <td className="px-4 py-3">
+                    <div className="text-xs font-medium text-gray-900 dark:text-white">{log.kullanici_adi || "—"}</div>
+                    <div className="text-[11px] text-gray-400 dark:text-slate-500">{log.kullanici_eposta || "—"}</div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium ${
+                      log.islem_tipi === "yedek_alma"
+                        ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                        : "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                    }`}>
+                      {log.islem_tipi === "yedek_alma" ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                      )}
+                      {log.islem_tipi === "yedek_alma" ? "Yedek Alma" : "Geri Yükleme"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-slate-300 max-w-[200px] truncate" title={log.dosya_adi || ""}>
+                    {log.dosya_adi || "—"}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-500 dark:text-slate-400 text-right whitespace-nowrap">{boyutFormatla(log.dosya_boyutu)}</td>
+                  <td className="px-4 py-3 text-xs text-gray-500 dark:text-slate-400 text-center">{log.tablo_sayisi ?? "—"}</td>
+                  <td className="px-4 py-3 text-xs text-gray-500 dark:text-slate-400 text-center">{log.kayit_sayisi != null ? log.kayit_sayisi.toLocaleString("tr-TR") : "—"}</td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={`inline-flex px-2 py-0.5 rounded-md text-[11px] font-medium ${
+                      log.durum === "basarili"
+                        ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        : "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400"
+                    }`}>
+                      {log.durum === "basarili" ? "Başarılı" : "Başarısız"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Detay bilgileri - son log varsa */}
+      {loglar.length > 0 && loglar[0].detay && (
+        <div className="p-3 rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/[0.06]">
+          <p className="text-[11px] font-semibold text-gray-500 dark:text-slate-400 mb-1">Son İşlem Detayı</p>
+          <p className="text-xs text-gray-600 dark:text-slate-300">{loglar[0].detay}</p>
+        </div>
+      )}
+
+      {/* Özet */}
+      {loglar.length > 0 && (
+        <div className="flex gap-3 text-xs text-gray-400 dark:text-slate-500">
+          <span>Toplam: {loglar.length} kayıt</span>
+          <span>•</span>
+          <span>Yedek Alma: {loglar.filter(l => l.islem_tipi === "yedek_alma").length}</span>
+          <span>•</span>
+          <span>Geri Yükleme: {loglar.filter(l => l.islem_tipi === "geri_yukleme").length}</span>
+        </div>
+      )}
     </div>
   );
 }

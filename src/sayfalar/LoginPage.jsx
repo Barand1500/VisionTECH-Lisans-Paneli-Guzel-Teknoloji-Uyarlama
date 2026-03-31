@@ -6,10 +6,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-/* ---- Geçici Test Kullanıcı Bilgileri ---- */
-const GECERLI_EPOSTA = "test@test.com";
-const GECERLI_SIFRE = "123";
+import { useAuth } from "../baglam/AuthContext";
 
 export default function LoginPage() {
   /* ---- Form State Tanımlamaları ---- */
@@ -19,24 +16,22 @@ export default function LoginPage() {
   const [yukleniyor, setYukleniyor] = useState(false);
 
   const yonlendirici = useNavigate();
+  const { girisYap } = useAuth();
 
   /* ---- Giriş Formu Gönderme İşlemi ---- */
-  const girisYap = (e) => {
+  const girisIsle = async (e) => {
     e.preventDefault();
     setHataMesaji("");
     setYukleniyor(true);
 
-    // Küçük bir gecikme ile gerçekçi bir deneyim simülasyonu
-    setTimeout(() => {
-      if (epostaAdresi === GECERLI_EPOSTA && sifre === GECERLI_SIFRE) {
-        /* Başarılı giriş - Dashboard'a yönlendir */
-        yonlendirici("/dashboard");
-      } else {
-        /* Hatalı giriş - Uyarı mesajı göster */
-        setHataMesaji("E-posta adresi veya şifre hatalı. Lütfen tekrar deneyin.");
-      }
+    try {
+      await girisYap(epostaAdresi, sifre);
+      yonlendirici("/dashboard");
+    } catch (hata) {
+      setHataMesaji(hata.message || "Giriş başarısız. Lütfen tekrar deneyin.");
+    } finally {
       setYukleniyor(false);
-    }, 600);
+    }
   };
 
   /* ---- Sayfa Render ---- */
@@ -63,7 +58,7 @@ export default function LoginPage() {
           )}
 
           {/* ---- Giriş Formu ---- */}
-          <form onSubmit={girisYap} className="space-y-5">
+          <form onSubmit={girisIsle} className="space-y-5">
 
             {/* ---- E-posta Alanı ---- */}
             <div>
@@ -109,7 +104,7 @@ export default function LoginPage() {
 
           {/* ---- Alt Bilgi ---- */}
           <p className="text-center text-gray-400 dark:text-slate-500 text-xs mt-6">
-            Demo: test@test.com / 123
+            Güzel Teknoloji Yönetim Paneli
           </p>
         </div>
       </div>

@@ -9,9 +9,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMusteriler } from "../context/MusteriContext";
-import { useAktiviteLog } from "../context/AktiviteLogContext";
-import KopyalaButonu from "../components/KopyalaButonu";
+import { useMusteriler } from "../baglam/MusteriContext";
+import { useAktiviteLog } from "../baglam/AktiviteLogContext";
+import KopyalaButonu from "../bilesenler/KopyalaButonu";
 
 /* ---- Sekme Tanımları ---- */
 const SEKMELER = [
@@ -61,15 +61,6 @@ const sallanmaStili = document.getElementById("sallanma-stili") || (() => {
   document.head.appendChild(s);
   return s;
 })();
-
-/* ---- Mock Üst Müşteri Listesi ---- */
-const MEVCUT_MUSTERILER = [
-  { id: 1, ad: "Ercan Güzel" },
-  { id: 2, ad: "Mehmet Yılmaz" },
-  { id: 3, ad: "Ayşe Kara" },
-  { id: 4, ad: "ABC Teknoloji A.Ş." },
-  { id: 5, ad: "Veri Sistemleri Ltd." },
-];
 
 /* ---- Yardımcı Fonksiyonlar ---- */
 const telefonFormatla = (deger) => {
@@ -147,9 +138,9 @@ function MusteriAgacDugumu({ musteri, tumMusteriler, seviye = 0, odakliId, setOd
           <p className="text-xs text-gray-400 dark:text-slate-500">{musteri.yetkiliKisi || musteri.eposta || "—"}</p>
         </div>
         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-          musteri.durum === "Aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-500"
+          musteri.durum === "aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-500"
         }`}>
-          {musteri.durum || "Aktif"}
+          {musteri.durum || "aktif"}
         </span>
       </div>
       {altMusteriler.map((alt) => (
@@ -165,18 +156,43 @@ function MusteriAgacDugumu({ musteri, tumMusteriler, seviye = 0, odakliId, setOd
 
 export default function MusterilerPage() {
   const git = useNavigate();
-  const { musteriler, musteriGuncelle, musteriSil, topluSil, topluDurumGuncelle } = useMusteriler();
+  const { musteriler, musteriGuncelle, musteriSil, topluSil, topluDurumGuncelle, notlar, notEkle, notSil } = useMusteriler();
   const { logEkle } = useAktiviteLog();
 
   const [arama, setArama] = useState("");
   const [sayfaBoyutu, setSayfaBoyutu] = useState(10);
   const [aktifSayfa, setAktifSayfa] = useState(1);
 
+  /* Sıralama */
+  const [siralamaAlani, setSiralamaAlani] = useState(null);
+  const [siralamaYonu, setSiralamaYonu] = useState("asc");
+
+  const siralamaToggle = (alan) => {
+    if (siralamaAlani === alan) {
+      setSiralamaYonu((o) => (o === "asc" ? "desc" : "asc"));
+    } else {
+      setSiralamaAlani(alan);
+      setSiralamaYonu("asc");
+    }
+  };
+
+  const SiralamaIkon = ({ alan }) => {
+    if (siralamaAlani !== alan) return <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 ml-1 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>;
+    return siralamaYonu === "asc"
+      ? <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 ml-1 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"/></svg>
+      : <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 ml-1 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>;
+  };
+
   /* Modal states */
   const [duzenleModal, setDuzenleModal] = useState(null);
   const [lisansModal, setLisansModal] = useState(null);
   const [silOnay, setSilOnay] = useState(null);
   const [topluSilOnay, setTopluSilOnay] = useState(false);
+
+  /* Not modalı */
+  const [notModal, setNotModal] = useState(null);
+  const [yeniNot, setYeniNot] = useState("");
+  const [yeniNotOnemli, setYeniNotOnemli] = useState(false);
 
   /* Toplu seçim */
   const [seciliIdler, setSeciliIdler] = useState(new Set());
@@ -198,7 +214,7 @@ export default function MusterilerPage() {
     return () => window.removeEventListener("keydown", escKapat);
   }, []);
 
-  /* ---- Arama filtresi ---- */
+  /* ---- Arama filtresi + Sıralama ---- */
   const filtrelenenler = musteriler.filter((m) => {
     const q = arama.toLowerCase();
     return (
@@ -210,8 +226,24 @@ export default function MusterilerPage() {
     );
   });
 
-  const toplamSayfa = Math.max(1, Math.ceil(filtrelenenler.length / sayfaBoyutu));
-  const sayfalananlar = filtrelenenler.slice(
+  const siraliListe = [...filtrelenenler].sort((a, b) => {
+    if (!siralamaAlani) return 0;
+    let dA, dB;
+    switch (siralamaAlani) {
+      case "ad": dA = (a.adSoyad || a.sirketAdi || "").toLowerCase(); dB = (b.adSoyad || b.sirketAdi || "").toLowerCase(); break;
+      case "tur": dA = a.tur || ""; dB = b.tur || ""; break;
+      case "yetkili": dA = (a.yetkiliKisi || "").toLowerCase(); dB = (b.yetkiliKisi || "").toLowerCase(); break;
+      case "eposta": dA = (a.eposta || "").toLowerCase(); dB = (b.eposta || "").toLowerCase(); break;
+      case "durum": dA = a.durum || ""; dB = b.durum || ""; break;
+      default: return 0;
+    }
+    if (dA < dB) return siralamaYonu === "asc" ? -1 : 1;
+    if (dA > dB) return siralamaYonu === "asc" ? 1 : -1;
+    return 0;
+  });
+
+  const toplamSayfa = Math.max(1, Math.ceil(siraliListe.length / sayfaBoyutu));
+  const sayfalananlar = siraliListe.slice(
     (aktifSayfa - 1) * sayfaBoyutu,
     aktifSayfa * sayfaBoyutu
   );
@@ -324,7 +356,7 @@ export default function MusterilerPage() {
       ustMusteriArama: "",
       telefonlar: (m.telefonlar && m.telefonlar.length > 0) ? [...m.telefonlar] : [""],
       adresler: (m.adresler && m.adresler.length > 0) ? [...m.adresler] : [""],
-      durum: m.durum === "Aktif" || m.durum === true,
+      durum: m.durum === "aktif" || m.durum === true,
       sektor: m.sektor || "",
     });
     const [hatalar, setHatalar] = useState({});
@@ -339,10 +371,7 @@ export default function MusterilerPage() {
       return () => document.removeEventListener("mousedown", disari);
     }, []);
 
-    const tumMusteriler = [
-      ...MEVCUT_MUSTERILER,
-      ...musteriler.filter((x) => x.id !== m.id).map((x) => ({ id: x.id, ad: x.adSoyad || x.sirketAdi || `Müşteri #${x.id}` })),
-    ];
+    const tumMusteriler = musteriler.filter((x) => x.id !== m.id).map((x) => ({ id: x.id, ad: x.adSoyad || x.sirketAdi || `Müşteri #${x.id}` }));
 
     const filtreliUstler = tumMusteriler.filter((x) =>
       x.ad.toLowerCase().includes(form.ustMusteriArama.toLowerCase())
@@ -391,7 +420,7 @@ export default function MusterilerPage() {
         ustMusteri: form.ustMusteri,
         telefonlar: form.telefonlar.filter((t) => t.trim()),
         adresler: form.adresler.filter((a) => a.trim()),
-        durum: form.durum ? "Aktif" : "Pasif",
+        durum: form.durum ? "aktif" : "pasif",
         ...(aktifSekme === "gercek" && { adSoyad: form.adSoyad, tcKimlikNo: form.tcKimlikNo, yetkiliKisi: form.yetkiliKisi, sirketAdi: form.sirketAdi }),
         ...(aktifSekme === "tuzel" && { sirketAdi: form.sirketAdi, yetkiliKisi: form.yetkiliKisi, vergiDairesi: form.vergiDairesi, vergiNo: form.vergiNo }),
         ...(aktifSekme === "yabanci" && { adSoyad: form.adSoyad, sirketAdi: form.sirketAdi, pasaportNo: form.pasaportNo, yetkiliKisi: form.yetkiliKisi }),
@@ -684,7 +713,7 @@ export default function MusterilerPage() {
           ${m.pasaportNo ? `<tr><td>Pasaport No</td><td>${m.pasaportNo}</td></tr>` : ""}
           <tr><td>E-posta</td><td>${m.eposta || "-"}</td></tr>
           <tr><td>Telefon</td><td>${(m.telefonlar || []).join(", ") || "-"}</td></tr>
-          <tr><td>Durum</td><td><span class="badge ${m.durum === "Aktif" ? "aktif" : "pasif"}">${m.durum}</span></td></tr>
+          <tr><td>Durum</td><td><span class="badge ${m.durum === "aktif" ? "aktif" : "pasif"}">${m.durum}</span></td></tr>
           <tr><td>Tarih</td><td>${bugun}</td></tr>
         </table></div>
         <div class="footer"><p>Bu belge Güzel Teknoloji Yönetim Paneli tarafından oluşturulmuştur.</p><p>&copy; ${new Date().getFullYear()} Güzel Teknoloji</p></div>
@@ -715,7 +744,7 @@ export default function MusterilerPage() {
                   ["Müşteri", musteriAdi(m)],
                   ["Tip", <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${tipRenk(m.tur)}`}>{tipEtiket(m.tur)}</span>],
                   m.eposta && ["E-posta", m.eposta],
-                  ["Durum", <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${m.durum === "Aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400"}`}>{m.durum}</span>],
+                  ["Durum", <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${m.durum === "aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400"}`}>{m.durum}</span>],
                   ["Tarih", bugun],
                 ].filter(Boolean).map(([label, val], i) => (
                   <div key={i} className="flex justify-between py-2 border-b border-gray-100 dark:border-white/5">
@@ -879,14 +908,14 @@ export default function MusterilerPage() {
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 {/* Aktif Yap */}
-                <button onClick={() => topluDurumIslem("Aktif")}
+                <button onClick={() => topluDurumIslem("aktif")}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer transition-colors">
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                   Aktif Yap
                 </button>
                 {/* Pasif Yap */}
-                <button onClick={() => topluDurumIslem("Pasif")}
+                <button onClick={() => topluDurumIslem("pasif")}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-500 hover:bg-gray-600 text-white text-xs font-semibold cursor-pointer transition-colors">
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
@@ -921,13 +950,12 @@ export default function MusterilerPage() {
                     <input type="checkbox" checked={hepsiSecili} onChange={tumunuSec}
                       className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-blue-600 focus:ring-blue-500 cursor-pointer" />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Müşteri Adı</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Tipi</th>
-
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Yetkili Kişi</th>
+                  <th onClick={() => siralamaToggle("ad")} className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-white select-none"><span className="inline-flex items-center">Müşteri Adı<SiralamaIkon alan="ad" /></span></th>
+                  <th onClick={() => siralamaToggle("tur")} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-white select-none"><span className="inline-flex items-center">Tipi<SiralamaIkon alan="tur" /></span></th>
+                  <th onClick={() => siralamaToggle("yetkili")} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-white select-none"><span className="inline-flex items-center">Yetkili Kişi<SiralamaIkon alan="yetkili" /></span></th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Telefon</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">E-posta</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Durum</th>
+                  <th onClick={() => siralamaToggle("eposta")} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-white select-none"><span className="inline-flex items-center">E-posta<SiralamaIkon alan="eposta" /></span></th>
+                  <th onClick={() => siralamaToggle("durum")} className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-white select-none"><span className="inline-flex items-center justify-center">Durum<SiralamaIkon alan="durum" /></span></th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">İşlemler</th>
                 </tr>
               </thead>
@@ -947,7 +975,7 @@ export default function MusterilerPage() {
                     <td className="px-4 py-4 text-sm text-gray-600 dark:text-slate-400"><span className="inline-flex items-center group">{m.eposta || "-"}<KopyalaButonu metin={m.eposta} /></span></td>
                     <td className="px-4 py-4 text-center">
                       <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
-                        m.durum === "Aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400"
+                        m.durum === "aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400"
                       }`}>{m.durum}</span>
                     </td>
                     <td className="px-4 py-4">
@@ -967,6 +995,14 @@ export default function MusterilerPage() {
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                         </button>
+                        <button onClick={() => { setNotModal(m); setYeniNot(""); setYeniNotOnemli(false); }} title="Notlar"
+                          className="w-8 h-8 rounded-lg bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center cursor-pointer relative">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
+                          {notlar.filter((n) => n.musteriId === m.id).length > 0 && (
+                            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-[10px] text-white flex items-center justify-center font-bold">{notlar.filter((n) => n.musteriId === m.id).length}</span>
+                          )}
+                        </button>
                         <button onClick={() => setSilOnay(m)} title="Sil"
                           className="w-8 h-8 rounded-lg bg-red-500 hover:bg-red-600 text-white flex items-center justify-center cursor-pointer">
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -983,7 +1019,7 @@ export default function MusterilerPage() {
           {/* Sayfalama */}
           <div className="px-6 py-4 flex items-center justify-between border-t border-gray-200 dark:border-white/10">
             <p className="text-sm text-gray-500 dark:text-slate-400">
-              Toplam {filtrelenenler.length} kayıttan {Math.min((aktifSayfa - 1) * sayfaBoyutu + 1, filtrelenenler.length)}-{Math.min(aktifSayfa * sayfaBoyutu, filtrelenenler.length)} arası gösteriliyor
+              Toplam {siraliListe.length} kayıttan {Math.min((aktifSayfa - 1) * sayfaBoyutu + 1, siraliListe.length)}-{Math.min(aktifSayfa * sayfaBoyutu, siraliListe.length)} arası gösteriliyor
             </p>
             <div className="flex items-center gap-1">
               <button onClick={() => setAktifSayfa((o) => Math.max(1, o - 1))} disabled={aktifSayfa === 1}
@@ -1018,6 +1054,68 @@ export default function MusterilerPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ---- Not / Yorum Modalı ---- */}
+      {notModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setNotModal(null)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-lg mx-4 max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            {/* Başlık */}
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Notlar</h3>
+                <p className="text-sm text-gray-500 dark:text-slate-400">{musteriAdi(notModal)}</p>
+              </div>
+              <button onClick={() => setNotModal(null)} className="w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center cursor-pointer text-gray-500 dark:text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            {/* Yeni Not Ekle */}
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10">
+              <textarea value={yeniNot} onChange={(e) => setYeniNot(e.target.value)} rows={2}
+                placeholder="Yeni not yazın..."
+                className="w-full px-3 py-2 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm resize-none" />
+              <div className="flex items-center justify-between mt-2">
+                <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-400 cursor-pointer select-none">
+                  <input type="checkbox" checked={yeniNotOnemli} onChange={(e) => setYeniNotOnemli(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded border-gray-300 dark:border-white/20 text-amber-500 focus:ring-amber-500 cursor-pointer" />
+                  Önemli olarak işaretle
+                </label>
+                <button onClick={() => { if (yeniNot.trim()) { notEkle(notModal.id, yeniNot.trim(), yeniNotOnemli); logEkle("diger", `"${musteriAdi(notModal)}" için not eklendi.`); setYeniNot(""); setYeniNotOnemli(false); } }}
+                  disabled={!yeniNot.trim()}
+                  className="px-4 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white text-xs font-semibold cursor-pointer transition-colors">
+                  Ekle
+                </button>
+              </div>
+            </div>
+            {/* Not Listesi */}
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+              {notlar.filter((n) => n.musteriId === notModal.id).length === 0 ? (
+                <p className="text-center text-gray-400 dark:text-slate-500 py-6 text-sm">Henüz not eklenmemiş.</p>
+              ) : (
+                notlar.filter((n) => n.musteriId === notModal.id).sort((a, b) => new Date(b.tarih) - new Date(a.tarih)).map((n) => (
+                  <div key={n.id} className={`p-3 rounded-lg border ${
+                    n.onemli
+                      ? "border-amber-300 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/5"
+                      : "border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.02]"
+                  }`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm text-gray-800 dark:text-slate-200 flex-1">
+                        {n.onemli && <span className="text-amber-500 mr-1">★</span>}
+                        {n.metin}
+                      </p>
+                      <button onClick={() => notSil(n.id)} title="Notu Sil" className="shrink-0 w-6 h-6 rounded hover:bg-red-100 dark:hover:bg-red-500/10 flex items-center justify-center text-gray-400 hover:text-red-500 cursor-pointer transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{new Date(n.tarih).toLocaleString("tr-TR")}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

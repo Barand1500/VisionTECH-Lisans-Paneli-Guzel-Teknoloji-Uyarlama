@@ -5,10 +5,11 @@
 /*  ve yeni paket ekleme                         */
 /* ============================================= */
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useMusteriler } from "../context/MusteriContext";
-import KopyalaButonu from "../components/KopyalaButonu";
+import { useMusteriler } from "../baglam/MusteriContext";
+import { apiGet } from "../yardimcilar/api";
+import KopyalaButonu from "../bilesenler/KopyalaButonu";
 
 /* ---- Stil Sabitleri ---- */
 const INPUT_STIL =
@@ -26,23 +27,6 @@ const URUN_LISTESI = [
 const PAKET_TIPLERI = ["Aktivasyon", "Yenileme", "Yükseltme"];
 
 /* ---- Yardımcı Fonksiyonlar ---- */
-const rastgeleTarih = (yilOnce = 0) => {
-  const d = new Date();
-  d.setFullYear(d.getFullYear() - yilOnce);
-  d.setMonth(Math.floor(Math.random() * 12));
-  d.setDate(Math.floor(Math.random() * 28) + 1);
-  return d.toISOString().slice(0, 10);
-};
-const tarihEkle = (tarih, gun) => {
-  const d = new Date(tarih);
-  d.setDate(d.getDate() + gun);
-  return d.toISOString().slice(0, 10);
-};
-const rastgeleLisansAnahtari = () =>
-  Array.from({ length: 4 }, () =>
-    Array.from({ length: 4 }, () => "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 36)]).join("")
-  ).join("-");
-
 const tarihGosterTR = (iso) => {
   if (!iso) return "-";
   const [y, m, d] = iso.split("-");
@@ -52,26 +36,6 @@ const suAnGecmisMi = (tarih) => {
   if (!tarih) return false;
   return new Date(tarih) < new Date();
 };
-
-/* ---- Mock Paket Verisi ---- */
-const mockPaketlerOlustur = () =>
-  Array.from({ length: Math.floor(Math.random() * 8) + 4 }, (_, i) => {
-    const bas = rastgeleTarih(Math.floor(Math.random() * 3));
-    return {
-      id: Date.now() + i + Math.random(),
-      urun: URUN_LISTESI[Math.floor(Math.random() * URUN_LISTESI.length)],
-      paket: PAKET_TIPLERI[Math.floor(Math.random() * PAKET_TIPLERI.length)],
-      domain: `http://ornek${i + 1}.vemobil.com:9090/`,
-      faturaNo: Math.random() > 0.5 ? `VEF${Date.now().toString().slice(-10)}` : "",
-      kullanimGunu: 365,
-      baslangicTarihi: bas,
-      bitisTarihi: tarihEkle(bas, 365),
-      kullanici: Math.random() > 0.5 ? "1 + 1" : "1",
-      fiyat: Math.random() > 0.6 ? (Math.random() * 5000).toFixed(2) : "0.00",
-      faturaGeldi: Math.random() > 0.7,
-      lisansAnahtari: rastgeleLisansAnahtari(),
-    };
-  });
 
 /* ---- Sallanma Animasyonu ---- */
 const sallanmaStili = document.getElementById("sallanma-stili-paket") || (() => {
@@ -83,7 +47,7 @@ const sallanmaStili = document.getElementById("sallanma-stili-paket") || (() => 
 })();
 
 /* ============================================= */
-/*  Ana Bileşen                                   */
+/*  Ana Bileşen                                  */
 /* ============================================= */
 
 export default function MusteriPaketleriPage() {
@@ -101,10 +65,32 @@ export default function MusteriPaketleriPage() {
   const sonrakiMusteri = musteriIndex < musteriler.length - 1 ? musteriler[musteriIndex + 1] : null;
 
   /* State */
-  const [paketler, setPaketler] = useState(() => mockPaketlerOlustur());
+  const [paketler, setPaketler] = useState([]);
+  const [yukleniyor, setYukleniyor] = useState(true);
   const [paketArama, setPaketArama] = useState("");
   const [paketSayfa, setPaketSayfa] = useState(1);
   const [paketBoyut, setPaketBoyut] = useState(10);
+
+  useEffect(() => {
+    apiGet(`/lisanslar/musteri/${id}`).then((r) => {
+      if (r.basarili) {
+        setPaketler(r.veri.map((l) => ({
+          id: l.id,
+          urun: l.urun_adi || "-",
+          paket: l.paket_adi || "-",
+          domain: l.domain || "",
+          faturaNo: l.fatura_no || "",
+          kullanimGunu: l.kullanim_gunu || 365,
+          baslangicTarihi: l.baslangic_tarihi ? l.baslangic_tarihi.slice(0, 10) : "",
+          bitisTarihi: l.bitis_tarihi ? l.bitis_tarihi.slice(0, 10) : "",
+          kullanici: l.kullanici_sayisi ? String(l.kullanici_sayisi) : "1",
+          fiyat: l.fiyat ? Number(l.fiyat).toFixed(2) : "0.00",
+          faturaGeldi: !!l.fatura_geldi,
+          lisansAnahtari: l.lisans_anahtari || "",
+        })));
+      }
+    }).catch(() => {}).finally(() => setYukleniyor(false));
+  }, [id]);
 
   /* Sütun sırası (sürüklenebilir) */
   const [sutunSirasi, setSutunSirasi] = useState(["urun", "paket", "domain", "baslangic", "bitis", "gun", "kalan", "kullanici", "fiyat"]);

@@ -7,9 +7,11 @@
 /* ============================================= */
 
 import { useState, useEffect } from "react";
-import { NavLink, useLocation } from "react-router-dom";
-import { useTheme } from "../context/ThemeContext";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useTheme } from "../baglam/ThemeContext";
+import { useAuth } from "../baglam/AuthContext";
 import GlobalArama from "./GlobalArama";
+import YedeklemeModal from "./YedeklemeModal";
 
 /* ---- Menü Öğelerinin Tanımlanması ---- */
 const menuOgeleri = [
@@ -72,6 +74,15 @@ const menuOgeleri = [
     ),
   },
   {
+    baslik: "Takvim",
+    yol: "/dashboard/takvim",
+    ikon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    ),
+  },
+  {
     baslik: "Aktivite Logu",
     yol: "/dashboard/aktivite-logu",
     ikon: (
@@ -84,8 +95,11 @@ const menuOgeleri = [
 
 export default function Sidebar({ daraltilmis, daraltToggle }) {
   const { karanlikMod, temaToggle } = useTheme();
+  const { cikisYap } = useAuth();
   const location = useLocation();
+  const yonlendirici = useNavigate();
   const [aramaAcik, setAramaAcik] = useState(false);
+  const [yedeklemeAcik, setYedeklemeAcik] = useState(false);
 
   /* ---- Ctrl+K ile Global Arama ---- */
   useEffect(() => {
@@ -108,18 +122,7 @@ export default function Sidebar({ daraltilmis, daraltToggle }) {
     }`;
 
   return (
-    <aside className={`${daraltilmis ? "w-20" : "w-64"} min-h-screen bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-white/10 flex flex-col transition-all duration-300 relative shrink-0`}>
-
-      {/* ---- Daralt/Genişlet Butonu ---- */}
-      <button
-        onClick={daraltToggle}
-        className="absolute -right-3.5 top-8 z-30 w-7 h-7 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-lg shadow-blue-600/30 transition-all duration-200 cursor-pointer"
-        title={daraltilmis ? "Menüyü Genişlet" : "Menüyü Daralt"}
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" className={`w-4 h-4 transition-transform duration-300 ${daraltilmis ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
-      </button>
+    <aside className={`${daraltilmis ? "w-20" : "w-64"} h-screen sticky top-0 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-white/10 flex flex-col transition-all duration-300 relative shrink-0 overflow-y-auto`}>
 
       {/* ---- Logo Alanı ---- */}
       <div className={`${daraltilmis ? "px-3" : "px-6"} py-6 border-b border-gray-200 dark:border-white/10 transition-all duration-300`}>
@@ -213,8 +216,23 @@ export default function Sidebar({ daraltilmis, daraltToggle }) {
         })}
       </nav>
 
-      {/* ---- Alt Kısım: Tema Geçişi ve Çıkış ---- */}
+      {/* ---- Yedekleme Modalı ---- */}
+      <YedeklemeModal acik={yedeklemeAcik} kapat={() => setYedeklemeAcik(false)} />
+
+      {/* ---- Alt Kısım: Yedekleme, Tema Geçişi ve Çıkış ---- */}
       <div className={`${daraltilmis ? "px-2" : "px-4"} py-4 border-t border-gray-200 dark:border-white/10 space-y-1 transition-all duration-300`}>
+
+        {/* ---- Veri Yedekleme Butonu ---- */}
+        <button
+          onClick={() => setYedeklemeAcik(true)}
+          className={`w-full flex items-center ${daraltilmis ? "justify-center" : ""} gap-3 px-4 py-3 rounded-lg text-gray-500 dark:text-slate-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all duration-200 text-sm font-medium cursor-pointer`}
+          title={daraltilmis ? "Yedek Yöneticisi" : ""}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          </svg>
+          {!daraltilmis && <span>Yedek Yöneticisi</span>}
+        </button>
 
         {/* ---- Gece / Gündüz Modu Geçiş Butonu ---- */}
         <button
@@ -235,16 +253,16 @@ export default function Sidebar({ daraltilmis, daraltToggle }) {
         </button>
 
         {/* ---- Çıkış Butonu ---- */}
-        <NavLink
-          to="/login"
-          className={`flex items-center ${daraltilmis ? "justify-center" : ""} gap-3 px-4 py-3 rounded-lg text-gray-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 dark:hover:text-red-400 transition-all duration-200 text-sm font-medium`}
+        <button
+          onClick={() => { cikisYap(); yonlendirici("/login"); }}
+          className={`w-full flex items-center ${daraltilmis ? "justify-center" : ""} gap-3 px-4 py-3 rounded-lg text-gray-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 dark:hover:text-red-400 transition-all duration-200 text-sm font-medium cursor-pointer`}
           title={daraltilmis ? "Çıkış Yap" : ""}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
           {!daraltilmis && <span>Çıkış Yap</span>}
-        </NavLink>
+        </button>
       </div>
     </aside>
   );

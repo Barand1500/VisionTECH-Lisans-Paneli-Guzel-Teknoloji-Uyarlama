@@ -8,20 +8,8 @@
 /* ============================================= */
 
 import { useState, useRef, useEffect } from "react";
-import KopyalaButonu from "../components/KopyalaButonu";
-
-/* ============================================= */
-/*  Mock Veri                                     */
-/* ============================================= */
-
-const BASLANGIC_BAYILER = [
-  { id: 1, ad: "Mega Bilişim A.Ş.", yetkili: "Ahmet Demir", eposta: "ahmet@mega.com", telefon: "(532) 111 22 33", vergiNo: "1234567890", vergiDairesi: "Kadıköy", ustBayiId: null, sehir: "İstanbul", durum: "aktif", tur: "tuzel", tcKimlikNo: "", pasaportNo: "", adSoyad: "", sirketAdi: "Mega Bilişim A.Ş.", telefonlar: ["(532) 111 22 33"], adresler: ["Kadıköy, İstanbul"] },
-  { id: 2, ad: "Anadolu Teknoloji", yetkili: "Fatma Yıldız", eposta: "fatma@anadolu.com", telefon: "(543) 222 33 44", vergiNo: "2345678901", vergiDairesi: "Çankaya", ustBayiId: null, sehir: "Ankara", durum: "aktif", tur: "tuzel", tcKimlikNo: "", pasaportNo: "", adSoyad: "", sirketAdi: "Anadolu Teknoloji", telefonlar: ["(543) 222 33 44"], adresler: ["Çankaya, Ankara"] },
-  { id: 3, ad: "Ege Yazılım Ltd.", yetkili: "Can Özkan", eposta: "can@ege.com", telefon: "(555) 333 44 55", vergiNo: "3456789012", vergiDairesi: "Konak", ustBayiId: 1, sehir: "İzmir", durum: "aktif", tur: "tuzel", tcKimlikNo: "", pasaportNo: "", adSoyad: "", sirketAdi: "Ege Yazılım Ltd.", telefonlar: ["(555) 333 44 55"], adresler: ["Konak, İzmir"] },
-  { id: 4, ad: "Karadeniz Bilgi Sis.", yetkili: "Elif Kara", eposta: "elif@karadeniz.com", telefon: "(505) 444 55 66", vergiNo: "4567890123", vergiDairesi: "Ortahisar", ustBayiId: 2, sehir: "Trabzon", durum: "pasif", tur: "tuzel", tcKimlikNo: "", pasaportNo: "", adSoyad: "", sirketAdi: "Karadeniz Bilgi Sis.", telefonlar: ["(505) 444 55 66"], adresler: ["Ortahisar, Trabzon"] },
-  { id: 5, ad: "Marmara Çözümler", yetkili: "Burak Şen", eposta: "burak@marmara.com", telefon: "(507) 555 66 77", vergiNo: "5678901234", vergiDairesi: "Osmangazi", ustBayiId: 1, sehir: "Bursa", durum: "aktif", tur: "tuzel", tcKimlikNo: "", pasaportNo: "", adSoyad: "", sirketAdi: "Marmara Çözümler", telefonlar: ["(507) 555 66 77"], adresler: ["Osmangazi, Bursa"] },
-  { id: 6, ad: "Güney Dijital", yetkili: "Zeynep Arslan", eposta: "zeynep@guney.com", telefon: "(538) 666 77 88", vergiNo: "6789012345", vergiDairesi: "Seyhan", ustBayiId: null, sehir: "Adana", durum: "pasif", tur: "tuzel", tcKimlikNo: "", pasaportNo: "", adSoyad: "", sirketAdi: "Güney Dijital", telefonlar: ["(538) 666 77 88"], adresler: ["Seyhan, Adana"] },
-];
+import KopyalaButonu from "../bilesenler/KopyalaButonu";
+import { apiGet, apiPost, apiPut, apiDelete } from "../yardimcilar/api";
 
 /* ============================================= */
 /*  Sabitler                                      */
@@ -136,11 +124,61 @@ function AgacDugumu({ bayi, tumBayiler, seviye = 0, odakliId, setOdakliId }) {
 /* ============================================= */
 
 export default function BayilerPage() {
-  const [bayiler, setBayiler] = useState(BASLANGIC_BAYILER);
+  const [bayiler, setBayiler] = useState([]);
   const [arama, setArama] = useState("");
   const [kartFiltre, setKartFiltre] = useState(null);
   const [aktifGorunum, setAktifGorunum] = useState("tablo");
   const [odakliId, setOdakliId] = useState(null);
+
+  /* ---- Backend'den bayileri çek ---- */
+  const bayileriYukle = async () => {
+    try {
+      const yanit = await apiGet("/bayiler");
+      setBayiler(yanit.veri.map((b) => ({
+        id: b.id,
+        ad: b.ad,
+        yetkili: b.yetkili,
+        eposta: b.eposta,
+        telefon: b.telefon,
+        vergiNo: b.vergi_no,
+        vergiDairesi: b.vergi_dairesi,
+        ustBayiId: b.ust_bayi_id,
+        sehir: b.sehir,
+        durum: b.durum,
+        tur: b.tur,
+        tcKimlikNo: b.tc_kimlik_no || "",
+        pasaportNo: b.pasaport_no || "",
+        adSoyad: b.ad_soyad || "",
+        sirketAdi: b.sirket_adi || "",
+        telefonlar: b.telefon ? [b.telefon] : [],
+        adresler: b.sehir ? [b.sehir] : [],
+      })));
+    } catch (e) {
+      console.error("Bayiler yuklenemedi:", e);
+    }
+  };
+
+  useEffect(() => { bayileriYukle(); }, []);
+
+  /* Sıralama */
+  const [siralamaAlani, setSiralamaAlani] = useState(null);
+  const [siralamaYonu, setSiralamaYonu] = useState("asc");
+
+  const siralamaToggle = (alan) => {
+    if (siralamaAlani === alan) {
+      setSiralamaYonu((o) => (o === "asc" ? "desc" : "asc"));
+    } else {
+      setSiralamaAlani(alan);
+      setSiralamaYonu("asc");
+    }
+  };
+
+  const SiralamaIkon = ({ alan }) => {
+    if (siralamaAlani !== alan) return <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 ml-1 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>;
+    return siralamaYonu === "asc"
+      ? <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 ml-1 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"/></svg>
+      : <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 ml-1 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>;
+  };
 
   /* Modal states */
   const [ekleModalAcik, setEkleModalAcik] = useState(false);
@@ -166,6 +204,22 @@ export default function BayilerPage() {
   const bayiTuruBelirle = (bayi) => bayi.ustBayiId ? "Alt Bayi" : "Ana Bayi";
 
   const kokBayiler = bayiler.filter((b) => !b.ustBayiId);
+
+  /* Sıralanmış Bayi Listesi */
+  const siraliBayiler = [...filtreliBayiler].sort((a, b) => {
+    if (!siralamaAlani) return 0;
+    let dA, dB;
+    switch (siralamaAlani) {
+      case "ad": dA = a.ad.toLowerCase(); dB = b.ad.toLowerCase(); break;
+      case "sehir": dA = a.sehir.toLowerCase(); dB = b.sehir.toLowerCase(); break;
+      case "durum": dA = a.durum; dB = b.durum; break;
+      case "tur": dA = a.ustBayiId ? "alt" : "ana"; dB = b.ustBayiId ? "alt" : "ana"; break;
+      default: return 0;
+    }
+    if (dA < dB) return siralamaYonu === "asc" ? -1 : 1;
+    if (dA > dB) return siralamaYonu === "asc" ? 1 : -1;
+    return 0;
+  });
 
   /* ============================================= */
   /*  Yeni Bayi Ekleme Modalı                      */
@@ -250,7 +304,22 @@ export default function BayilerPage() {
       };
 
       console.log("📦 Yeni bayi:", yeni);
-      setBayiler((o) => [...o, yeni]);
+      apiPost("/bayiler", {
+        ad: yeni.ad,
+        yetkili: yeni.yetkili,
+        eposta: yeni.eposta,
+        telefon: yeni.telefon,
+        vergi_no: yeni.vergiNo,
+        vergi_dairesi: yeni.vergiDairesi,
+        sehir: yeni.sehir,
+        durum: yeni.durum,
+        tur: yeni.tur,
+        ust_bayi_id: yeni.ustBayiId,
+        tc_kimlik_no: yeni.tcKimlikNo,
+        pasaport_no: yeni.pasaportNo,
+        ad_soyad: yeni.adSoyad,
+        sirket_adi: yeni.sirketAdi,
+      }).then(() => bayileriYukle()).catch((e) => console.error("Bayi eklenemedi:", e));
       setEkleModalAcik(false);
     };
 
@@ -620,7 +689,21 @@ export default function BayilerPage() {
         telefonlar: form.telefonlar.filter((t) => t.trim()),
         adresler: form.adresler.filter((a) => a.trim()),
       };
-      setBayiler((o) => o.map((b) => b.id === duzenleModal.id ? { ...b, ...guncellenen } : b));
+      apiPut(`/bayiler/${duzenleModal.id}`, {
+        ad: guncellenen.ad,
+        yetkili: guncellenen.yetkili,
+        eposta: guncellenen.eposta,
+        telefon: guncellenen.telefon,
+        vergi_no: guncellenen.vergiNo,
+        vergi_dairesi: guncellenen.vergiDairesi,
+        sehir: guncellenen.sehir,
+        durum: guncellenen.durum,
+        tur: guncellenen.tur,
+        tc_kimlik_no: guncellenen.tcKimlikNo,
+        pasaport_no: guncellenen.pasaportNo,
+        ad_soyad: guncellenen.adSoyad,
+        sirket_adi: guncellenen.sirketAdi,
+      }).then(() => bayileriYukle()).catch((e) => console.error("Bayi guncellenemedi:", e));
       console.log("✏️ Bayi güncellendi:", guncellenen);
       setDuzenleModal(null);
     };
@@ -901,17 +984,17 @@ export default function BayilerPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-white/10">
-                  <th className="text-left px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider">Bayi Adı</th>
-                  <th className="text-left px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider">Türü</th>
+                  <th onClick={() => siralamaToggle("ad")} className="text-left px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-white select-none"><span className="inline-flex items-center">Bayi Adı<SiralamaIkon alan="ad" /></span></th>
+                  <th onClick={() => siralamaToggle("tur")} className="text-left px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-white select-none"><span className="inline-flex items-center">Türü<SiralamaIkon alan="tur" /></span></th>
                   <th className="text-left px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider">Üst Bayi</th>
-                  <th className="text-left px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider">Şehir</th>
+                  <th onClick={() => siralamaToggle("sehir")} className="text-left px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-white select-none"><span className="inline-flex items-center">Şehir<SiralamaIkon alan="sehir" /></span></th>
                   <th className="text-left px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider">Telefon</th>
-                  <th className="text-center px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider">Durum</th>
+                  <th onClick={() => siralamaToggle("durum")} className="text-center px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-white select-none"><span className="inline-flex items-center justify-center">Durum<SiralamaIkon alan="durum" /></span></th>
                   <th className="text-center px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider">İşlemler</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                {filtreliBayiler.length > 0 ? filtreliBayiler.map((bayi) => (
+                {siraliBayiler.length > 0 ? siraliBayiler.map((bayi) => (
                   <tr key={bayi.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors">
                     <td className="px-6 py-4">
                       <div>

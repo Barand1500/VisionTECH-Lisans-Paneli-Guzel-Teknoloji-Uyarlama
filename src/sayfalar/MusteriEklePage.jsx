@@ -9,8 +9,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMusteriler } from "../context/MusteriContext";
-import { useAktiviteLog } from "../context/AktiviteLogContext";
+import { useMusteriler } from "../baglam/MusteriContext";
+import { useAktiviteLog } from "../baglam/AktiviteLogContext";
 
 /* ============================================= */
 /*  Sabit Tanımlamalar                            */
@@ -73,15 +73,6 @@ const bosFormOlustur = () => ({
   durum: true,
 });
 
-/* ---- Mevcut Müşteri Listesi (Backend gelene kadar mock) ---- */
-const MEVCUT_MUSTERILER = [
-  { id: 1, ad: "Ercan Güzel" },
-  { id: 2, ad: "Mehmet Yılmaz" },
-  { id: 3, ad: "Ayşe Kara" },
-  { id: 4, ad: "ABC Teknoloji A.Ş." },
-  { id: 5, ad: "Veri Sistemleri Ltd." },
-];
-
 /* ============================================= */
 /*  Yardımcı Fonksiyonlar                        */
 /* ============================================= */
@@ -142,14 +133,11 @@ export default function MusteriEklePage() {
     return () => document.removeEventListener("mousedown", disariTikla);
   }, []);
 
-  /* ---- Tüm müşteriler: mock + context ---- */
-  const tumMusteriler = [
-    ...MEVCUT_MUSTERILER,
-    ...musteriler.map((m) => ({
-      id: m.id,
-      ad: m.adSoyad || m.sirketAdi || `Müşteri #${m.id}`,
-    })),
-  ];
+  /* ---- Tüm müşteriler ---- */
+  const tumMusteriler = musteriler.map((m) => ({
+    id: m.id,
+    ad: m.adSoyad || m.sirketAdi || `Müşteri #${m.id}`,
+  }));
 
   const filtrelenmislerMusteriler = tumMusteriler.filter((m) =>
     m.ad.toLowerCase().includes(form.ustMusteriArama.toLowerCase())

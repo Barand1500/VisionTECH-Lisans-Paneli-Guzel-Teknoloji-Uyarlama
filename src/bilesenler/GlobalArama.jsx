@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMusteriler } from "../context/MusteriContext";
+import { useMusteriler } from "../baglam/MusteriContext";
+import { apiGet } from "../yardimcilar/api";
 
 /* ============================================= */
 /*  Aranabilir Sabit Veriler                      */
@@ -13,52 +14,6 @@ const SAYFALAR = [
   { ad: "Bayiler", detay: "Bayi listesi ve hiyerarşi", yol: "/dashboard/bayiler", anahtar: "bayi dealer hiyerarşi ağaç" },
   { ad: "Yönetim", detay: "Ürün, grup, sürüm ve kullanıcı yönetimi", yol: "/dashboard/yonetim", anahtar: "yönetim ürün kullanıcı sürüm grup paket" },
   { ad: "Raporlar", detay: "Satış, paket ve cihaz raporları", yol: "/dashboard/raporlar", anahtar: "rapor satış paket cihaz tahsilat süresi" },
-];
-
-const BAYILER = [
-  { ad: "Mega Bilişim A.Ş.", detay: "ahmet@mega.com · İstanbul", yol: "/dashboard/bayiler", anahtar: "mega bilişim ahmet demir istanbul tuzel" },
-  { ad: "Anadolu Teknoloji", detay: "fatma@anadolu.com · Ankara", yol: "/dashboard/bayiler", anahtar: "anadolu teknoloji fatma yıldız ankara tuzel" },
-  { ad: "Ege Yazılım Ltd.", detay: "can@ege.com · İzmir", yol: "/dashboard/bayiler", anahtar: "ege yazılım can özkan izmir" },
-  { ad: "Karadeniz Bilgi Sis.", detay: "elif@karadeniz.com · Trabzon", yol: "/dashboard/bayiler", anahtar: "karadeniz bilgi elif kara trabzon" },
-  { ad: "Marmara Çözümler", detay: "burak@marmara.com · Bursa", yol: "/dashboard/bayiler", anahtar: "marmara çözümler burak şen bursa" },
-  { ad: "Güney Dijital", detay: "zeynep@guney.com · Adana", yol: "/dashboard/bayiler", anahtar: "güney dijital zeynep arslan adana" },
-];
-
-const URUNLER = [
-  { ad: ".com.tr Alan Adı", detay: "Alan Adı · DOMAIN", yol: "/dashboard/yonetim", anahtar: ".com.tr alan adı domain" },
-  { ad: ".com Alan Adı", detay: "Alan Adı · DOMAIN", yol: "/dashboard/yonetim", anahtar: ".com alan adı domain" },
-  { ad: ".net Alan Adı", detay: "Alan Adı · DOMAIN", yol: "/dashboard/yonetim", anahtar: ".net alan adı domain" },
-  { ad: "Başlangıç Hosting", detay: "Hosting · WEB", yol: "/dashboard/yonetim", anahtar: "başlangıç hosting web barındırma" },
-  { ad: "Profesyonel Hosting", detay: "Hosting · WEB", yol: "/dashboard/yonetim", anahtar: "profesyonel hosting web" },
-  { ad: "Kurumsal Hosting", detay: "Hosting · WEB", yol: "/dashboard/yonetim", anahtar: "kurumsal hosting web" },
-  { ad: "CRM Yazılımı", detay: "Yazılım · WINDOWS", yol: "/dashboard/yonetim", anahtar: "crm yazılım müşteri ilişkileri" },
-  { ad: "E-Ticaret Paketi", detay: "Yazılım · WEB", yol: "/dashboard/yonetim", anahtar: "e-ticaret paket web mağaza" },
-  { ad: "Muhasebe Pro", detay: "Yazılım · WINDOWS", yol: "/dashboard/yonetim", anahtar: "muhasebe pro finans" },
-  { ad: "Kurumsal E-Posta 5GB", detay: "E-Posta · WEB", yol: "/dashboard/yonetim", anahtar: "kurumsal e-posta mail 5gb" },
-  { ad: "Kurumsal E-Posta 10GB", detay: "E-Posta · WEB", yol: "/dashboard/yonetim", anahtar: "kurumsal e-posta mail 10gb" },
-  { ad: "Standart SSL", detay: "SSL · Sertifika", yol: "/dashboard/yonetim", anahtar: "standart ssl sertifika güvenlik" },
-  { ad: "Wildcard SSL", detay: "SSL · Sertifika", yol: "/dashboard/yonetim", anahtar: "wildcard ssl sertifika" },
-  { ad: "Toplu SMS 1000", detay: "SMS · API", yol: "/dashboard/yonetim", anahtar: "toplu sms 1000 mesaj" },
-  { ad: "VPS Başlangıç", detay: "Sunucu · VPS", yol: "/dashboard/yonetim", anahtar: "vps sunucu başlangıç server" },
-  { ad: "VPS Profesyonel", detay: "Sunucu · VPS", yol: "/dashboard/yonetim", anahtar: "vps sunucu profesyonel server" },
-  { ad: "KEP Hesabı Bireysel", detay: "KEP · WEB", yol: "/dashboard/yonetim", anahtar: "kep kayıtlı elektronik posta bireysel" },
-  { ad: "KEP Hesabı Kurumsal", detay: "KEP · WEB", yol: "/dashboard/yonetim", anahtar: "kep kayıtlı elektronik posta kurumsal" },
-  { ad: "E-İmza Başlangıç", detay: "E-Tuğra · WINDOWS", yol: "/dashboard/yonetim", anahtar: "e-imza tuğra elektronik imza" },
-  { ad: "Bakım Anlaşması Temel", detay: "Diğer · BAKIM", yol: "/dashboard/yonetim", anahtar: "bakım anlaşması temel destek" },
-  { ad: "Bakım Anlaşması Pro", detay: "Diğer · BAKIM", yol: "/dashboard/yonetim", anahtar: "bakım anlaşması pro profesyonel destek" },
-  { ad: "Bulut Depolama 50GB", detay: "Bulut Hizmetleri · WEB", yol: "/dashboard/yonetim", anahtar: "bulut depolama cloud 50gb" },
-  { ad: "Stok Takip Sistemi", detay: "Yazılım · WEB", yol: "/dashboard/yonetim", anahtar: "stok takip envanter" },
-  { ad: "WordPress Hosting", detay: "Hosting · WEB", yol: "/dashboard/yonetim", anahtar: "wordpress hosting blog" },
-  { ad: "Mobil Uygulama Paketi", detay: "Yazılım · MOBİL", yol: "/dashboard/yonetim", anahtar: "mobil uygulama ios android" },
-  { ad: "EV SSL Sertifikası", detay: "SSL · Sertifika", yol: "/dashboard/yonetim", anahtar: "ev ssl genişletilmiş doğrulama" },
-];
-
-const KULLANICILAR = [
-  { ad: "Ercan Güzel", detay: "ercan@guzelteknoloji.com · Admin", yol: "/dashboard/yonetim", anahtar: "ercan güzel admin yönetici" },
-  { ad: "Semihcan Güzel", detay: "semihcan@guzelteknoloji.com · Editör", yol: "/dashboard/yonetim", anahtar: "semihcan güzel editör" },
-  { ad: "Baran Ürüncan", detay: "baran@guzelteknoloji.com · Görüntüleyici", yol: "/dashboard/yonetim", anahtar: "baran ürüncan görüntüleyici" },
-  { ad: "Süleyman Güzel", detay: "suleyman@guzelteknoloji.com · Admin", yol: "/dashboard/yonetim", anahtar: "süleyman güzel admin" },
-  { ad: "Aykut", detay: "aykut@guzelteknoloji.com · Editör", yol: "/dashboard/yonetim", anahtar: "aykut editör" },
 ];
 
 /* ============================================= */
@@ -113,6 +68,17 @@ export default function GlobalArama({ acik, kapat }) {
   const inputRef = useRef(null);
   const listeRef = useRef(null);
 
+  const [bayiler, setBayiler] = useState([]);
+  const [urunler, setUrunler] = useState([]);
+  const [kullanicilar, setKullanicilar] = useState([]);
+
+  useEffect(() => {
+    if (!acik) return;
+    apiGet("/bayiler").then((r) => r.basarili && setBayiler(r.veri)).catch(() => {});
+    apiGet("/urunler").then((r) => r.basarili && setUrunler(r.veri)).catch(() => {});
+    apiGet("/yetki/kullanicilar").then((r) => r.basarili && setKullanicilar(r.veri)).catch(() => {});
+  }, [acik]);
+
   /* ---- Sonuçları Oluştur ---- */
   const tumSonuclar = (() => {
     const q = sorgu.toLowerCase().trim();
@@ -156,23 +122,32 @@ export default function GlobalArama({ acik, kapat }) {
     });
 
     /* Bayiler */
-    BAYILER.forEach((b) => {
-      if (b.ad.toLowerCase().includes(q) || b.detay.toLowerCase().includes(q) || b.anahtar.toLowerCase().includes(q)) {
-        sonuclar.push({ ...b, kategori: "Bayiler" });
+    bayiler.forEach((b) => {
+      const ad = b.sirket_adi || b.ad_soyad || b.ad || `Bayi #${b.id}`;
+      const detay = [b.eposta, b.sehir].filter(Boolean).join(" · ");
+      const birlesik = `${ad} ${detay} ${b.yetkili || ""} ${b.telefon || ""}`.toLowerCase();
+      if (birlesik.includes(q)) {
+        sonuclar.push({ ad, detay, yol: "/dashboard/bayiler", kategori: "Bayiler" });
       }
     });
 
     /* Ürünler */
-    URUNLER.forEach((u) => {
-      if (u.ad.toLowerCase().includes(q) || u.detay.toLowerCase().includes(q) || u.anahtar.toLowerCase().includes(q)) {
-        sonuclar.push({ ...u, kategori: "Ürünler" });
+    urunler.forEach((u) => {
+      const ad = u.ad || u.ad;
+      const detay = u.grup_adi || u.platform || "";
+      const birlesik = `${ad} ${detay}`.toLowerCase();
+      if (birlesik.includes(q)) {
+        sonuclar.push({ ad, detay, yol: "/dashboard/yonetim", kategori: "Ürünler" });
       }
     });
 
     /* Kullanıcılar */
-    KULLANICILAR.forEach((k) => {
-      if (k.ad.toLowerCase().includes(q) || k.detay.toLowerCase().includes(q) || k.anahtar.toLowerCase().includes(q)) {
-        sonuclar.push({ ...k, kategori: "Kullanıcılar" });
+    kullanicilar.forEach((k) => {
+      const ad = k.ad_soyad || k.kullanici_adi || `Kullanıcı #${k.id}`;
+      const detay = [k.eposta, k.rol].filter(Boolean).join(" · ");
+      const birlesik = `${ad} ${detay}`.toLowerCase();
+      if (birlesik.includes(q)) {
+        sonuclar.push({ ad, detay, yol: "/dashboard/yonetim", kategori: "Kullanıcılar" });
       }
     });
 

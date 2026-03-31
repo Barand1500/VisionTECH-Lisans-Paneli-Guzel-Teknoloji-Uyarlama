@@ -4,19 +4,33 @@
 /* ============================================= */
 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "./baglam/AuthContext";
 
 /* ---- Sayfa Bilesenleri ---- */
-import LoginPage from "./pages/LoginPage";
-import DashboardLayout from "./layouts/DashboardLayout";
-import DashboardHome from "./pages/DashboardHome";
-import MusterilerPage from "./pages/MusterilerPage";
-import MusteriEklePage from "./pages/MusteriEklePage";
-import BayilerPage from "./pages/BayilerPage";
-import LisansYonetimiPage from "./pages/LisansYonetimiPage";
-import YonetimPage from "./pages/YonetimPage";
-import RaporlarPage from "./pages/RaporlarPage";
-import MusteriPaketleriPage from "./pages/MusteriPaketleriPage";
-import AktiviteLoguPage from "./pages/AktiviteLoguPage";
+import LoginPage from "./sayfalar/LoginPage";
+import DashboardLayout from "./duzenler/DashboardLayout";
+import DashboardHome from "./sayfalar/DashboardHome";
+import MusterilerPage from "./sayfalar/MusterilerPage";
+import MusteriEklePage from "./sayfalar/MusteriEklePage";
+import BayilerPage from "./sayfalar/BayilerPage";
+import LisansYonetimiPage from "./sayfalar/LisansYonetimiPage";
+import YonetimPage from "./sayfalar/YonetimPage";
+import RaporlarPage from "./sayfalar/RaporlarPage";
+import MusteriPaketleriPage from "./sayfalar/MusteriPaketleriPage";
+import AktiviteLoguPage from "./sayfalar/AktiviteLoguPage";
+import TakvimPage from "./sayfalar/TakvimPage";
+
+/* ---- Korunmus Rota Bileşeni ---- */
+function KorunmusRota({ children }) {
+  const { kullanici, yukleniyor } = useAuth();
+  if (yukleniyor) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-slate-900">
+      <div className="text-gray-500 dark:text-slate-400">Yükleniyor...</div>
+    </div>
+  );
+  if (!kullanici) return <Navigate to="/login" replace />;
+  return children;
+}
 
 function App() {
   return (
@@ -29,7 +43,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
 
         {/* ---- Dashboard Rotalari (Ic ice / Nested) ---- */}
-        <Route path="/dashboard" element={<DashboardLayout />}>
+        <Route path="/dashboard" element={<KorunmusRota><DashboardLayout /></KorunmusRota>}>
           {/* Varsayilan alt sayfa: Ozet */}
           <Route index element={<DashboardHome />} />
 
@@ -50,6 +64,9 @@ function App() {
 
           {/* Raporlar Sayfasi */}
           <Route path="raporlar" element={<RaporlarPage />} />
+
+          {/* Takvim / Hatirlatma Sayfasi */}
+          <Route path="takvim" element={<TakvimPage />} />
 
           {/* Aktivite Logu Sayfasi */}
           <Route path="aktivite-logu" element={<AktiviteLoguPage />} />
