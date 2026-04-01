@@ -34,7 +34,9 @@ export function MusteriProvider({ children }) {
         vergiNo: m.vergi_no,
         vergiDairesi: m.vergi_dairesi,
         pasaportNo: m.pasaport_no,
-        sektor: m.sektor,
+        sektorId: m.sektor_id,
+        sektor: m.sektor_adi || '',
+        etiketler: m.etiketler || [],
         durum: m.durum,
         ustMusteriId: m.ust_musteri_id,
         kayitTarihi: m.kayit_tarihi,
@@ -69,13 +71,24 @@ export function MusteriProvider({ children }) {
       vergi_no: musteri.vergiNo || null,
       vergi_dairesi: musteri.vergiDairesi || null,
       pasaport_no: musteri.pasaportNo || null,
-      sektor: musteri.sektor || null,
+      sektor_id: musteri.sektorId || null,
+      etiketler: musteri.etiketler?.length > 0 ? musteri.etiketler : null,
       durum: musteri.durum || "aktif",
       ust_musteri_id: musteri.ustMusteriId || null,
       telefonlar: musteri.telefonlar?.filter(t => t) || [],
-      adresler: musteri.adresler?.filter(a => a) || [],
+      adresler: musteri.adresler?.filter(a => a) || (musteri.adres ? [musteri.adres] : []),
     };
     const yanit = await apiPost("/musteriler", govde);
+    
+    /* Eğer notlar varsa, ayrıca not ekle */
+    if (musteri.notlar && musteri.notlar.trim()) {
+      await apiPost("/notlar", {
+        musteri_id: yanit.id,
+        metin: musteri.notlar.trim(),
+        onemli: false,
+      });
+    }
+    
     await verileriYukle();
     return { ...musteri, id: yanit.id };
   };
@@ -90,7 +103,7 @@ export function MusteriProvider({ children }) {
     if (guncelVeri.vergiNo !== undefined) govde.vergi_no = guncelVeri.vergiNo;
     if (guncelVeri.vergiDairesi !== undefined) govde.vergi_dairesi = guncelVeri.vergiDairesi;
     if (guncelVeri.pasaportNo !== undefined) govde.pasaport_no = guncelVeri.pasaportNo;
-    if (guncelVeri.sektor !== undefined) govde.sektor = guncelVeri.sektor;
+    if (guncelVeri.sektorId !== undefined) govde.sektor_id = guncelVeri.sektorId;
     if (guncelVeri.durum !== undefined) govde.durum = guncelVeri.durum;
     if (guncelVeri.telefonlar) govde.telefonlar = guncelVeri.telefonlar.filter(t => t);
     if (guncelVeri.adresler) govde.adresler = guncelVeri.adresler.filter(a => a);

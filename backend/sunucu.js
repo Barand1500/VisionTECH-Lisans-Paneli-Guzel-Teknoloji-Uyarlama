@@ -6,6 +6,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 
 /* ---- Veritabani Kurulumu ---- */
 const { tablolariOlustur, ornekVerileriEkle } = require("./veritabani/sema");
@@ -31,6 +32,13 @@ uygulama.use("/api/surumler", require("./rotalar/surum-rotalari"));
 uygulama.use("/api/roller", require("./rotalar/rol-rotalari"));
 uygulama.use("/api/raporlar", require("./rotalar/rapor-rotalari"));
 uygulama.use("/api/yedekleme", require("./rotalar/yedekleme-rotalari"));
+uygulama.use("/api/sektorler", require("./rotalar/sektor-rotalari"));
+uygulama.use("/api/musteriler", require("./rotalar/dosya-rotalari"));
+uygulama.use("/api/iletisim", require("./rotalar/iletisim-rotalari"));
+uygulama.use("/api/cop-kutusu", require("./rotalar/cop-kutusu-rotalari"));
+
+/* ---- Statik dosya servisi (uploads) ---- */
+uygulama.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /* ---- Kok Rota ---- */
 uygulama.get("/", (req, res) => {

@@ -1,4 +1,4 @@
-/* ============================================= */
+﻿/* ============================================= */
 /*  Güzel Teknoloji - Yönetim Sayfası            */
 /*  Sekmeler: Ürünler, Ürün Grupları,            */
 /*  Sürümler, Kullanıcılar                        */
@@ -46,10 +46,13 @@ const SEKMELER = [
   {
     id: "roller", etiket: "Roller",
     ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>,
+  },  {
+    id: "sektorler", etiket: "Sektörler",
+    ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>,
   },
   {
-    id: "veriYedekleme", etiket: "Veri Yedekleme",
-    ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>,
+    id: "copKutusu", etiket: "Çöp Kutusu",
+    ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
   },
 ];
 
@@ -62,11 +65,11 @@ const URUN_GRUPLARI = [
   "SMS", "SSL", "Sunucu", "Yazılım", "Bulut Hizmetleri",
 ];
 
-const URUN_TIPLERI = ["DOMAIN", "BAKIM ANLAŞMASI", "HOSTING", "YAZILIM", "SSL", "E-POSTA", "SMS", "SUNUCU", "KEP", "E-TUĞRA"];
+const URUN_TIPLERI = ["DOMAIN", "BAKIM ANLASMASI", "HOSTING", "YAZILIM", "SSL", "E-POSTA", "SMS", "SUNUCU", "KEP", "E-TUGRA"];
 
-const UYGULAMA_TIPLERI = ["WEB", "WINDOWS", "MOBİL", "API", "-"];
+const UYGULAMA_TIPLERI = ["WEB", "WINDOWS", "MOBIL", "API", "-"];
 
-const PAKET_TIPLERI = ["AKTİVASYON", "EK KULLANICI", "YENİLEME", "UPGRADE", "DENEME", "BAKIM"];
+const PAKET_TIPLERI = ["AKTIVASYON", "EK KULLANICI", "YENILEME", "UPGRADE", "DENEME", "BAKIM"];
 
 
 
@@ -79,7 +82,7 @@ export default function YonetimPage() {
 
   return (
     <div>
-      {/* ---- Sayfa Başlığı ---- */}
+      {/* ---- Sayfa Basligi ---- */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Yönetim</h1>
         <p className="text-gray-500 dark:text-slate-400 mt-1">Ürün, grup, sürüm ve kullanıcı yönetimi.</p>
@@ -103,13 +106,14 @@ export default function YonetimPage() {
         ))}
       </div>
 
-      {/* ---- Sekme İçeriği ---- */}
+      {/* ---- Sekme Icerigi ---- */}
       {aktifSekme === "urunler" && <UrunlerSekmesi />}
       {aktifSekme === "urunGruplari" && <UrunGruplariSekmesi />}
       {aktifSekme === "surumler" && <SurumlerSekmesi />}
       {aktifSekme === "kullanicilar" && <KullanicilarSekmesi />}
       {aktifSekme === "roller" && <RollerSekmesi />}
-      {aktifSekme === "veriYedekleme" && <VeriYedeklemeSekmesi />}
+      {aktifSekme === "sektorler" && <SektorlerSekmesi />}
+      {aktifSekme === "copKutusu" && <CopKutusuSekmesi />}
     </div>
   );
 }
@@ -210,7 +214,7 @@ function UrunlerSekmesi() {
 
   return (
     <div>
-      {/* ---- Filtre Çubuğu ---- */}
+      {/* ---- Filtre Cubugu ---- */}
       <div className="rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-4 mb-4">
         <div className="flex flex-wrap items-end gap-3">
           {/* Grup Filtresi */}
@@ -282,7 +286,7 @@ function UrunlerSekmesi() {
                     {u.ozelProje ? (
                       <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400">EVET</span>
                     ) : (
-                      <span className="text-xs text-gray-400 dark:text-slate-500">—</span>
+                      <span className="text-xs text-gray-400 dark:text-slate-500">-</span>
                     )}
                   </td>
                   <td className="px-4 py-3.5 text-center">
@@ -465,7 +469,7 @@ function PaketlerModal({ urun, kapat, paketler, setPaketler, tumUrunler, paketle
                   <td className="px-4 py-3 text-gray-600 dark:text-slate-400 text-sm">{p.adi}</td>
                   <td className="px-4 py-3 text-gray-600 dark:text-slate-400 text-sm text-center">{p.kullanimGunu}</td>
                   <td className="px-4 py-3 text-gray-600 dark:text-slate-400 text-sm">{Number(p.fiyati).toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-slate-400 text-sm text-center">{p.kullaniciSayisi || "—"}</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-slate-400 text-sm text-center">{p.kullaniciSayisi || "-"}</td>
                   <td className="px-4 py-3 text-center">
                     <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${p.aktif ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400"}`}>
                       {p.aktif ? "E" : "H"}
@@ -901,7 +905,7 @@ const surumOzet = (s) => {
   if (s.duzenlenenler) parcalar.push(s.duzenlenenler);
   if (s.eklenenler) parcalar.push(s.eklenenler);
   if (s.cikarilanlar) parcalar.push(s.cikarilanlar);
-  return parcalar.join(" · ") || "Not eklenmemiş";
+  return parcalar.join(" Â· ") || "Not eklenmemiş";
 };
 
 function SurumlerSekmesi() {
@@ -1230,7 +1234,7 @@ function SurumlerSekmesi() {
               </p>
               {silOnay.aktif && (
                 <div className="mb-4 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
-                  <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">⚠ Bu güncel (aktif) sürüm. Silindikten sonra bir önceki sürüm otomatik güncel yapılmayacaktır.</p>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">âš  Bu güncel (aktif) sürüm. Silindikten sonra bir önceki sürüm otomatik güncel yapılmayacaktır.</p>
                 </div>
               )}
               <div className="flex gap-3">
@@ -1340,7 +1344,7 @@ function SurumlerSekmesi() {
                     className="w-full p-4 flex flex-col items-center gap-2 text-gray-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-500/5 cursor-pointer transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
-                    <span className="text-xs font-medium">Bu sürüme dosya eklenmemiş — yüklemek için tıklayın</span>
+                    <span className="text-xs font-medium">Bu sürüme dosya eklenmemiş - yüklemek için tıklayın</span>
                   </button>
                 )}
               </div>
@@ -1768,8 +1772,8 @@ function KullaniciModal({ modal, kapat, kaydet }) {
             <input type="email" value={form.eposta} onChange={(e) => setForm((o) => ({ ...o, eposta: e.target.value }))} className={INPUT_STIL} required />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Şifre {!duzenle && <span className="text-red-500">*</span>}{duzenle && <span className="text-gray-400 text-[10px]">(boş bırakılırsa değişmez)</span>}</label>
-            <input type="password" value={form.sifre} onChange={(e) => setForm((o) => ({ ...o, sifre: e.target.value }))} className={INPUT_STIL} required={!duzenle} placeholder={duzenle ? "••••••••" : ""} />
+            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Sifre {!duzenle && <span className="text-red-500">*</span>}{duzenle && <span className="text-gray-400 text-[10px]">(boş bırakılırsa değişmez)</span>}</label>
+            <input type="password" value={form.sifre} onChange={(e) => setForm((o) => ({ ...o, sifre: e.target.value }))} className={INPUT_STIL} required={!duzenle} placeholder={duzenle ? "●●●●●●●●" : ""} />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Rol</label>
@@ -1810,7 +1814,7 @@ function KullaniciModal({ modal, kapat, kaydet }) {
 /*  Roller Sekmesi                                */
 /* ============================================= */
 
-/* İzin tanımları — anahtar → etiket */
+/*İzin tanımları - anahtar → etiket */
 const IZIN_TANIMLARI = {
   ozet:            { etiket: "Özet Paneli" },
   musteriler:      { etiket: "Müşteriler" },
@@ -1912,7 +1916,7 @@ function RollerSekmesi() {
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-400 font-medium shrink-0">SİSTEM</span>
                       ) : null}
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5 line-clamp-1">{rol.aciklama || "—"}</p>
+                    <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5 line-clamp-1">{rol.aciklama || "-"}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0 ml-2">
@@ -2114,127 +2118,144 @@ function RolModal({ modal, kapat, kaydet }) {
 }
 
 /* ============================================= */
-/*  Veri Yedekleme Sekmesi                        */
+/*  p Kutusu Sekmesi                            */
 /* ============================================= */
-function VeriYedeklemeSekmesi() {
-  const [loglar, setLoglar] = useState([]);
-  const [yukleniyor, setYukleniyor] = useState(true);
 
-  const loglariGetir = async () => {
+function CopKutusuSekmesi() {
+  const [silinen, setSilinen] = useState([]);
+  const [yukleniyor, setYukleniyor] = useState(true);
+  const [filtre, setFiltre] = useState("tumu"); // tumu, musteriler, bayiler
+  const [geriYuklemeOnay, setGeriYuklemeOnay] = useState(null);
+
+  const verileriYukle = async () => {
     setYukleniyor(true);
     try {
-      const cevap = await apiGet("/yedekleme/loglar");
-      setLoglar(Array.isArray(cevap) ? cevap : (cevap?.veri || []));
-    } catch {
-      setLoglar([]);
+      const res = await apiGet("/cop-kutusu");
+      setSilinen(res.veri || []);
+    } catch (e) {
+      console.error("Cop kutusu verileri yuklenemedi:", e);
     } finally {
       setYukleniyor(false);
     }
   };
 
-  useEffect(() => { loglariGetir(); }, []);
+  useEffect(() => { verileriYukle(); }, []);
 
-  const boyutFormatla = (byte) => {
-    if (!byte) return "—";
-    if (byte < 1024) return byte + " B";
-    if (byte < 1024 * 1024) return (byte / 1024).toFixed(1) + " KB";
-    return (byte / (1024 * 1024)).toFixed(2) + " MB";
+  const geriYukle = async (tip, id) => {
+    try {
+      await apiPost(`/cop-kutusu/${tip === "musteri" ? "musteriler" : "bayiler"}/${id}/geri-yukle`);
+      setGeriYuklemeOnay(null);
+      verileriYukle();
+    } catch (e) {
+      console.error("Geri yukleme hatasi:", e);
+      alert(e.message || "Geri yukleme hatasi");
+    }
   };
 
-  const tarihFormatla = (t) => {
-    if (!t) return "—";
-    const d = new Date(t);
-    return d.toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric" }) +
-      " " + d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+  const kaliciSil = async (tip, id) => {
+    if (!confirm("Bu kayit kalici olarak silinecek. Emin misiniz?")) return;
+    try {
+      await apiDelete(`/cop-kutusu/${tip === "musteri" ? "musteriler" : "bayiler"}/${id}/kalici`);
+      verileriYukle();
+    } catch (e) {
+      console.error("Kalici silme hatasi:", e);
+    }
   };
+
+  const tarihFormatla = (tarih) => {
+    if (!tarih) return "-";
+    return new Date(tarih).toLocaleString("tr-TR", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+      hour: "2-digit", minute: "2-digit"
+    });
+  };
+
+  const filtrelenmis = silinen.filter((item) => {
+    if (filtre === "tumu") return true;
+    if (filtre === "musteriler") return item.tip === "musteri";
+    if (filtre === "bayiler") return item.tip === "bayi";
+    return true;
+  });
 
   return (
     <div className="space-y-4">
-      {/* Başlık */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Yedekleme Geçmişi</h3>
-          <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
-            Tüm yedek alma ve geri yükleme işlemlerinin kaydı
-          </p>
+      {/* Üst Bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <select value={filtre} onChange={(e) => setFiltre(e.target.value)}
+            className="px-3 py-2 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm focus:ring-2 focus:ring-blue-500 cursor-pointer">
+            <option value="tumu">Tüm Kayıtlar</option>
+            <option value="musteriler">Müşteriler</option>
+            <option value="bayiler">Bayiler</option>
+          </select>
+          <span className="text-sm text-gray-500 dark:text-slate-400">{filtrelenmis.length} kayıt</span>
         </div>
-        <button onClick={loglariGetir}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-medium hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors cursor-pointer">
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
+        <button onClick={verileriYukle} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-slate-400 text-sm hover:bg-gray-200 dark:hover:bg-white/10 transition-colors cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
           Yenile
         </button>
       </div>
 
-      {/* Tablo */}
+      {/* İçerik */}
       {yukleniyor ? (
         <div className="flex items-center justify-center py-16">
           <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
-      ) : loglar.length === 0 ? (
+      ) : filtrelenmis.length === 0 ? (
         <div className="text-center py-16">
           <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 mx-auto text-gray-300 dark:text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
-          </svg>
-          <p className="text-sm text-gray-500 dark:text-slate-400">Henüz yedekleme kaydı bulunmuyor</p>
-          <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">Kenar çubuğundaki "Veri Yedekle" butonunu kullanarak yedekleme yapabilirsiniz</p>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+          <p className="text-sm text-gray-500 dark:text-slate-400">Çöp kutusu boş</p>
+          <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">Silinen müşteri ve bayiler burada görüntülenir</p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-white/[0.06]">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 dark:bg-white/[0.02] border-b border-gray-200 dark:border-white/[0.06]">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Tarih</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Kullanıcı</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">İşlem</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Dosya</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Boyut</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Tablolar</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Kayıtlar</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Durum</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Tip</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Ad</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Silinme Tarihi</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">İşlem</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-white/[0.04]">
-              {loglar.map((log) => (
-                <tr key={log.id} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors">
-                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-slate-300 whitespace-nowrap">{tarihFormatla(log.tarih)}</td>
+              {filtrelenmis.map((item) => (
+                <tr key={`${item.tip}-${item.id}`} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors">
                   <td className="px-4 py-3">
-                    <div className="text-xs font-medium text-gray-900 dark:text-white">{log.kullanici_adi || "—"}</div>
-                    <div className="text-[11px] text-gray-400 dark:text-slate-500">{log.kullanici_eposta || "—"}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium ${
-                      log.islem_tipi === "yedek_alma"
-                        ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                        : "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium ${
+                      item.tip === "musteri" ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400" : "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400"
                     }`}>
-                      {log.islem_tipi === "yedek_alma" ? (
+                      {item.tip === "musteri" ? (
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                       ) : (
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                        </svg>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                       )}
-                      {log.islem_tipi === "yedek_alma" ? "Yedek Alma" : "Geri Yükleme"}
+                      {item.tip === "musteri" ? "Müşteri" : "Bayi"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-slate-300 max-w-[200px] truncate" title={log.dosya_adi || ""}>
-                    {log.dosya_adi || "—"}
+                  <td className="px-4 py-3">
+                    <span className="font-medium text-gray-900 dark:text-white">{item.unvan || item.ad || "-"}</span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-500 dark:text-slate-400 text-right whitespace-nowrap">{boyutFormatla(log.dosya_boyutu)}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500 dark:text-slate-400 text-center">{log.tablo_sayisi ?? "—"}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500 dark:text-slate-400 text-center">{log.kayit_sayisi != null ? log.kayit_sayisi.toLocaleString("tr-TR") : "—"}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`inline-flex px-2 py-0.5 rounded-md text-[11px] font-medium ${
-                      log.durum === "basarili"
-                        ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                        : "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400"
-                    }`}>
-                      {log.durum === "basarili" ? "Başarılı" : "Başarısız"}
-                    </span>
+                  <td className="px-4 py-3 text-gray-500 dark:text-slate-400 text-xs">{tarihFormatla(item.silinme_tarihi)}</td>
+                                    <td className="px-4 py-3 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <button onClick={() => setGeriYuklemeOnay(item)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-medium hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                        Geri Yükle
+                      </button>
+                      <button onClick={() => kaliciSil(item.tip, item.id)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-medium hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        Kalıcı Sil
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -2243,24 +2264,198 @@ function VeriYedeklemeSekmesi() {
         </div>
       )}
 
-      {/* Detay bilgileri - son log varsa */}
-      {loglar.length > 0 && loglar[0].detay && (
-        <div className="p-3 rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/[0.06]">
-          <p className="text-[11px] font-semibold text-gray-500 dark:text-slate-400 mb-1">Son İşlem Detayı</p>
-          <p className="text-xs text-gray-600 dark:text-slate-300">{loglar[0].detay}</p>
-        </div>
-      )}
-
-      {/* Özet */}
-      {loglar.length > 0 && (
-        <div className="flex gap-3 text-xs text-gray-400 dark:text-slate-500">
-          <span>Toplam: {loglar.length} kayıt</span>
-          <span>•</span>
-          <span>Yedek Alma: {loglar.filter(l => l.islem_tipi === "yedek_alma").length}</span>
-          <span>•</span>
-          <span>Geri Yükleme: {loglar.filter(l => l.islem_tipi === "geri_yukleme").length}</span>
+      {/* Geri Yükleme Onay Modal */}
+      {geriYuklemeOnay && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setGeriYuklemeOnay(null)}>
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-500/15 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Geri Yükle</h3>
+                <p className="text-sm text-gray-500 dark:text-slate-400">Bu kaydı geri yüklemek istiyor musunuz?</p>
+              </div>
+            </div>
+            <div className="p-4 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 mb-4">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">{geriYuklemeOnay.unvan || geriYuklemeOnay.ad}</p>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+                {geriYuklemeOnay.tip === "musteri" ? "Müşteri" : "Bayi"}  Silinme: {tarihFormatla(geriYuklemeOnay.silinme_tarihi)}
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setGeriYuklemeOnay(null)} className="flex-1 px-4 py-2.5 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium hover:bg-gray-200 dark:hover:bg-white/10 transition-colors cursor-pointer">
+                İptal
+              </button>
+              <button onClick={() => geriYukle(geriYuklemeOnay.tip, geriYuklemeOnay.id)} className="flex-1 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors cursor-pointer">
+                Geri Yükle
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
 }
+
+
+
+/* ============================================= */
+/*  Sektörler Sekmesi                             */
+/* ============================================= */
+
+function SektorlerSekmesi() {
+  const [sektorler, setSektorler] = useState([]);
+  const [yukleniyor, setYukleniyor] = useState(true);
+  const [modal, setModal] = useState(null); // null | "yeni" | sektorObjesi
+  const [form, setForm] = useState({ ad: "", aktif: true });
+
+  const verileriYukle = async () => {
+    setYukleniyor(true);
+    try {
+      const res = await apiGet("/sektorler");
+      setSektorler(res.veri || []);
+    } catch (e) {
+      console.error("Sektorler yuklenemedi:", e);
+    } finally {
+      setYukleniyor(false);
+    }
+  };
+
+  useEffect(() => { verileriYukle(); }, []);
+
+  const modalAc = (sektor = null) => {
+    if (sektor) {
+      setForm({ ad: sektor.ad, aktif: !!sektor.aktif });
+      setModal(sektor);
+    } else {
+      setForm({ ad: "", aktif: true });
+      setModal("yeni");
+    }
+  };
+
+  const kaydet = async () => {
+    if (!form.ad.trim()) return alert("Sektör adı zorunludur.");
+    try {
+      if (modal === "yeni") {
+        await apiPost("/sektorler", { ad: form.ad.trim() });
+      } else {
+        await apiPut(`/sektorler/${modal.id}`, { ad: form.ad.trim(), aktif: form.aktif });
+      }
+      setModal(null);
+      verileriYukle();
+    } catch (e) {
+      alert(e.message || "Kaydetme hatası");
+    }
+  };
+
+  const sil = async (id) => {
+    if (!confirm("Bu sektörü silmek istediğinize emin misiniz?")) return;
+    try {
+      await apiDelete(`/sektorler/${id}`);
+      verileriYukle();
+    } catch (e) {
+      alert(e.message || "Silme hatası");
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Üst Bar */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500 dark:text-slate-400">{sektorler.length} sektör tanımlı</p>
+        <button onClick={() => modalAc()}
+          className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-lg shadow-emerald-600/25 transition-colors cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+          Yeni Sektör
+        </button>
+      </div>
+
+      {/* İçerik */}
+      {yukleniyor ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      ) : sektorler.length === 0 ? (
+        <div className="text-center py-16">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 mx-auto text-gray-300 dark:text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+          <p className="text-sm text-gray-500 dark:text-slate-400">Henüz sektör tanımlanmamış</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {sektorler.map((s) => (
+            <div key={s.id} className="flex items-center justify-between p-4 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:shadow-md transition-all">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${s.aktif ? "bg-blue-100 dark:bg-blue-500/15" : "bg-gray-100 dark:bg-white/10"}`}>
+                  <svg xmlns="http://www.w3.org/2000/svg" className={`w-4 h-4 ${s.aktif ? "text-blue-600 dark:text-blue-400" : "text-gray-400 dark:text-slate-500"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                </div>
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900 dark:text-white truncate">{s.ad}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className={`text-xs ${s.aktif ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400 dark:text-slate-500"}`}>{s.aktif ? "Aktif" : "Pasif"}</p>
+                    {(s.musteri_sayisi > 0 || s.bayi_sayisi > 0) && (
+                      <span className="text-xs text-gray-400 dark:text-slate-500">•</span>
+                    )}
+                    {s.musteri_sayisi > 0 && (
+                      <span className="inline-flex px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400">{s.musteri_sayisi} müşteri</span>
+                    )}
+                    {s.bayi_sayisi > 0 && (
+                      <span className="inline-flex px-1.5 py-0.5 rounded-full text-xs font-medium bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-400">{s.bayi_sayisi} bayi</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <button onClick={() => modalAc(s)} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-slate-400 transition-colors cursor-pointer">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                </button>
+                <button onClick={() => sil(s.id)} className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-red-500 dark:text-red-400 transition-colors cursor-pointer">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Modal */}
+      {modal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setModal(null)}>
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{modal === "yeni" ? "Yeni Sektör" : "Sektör Düzenle"}</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Sektör Adı</label>
+                <input type="text" value={form.ad} onChange={(e) => setForm({ ...form, ad: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+                  placeholder="Sektör adı girin..." />
+              </div>
+              {modal !== "yeni" && (
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.aktif} onChange={(e) => setForm({ ...form, aktif: e.target.checked })}
+                    className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-blue-600 focus:ring-blue-500" />
+                  <span className="text-sm text-gray-700 dark:text-slate-300">Aktif</span>
+                </label>
+              )}
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setModal(null)} className="flex-1 px-4 py-2.5 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium hover:bg-gray-200 dark:hover:bg-white/10 transition-colors cursor-pointer">
+                İptal
+              </button>
+              <button onClick={kaydet} className="flex-1 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors cursor-pointer">
+                {modal === "yeni" ? "Ekle" : "Güncelle"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+

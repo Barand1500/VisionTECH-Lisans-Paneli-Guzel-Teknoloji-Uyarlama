@@ -16,8 +16,8 @@ async function apiIstek(yol, secenekler = {}) {
 
   const yanit = await fetch(`${API_URL}${yol}`, { ...secenekler, headers: basliklar });
 
-  /* 401 = Yetki yok → tokeni temizle ve login'e yönlendir */
-  if (yanit.status === 401) {
+  /* 401 = Yetki yok → tokeni temizle ve login'e yönlendir (giris istekleri hariç) */
+  if (yanit.status === 401 && !yol.includes("/yetki/giris")) {
     localStorage.removeItem("gt_token");
     localStorage.removeItem("gt_kullanici");
     window.location.href = "/login";
@@ -43,4 +43,28 @@ export function apiPut(yol, govde) {
 
 export function apiDelete(yol) {
   return apiIstek(yol, { method: "DELETE" });
+}
+
+/* ---- Dosya Yükleme (FormData) ---- */
+export async function apiUpload(yol, formData) {
+  const token = tokenAl();
+  const basliklar = {};
+  if (token) basliklar["Authorization"] = `Bearer ${token}`;
+
+  const yanit = await fetch(`${API_URL}${yol}`, {
+    method: "POST",
+    headers: basliklar,
+    body: formData,
+  });
+
+  if (yanit.status === 401) {
+    localStorage.removeItem("gt_token");
+    localStorage.removeItem("gt_kullanici");
+    window.location.href = "/login";
+    throw new Error("Oturum süresi doldu.");
+  }
+
+  const veri = await yanit.json();
+  if (!yanit.ok) throw new Error(veri.mesaj || "Dosya yükleme hatası");
+  return veri;
 }

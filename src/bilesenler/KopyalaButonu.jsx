@@ -1,3 +1,9 @@
+/* ============================================= */
+/*  Guzel Teknoloji - Kopyala Butonu Bileseni    */
+/*  Metin kopyalama islemi icin yeniden          */
+/*  kullanilabilir bilesen. Clipboard API kullanir*/
+/* ============================================= */
+
 import { useState } from "react";
 
 export default function KopyalaButonu({ metin }) {

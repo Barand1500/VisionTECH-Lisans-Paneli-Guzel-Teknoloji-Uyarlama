@@ -1,3 +1,10 @@
+/* ============================================= */
+/*  Guzel Teknoloji - Global Arama Bileseni      */
+/*  Tum uygulama genelinde hizli arama yapilir   */
+/*  Musterilar, bayiler, urunler ve sayfalarda   */
+/*  arama yaparak sonuclari listeler             */
+/* ============================================= */
+
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMusteriler } from "../baglam/MusteriContext";

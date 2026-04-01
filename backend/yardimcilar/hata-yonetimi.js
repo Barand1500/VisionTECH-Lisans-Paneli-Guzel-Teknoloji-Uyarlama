@@ -1,4 +1,8 @@
-/* ---- Hata Yonetimi Middleware ---- */
+/* ============================================= */
+/*  Guzel Teknoloji - Hata Yonetimi Middleware   */
+/*  API isteklerinde olusan hatalari yakalar     */
+/*  ve standart JSON formatinda dondurur         */
+/* ============================================= */
 
 function hataYakala(fn) {
   return (req, res, next) => {

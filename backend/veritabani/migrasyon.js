@@ -101,9 +101,12 @@ async function veriYedekle(tablo, sutunlar) {
     /* 5. Dogrulama */
     console.log("\n[5/5] Dogrulama...");
     const tablolar = [
-      "kullanicilar", "musteriler", "musteri_telefonlari", "musteri_adresleri",
-      "bayiler", "urun_gruplari", "urunler", "paketler", "lisanslar",
-      "surumler", "notlar", "aktivite_loglari",
+      "roller", "sektorler", "kullanicilar",
+      "musteriler", "musteri_telefonlari", "musteri_adresleri", "musteri_dosyalar",
+      "bayiler", "bayi_dosyalar",
+      "urun_gruplari", "urunler", "paketler",
+      "lisanslar", "surumler", "notlar", "iletisim_kayitlari",
+      "aktivite_loglari", "yedekleme_loglari",
     ];
     for (const t of tablolar) {
       const [[r]] = await havuz.query(`SELECT COUNT(*) as c FROM ${t}`);

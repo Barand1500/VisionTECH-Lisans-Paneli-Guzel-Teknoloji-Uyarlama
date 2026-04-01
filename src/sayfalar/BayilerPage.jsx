@@ -7,7 +7,8 @@
 /*  Gece/Gündüz modu destekli                     */
 /* ============================================= */
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import KopyalaButonu from "../bilesenler/KopyalaButonu";
 import { apiGet, apiPost, apiPut, apiDelete } from "../yardimcilar/api";
 
@@ -67,13 +68,6 @@ const telefonFormatla = (deger) => {
   return `(${r.slice(0, 3)}) ${r.slice(3, 6)} ${r.slice(6, 8)} ${r.slice(8)}`;
 };
 
-const bosFormOlustur = () => ({
-  ad: "", yetkili: "", eposta: "", telefon: "", vergiNo: "", vergiDairesi: "",
-  tcKimlikNo: "", pasaportNo: "", adSoyad: "", sirketAdi: "", sehir: "",
-  ustBayiId: "", ustBayiArama: "", ustBayi: "",
-  telefonlar: [""], adresler: [""], durum: true,
-});
-
 /* ============================================= */
 /*  Hiyerarşi Ağaç Düğümü                        */
 /* ============================================= */
@@ -106,7 +100,7 @@ function AgacDugumu({ bayi, tumBayiler, seviye = 0, odakliId, setOdakliId }) {
         </div>
         <div className="flex-1 min-w-0">
           <p className={`text-sm font-medium truncate ${odakli ? "text-blue-700 dark:text-blue-300" : "text-gray-900 dark:text-white"}`}>{bayi.ad}</p>
-          <p className="text-xs text-gray-400 dark:text-slate-500">{bayi.sehir} — {bayi.yetkili}</p>
+          <p className="text-xs text-gray-400 dark:text-slate-500">{bayi.sektor} — {bayi.yetkili}</p>
         </div>
         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${bayi.durum === "aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-500"}`}>
           {bayi.durum === "aktif" ? "Aktif" : "Pasif"}
@@ -124,11 +118,17 @@ function AgacDugumu({ bayi, tumBayiler, seviye = 0, odakliId, setOdakliId }) {
 /* ============================================= */
 
 export default function BayilerPage() {
+  const git = useNavigate();
   const [bayiler, setBayiler] = useState([]);
   const [arama, setArama] = useState("");
+  const [etiketFiltresi, setEtiketFiltresi] = useState(new Set());
+  const [etiketDropdownAcik, setEtiketDropdownAcik] = useState(false);
+  const [etiketArama, setEtiketArama] = useState("");
+  const etiketDropdownRef = useRef(null);
   const [kartFiltre, setKartFiltre] = useState(null);
   const [aktifGorunum, setAktifGorunum] = useState("tablo");
   const [odakliId, setOdakliId] = useState(null);
+  const [detayModal, setDetayModal] = useState(null);
 
   /* ---- Backend'den bayileri çek ---- */
   const bayileriYukle = async () => {
@@ -143,7 +143,8 @@ export default function BayilerPage() {
         vergiNo: b.vergi_no,
         vergiDairesi: b.vergi_dairesi,
         ustBayiId: b.ust_bayi_id,
-        sehir: b.sehir,
+        sektorId: b.sektor_id,
+        sektor: b.sektor_adi,
         durum: b.durum,
         tur: b.tur,
         tcKimlikNo: b.tc_kimlik_no || "",
@@ -151,7 +152,8 @@ export default function BayilerPage() {
         adSoyad: b.ad_soyad || "",
         sirketAdi: b.sirket_adi || "",
         telefonlar: b.telefon ? [b.telefon] : [],
-        adresler: b.sehir ? [b.sehir] : [],
+        adresler: b.sektor ? [b.sektor] : [],
+        etiketler: Array.isArray(b.etiketler) ? b.etiketler : (b.etiketler ? JSON.parse(b.etiketler) : []),
       })));
     } catch (e) {
       console.error("Bayiler yuklenemedi:", e);
@@ -159,6 +161,56 @@ export default function BayilerPage() {
   };
 
   useEffect(() => { bayileriYukle(); }, []);
+
+  /* Escape tuşu ile modal kapat */
+  useEffect(() => {
+    const escKapat = (e) => {
+      if (e.key === "Escape") {
+        setDetayModal(null);
+        setDuzenleModal(null);
+        setEtiketDropdownAcik(false);
+      }
+    };
+    window.addEventListener("keydown", escKapat);
+    return () => window.removeEventListener("keydown", escKapat);
+  }, []);
+
+  /* Etiket dropdown dışına tıklanınca kapat */
+  useEffect(() => {
+    const disariTiklama = (e) => {
+      if (etiketDropdownRef.current && !etiketDropdownRef.current.contains(e.target)) {
+        setEtiketDropdownAcik(false);
+      }
+    };
+    if (etiketDropdownAcik) {
+      document.addEventListener("mousedown", disariTiklama);
+    }
+    return () => document.removeEventListener("mousedown", disariTiklama);
+  }, [etiketDropdownAcik]);
+
+  /* ---- Tüm benzersiz etiketler ---- */
+  const tumEtiketler = useMemo(() => {
+    const set = new Set();
+    bayiler.forEach((b) => {
+      if (Array.isArray(b.etiketler)) {
+        b.etiketler.forEach((e) => set.add(e));
+      }
+    });
+    return [...set].sort();
+  }, [bayiler]);
+
+  /* ---- Etiket filtresi toggle ---- */
+  const etiketFiltresiToggle = (etiket) => {
+    setEtiketFiltresi((prev) => {
+      const yeni = new Set(prev);
+      if (yeni.has(etiket)) {
+        yeni.delete(etiket);
+      } else {
+        yeni.add(etiket);
+      }
+      return yeni;
+    });
+  };
 
   /* Sıralama */
   const [siralamaAlani, setSiralamaAlani] = useState(null);
@@ -181,13 +233,20 @@ export default function BayilerPage() {
   };
 
   /* Modal states */
-  const [ekleModalAcik, setEkleModalAcik] = useState(false);
   const [duzenleModal, setDuzenleModal] = useState(null);
 
-  /* Kart Filtreleme */
+  /* Kart Filtreleme + Etiket Filtresi */
   const filtreliBayiler = bayiler.filter((b) => {
-    const aramaUygun = b.ad.toLowerCase().includes(arama.toLowerCase()) || b.sehir.toLowerCase().includes(arama.toLowerCase());
+    const aramaUygun = b.ad.toLowerCase().includes(arama.toLowerCase()) || (b.sektor || "").toLowerCase().includes(arama.toLowerCase());
     if (!aramaUygun) return false;
+    
+    /* Etiket filtresi */
+    if (etiketFiltresi.size > 0) {
+      const bayiEtiketleri = Array.isArray(b.etiketler) ? b.etiketler : [];
+      const eslesme = [...etiketFiltresi].some((e) => bayiEtiketleri.includes(e));
+      if (!eslesme) return false;
+    }
+    
     if (!kartFiltre) return true;
     if (kartFiltre === "toplam") return true;
     if (kartFiltre === "anaBayi") return !b.ustBayiId;
@@ -211,7 +270,7 @@ export default function BayilerPage() {
     let dA, dB;
     switch (siralamaAlani) {
       case "ad": dA = a.ad.toLowerCase(); dB = b.ad.toLowerCase(); break;
-      case "sehir": dA = a.sehir.toLowerCase(); dB = b.sehir.toLowerCase(); break;
+      case "sektor": dA = a.sektor.toLowerCase(); dB = b.sektor.toLowerCase(); break;
       case "durum": dA = a.durum; dB = b.durum; break;
       case "tur": dA = a.ustBayiId ? "alt" : "ana"; dB = b.ustBayiId ? "alt" : "ana"; break;
       default: return 0;
@@ -220,359 +279,6 @@ export default function BayilerPage() {
     if (dA > dB) return siralamaYonu === "asc" ? 1 : -1;
     return 0;
   });
-
-  /* ============================================= */
-  /*  Yeni Bayi Ekleme Modalı                      */
-  /* ============================================= */
-
-  function BayiEkleModal() {
-    if (!ekleModalAcik) return null;
-
-    const [aktifSekme, setAktifSekme] = useState("tuzel");
-    const [form, setForm] = useState(bosFormOlustur());
-    const [hatalar, setHatalar] = useState({});
-    const [ustAcik, setUstAcik] = useState(false);
-    const ustRef = useRef(null);
-
-    useEffect(() => {
-      const disari = (e) => {
-        if (ustRef.current && !ustRef.current.contains(e.target)) setUstAcik(false);
-      };
-      document.addEventListener("mousedown", disari);
-      return () => document.removeEventListener("mousedown", disari);
-    }, []);
-
-    const anaBayiler = bayiler.filter((b) => !b.ustBayiId);
-    const filtreliUstler = anaBayiler.filter((b) =>
-      b.ad.toLowerCase().includes(form.ustBayiArama.toLowerCase())
-    );
-
-    const guncelle = (alan, val) => {
-      setForm((o) => ({ ...o, [alan]: val }));
-      if (hatalar[alan]) setHatalar((o) => { const y = { ...o }; delete y[alan]; return y; });
-    };
-
-    const listeEkle = (alan) => setForm((o) => ({ ...o, [alan]: [...o[alan], ""] }));
-    const listeGuncelle = (alan, idx, val) => setForm((o) => { const y = [...o[alan]]; y[idx] = val; return { ...o, [alan]: y }; });
-    const listeSil = (alan, idx) => setForm((o) => { const y = o[alan].filter((_, i) => i !== idx); return { ...o, [alan]: y.length === 0 ? [""] : y }; });
-
-    const dogrula = () => {
-      const h = {};
-      if (!form.telefonlar[0] || !form.telefonlar[0].trim()) h.telefonlar = "Telefon zorunludur.";
-      if (!form.adresler[0] || !form.adresler[0].trim()) h.adresler = "Adres zorunludur.";
-      if (aktifSekme === "gercek") {
-        if (!form.tcKimlikNo.trim()) h.tcKimlikNo = "TC zorunludur.";
-        if (!form.adSoyad.trim()) h.adSoyad = "Ad Soyad zorunludur.";
-      }
-      if (aktifSekme === "tuzel") {
-        if (!form.sirketAdi.trim()) h.sirketAdi = "Şirket adı zorunludur.";
-        if (!form.vergiNo.trim()) h.vergiNo = "Vergi No zorunludur.";
-        if (!form.vergiDairesi.trim()) h.vergiDairesi = "Vergi Dairesi zorunludur.";
-        if (!form.yetkili.trim()) h.yetkili = "Yetkili zorunludur.";
-      }
-      if (aktifSekme === "yabanci") {
-        if (!form.pasaportNo.trim()) h.pasaportNo = "Pasaport No zorunludur.";
-        if (!form.yetkili.trim()) h.yetkili = "Yetkili zorunludur.";
-      }
-      setHatalar(h);
-      return Object.keys(h).length === 0;
-    };
-
-    const kaydet = (e) => {
-      e.preventDefault();
-      if (!dogrula()) return;
-
-      const bayiAdi = aktifSekme === "gercek" ? form.adSoyad : (form.sirketAdi || form.adSoyad || form.yetkili);
-      const yeni = {
-        id: Date.now(),
-        ad: bayiAdi,
-        yetkili: form.yetkili || form.adSoyad,
-        eposta: form.eposta,
-        telefon: form.telefonlar[0] || "",
-        vergiNo: form.vergiNo,
-        vergiDairesi: form.vergiDairesi,
-        tcKimlikNo: form.tcKimlikNo,
-        pasaportNo: form.pasaportNo,
-        adSoyad: form.adSoyad,
-        sirketAdi: form.sirketAdi,
-        ustBayiId: form.ustBayiId ? Number(form.ustBayiId) : null,
-        sehir: form.sehir || "Belirtilmedi",
-        durum: form.durum ? "aktif" : "pasif",
-        tur: aktifSekme,
-        telefonlar: form.telefonlar.filter((t) => t.trim()),
-        adresler: form.adresler.filter((a) => a.trim()),
-      };
-
-      console.log("📦 Yeni bayi:", yeni);
-      apiPost("/bayiler", {
-        ad: yeni.ad,
-        yetkili: yeni.yetkili,
-        eposta: yeni.eposta,
-        telefon: yeni.telefon,
-        vergi_no: yeni.vergiNo,
-        vergi_dairesi: yeni.vergiDairesi,
-        sehir: yeni.sehir,
-        durum: yeni.durum,
-        tur: yeni.tur,
-        ust_bayi_id: yeni.ustBayiId,
-        tc_kimlik_no: yeni.tcKimlikNo,
-        pasaport_no: yeni.pasaportNo,
-        ad_soyad: yeni.adSoyad,
-        sirket_adi: yeni.sirketAdi,
-      }).then(() => bayileriYukle()).catch((e) => console.error("Bayi eklenemedi:", e));
-      setEkleModalAcik(false);
-    };
-
-    const ekleRef = useRef(null);
-    const sallanmaEkle = () => { if (ekleRef.current) { ekleRef.current.classList.remove("sallan"); void ekleRef.current.offsetWidth; ekleRef.current.classList.add("sallan"); } };
-
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={sallanmaEkle}>
-        <div ref={ekleRef} className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-3xl max-h-[88vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-
-          {/* Başlık */}
-          <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 px-6 py-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between rounded-t-2xl">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Yeni Bayi Ekle</h3>
-            <button onClick={() => setEkleModalAcik(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white cursor-pointer">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-          </div>
-
-          <form onSubmit={kaydet} className="p-6 space-y-5">
-            {/* Üst Bayi */}
-            <div className="rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 p-4">
-              <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">Üst Bayi</p>
-              <div className="relative" ref={ustRef}>
-                {form.ustBayi ? (
-                  <div className={INPUT_STIL + " flex items-center justify-between"}>
-                    <span className="text-sm">{form.ustBayi}</span>
-                    <button type="button" onClick={() => { guncelle("ustBayi", ""); guncelle("ustBayiId", ""); guncelle("ustBayiArama", ""); }}
-                      className="text-gray-400 hover:text-red-500 cursor-pointer">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <input type="text" placeholder="Üst bayi adı yazarak arayın..." value={form.ustBayiArama}
-                      onChange={(e) => { guncelle("ustBayiArama", e.target.value); setUstAcik(true); }}
-                      onFocus={() => setUstAcik(true)} className={INPUT_STIL} />
-                    {ustAcik && form.ustBayiArama.length > 0 && (
-                      <div className="absolute z-20 left-0 right-0 mt-1 rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 shadow-xl max-h-40 overflow-y-auto">
-                        {filtreliUstler.length > 0 ? filtreliUstler.map((b) => (
-                          <button key={b.id} type="button" onClick={() => { guncelle("ustBayi", b.ad); guncelle("ustBayiId", String(b.id)); guncelle("ustBayiArama", ""); setUstAcik(false); }}
-                            className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 cursor-pointer">
-                            {b.ad}
-                          </button>
-                        )) : (
-                          <div className="p-3">
-                            <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">Üst bayi bulunamadı.</p>
-                            <button type="button" onClick={() => { guncelle("ustBayiArama", ""); setUstAcik(false); }}
-                              className="px-3 py-1 rounded-lg border border-gray-300 dark:border-white/10 text-gray-600 dark:text-slate-400 text-xs cursor-pointer">Kapat</button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-              <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">Boş bırakırsanız "Ana Bayi" olarak kaydedilir.</p>
-            </div>
-
-            {/* Tip Sekmeleri */}
-            <div className="flex gap-1.5 bg-gray-100 dark:bg-white/5 p-1 rounded-lg border border-gray-200 dark:border-white/10">
-              {SEKMELER.map((s) => (
-                <button key={s.id} type="button" onClick={() => { setAktifSekme(s.id); setHatalar({}); }}
-                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all cursor-pointer ${
-                    aktifSekme === s.id ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/25" : "text-gray-500 dark:text-slate-400 hover:bg-white dark:hover:bg-white/5"
-                  }`}>
-                  {s.ikon}{s.etiket}
-                </button>
-              ))}
-            </div>
-
-            {/* Temel Bilgiler */}
-            <div className="rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 p-4">
-              <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">Temel Bilgiler</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {aktifSekme === "gercek" && (
-                  <>
-                    <div>
-                      <label className={LABEL_STIL}>TC Kimlik No <span className="text-red-500">*</span></label>
-                      <input type="text" value={form.tcKimlikNo} onChange={(e) => guncelle("tcKimlikNo", e.target.value.replace(/\D/g, "").slice(0, 11))}
-                        className={hatalar.tcKimlikNo ? HATA_INPUT : INPUT_STIL} maxLength={11} placeholder="11 haneli" />
-                      {hatalar.tcKimlikNo && <p className="text-red-500 text-xs mt-0.5">{hatalar.tcKimlikNo}</p>}
-                    </div>
-                    <div>
-                      <label className={LABEL_STIL}>Ad Soyad <span className="text-red-500">*</span></label>
-                      <input type="text" value={form.adSoyad} onChange={(e) => guncelle("adSoyad", e.target.value)}
-                        className={hatalar.adSoyad ? HATA_INPUT : INPUT_STIL} placeholder="Ad Soyad" />
-                      {hatalar.adSoyad && <p className="text-red-500 text-xs mt-0.5">{hatalar.adSoyad}</p>}
-                    </div>
-                    <div>
-                      <label className={LABEL_STIL}>Yetkili Kişi</label>
-                      <input type="text" value={form.yetkili} onChange={(e) => guncelle("yetkili", e.target.value)} className={INPUT_STIL} placeholder="Yetkili" />
-                    </div>
-                    <div>
-                      <label className={LABEL_STIL}>Şehir</label>
-                      <input type="text" value={form.sehir} onChange={(e) => guncelle("sehir", e.target.value)} className={INPUT_STIL} placeholder="Şehir" />
-                    </div>
-                  </>
-                )}
-                {aktifSekme === "tuzel" && (
-                  <>
-                    <div>
-                      <label className={LABEL_STIL}>Şirket Adı <span className="text-red-500">*</span></label>
-                      <input type="text" value={form.sirketAdi} onChange={(e) => guncelle("sirketAdi", e.target.value)}
-                        className={hatalar.sirketAdi ? HATA_INPUT : INPUT_STIL} placeholder="Şirket adı" />
-                      {hatalar.sirketAdi && <p className="text-red-500 text-xs mt-0.5">{hatalar.sirketAdi}</p>}
-                    </div>
-                    <div>
-                      <label className={LABEL_STIL}>Vergi No <span className="text-red-500">*</span></label>
-                      <input type="text" value={form.vergiNo} onChange={(e) => guncelle("vergiNo", e.target.value.replace(/\D/g, "").slice(0, 10))}
-                        className={hatalar.vergiNo ? HATA_INPUT : INPUT_STIL} maxLength={10} placeholder="10 haneli" />
-                      {hatalar.vergiNo && <p className="text-red-500 text-xs mt-0.5">{hatalar.vergiNo}</p>}
-                    </div>
-                    <div>
-                      <label className={LABEL_STIL}>Vergi Dairesi <span className="text-red-500">*</span></label>
-                      <input type="text" value={form.vergiDairesi} onChange={(e) => guncelle("vergiDairesi", e.target.value)}
-                        className={hatalar.vergiDairesi ? HATA_INPUT : INPUT_STIL} placeholder="Vergi Dairesi" />
-                      {hatalar.vergiDairesi && <p className="text-red-500 text-xs mt-0.5">{hatalar.vergiDairesi}</p>}
-                    </div>
-                    <div>
-                      <label className={LABEL_STIL}>Yetkili Kişi <span className="text-red-500">*</span></label>
-                      <input type="text" value={form.yetkili} onChange={(e) => guncelle("yetkili", e.target.value)}
-                        className={hatalar.yetkili ? HATA_INPUT : INPUT_STIL} placeholder="Yetkili" />
-                      {hatalar.yetkili && <p className="text-red-500 text-xs mt-0.5">{hatalar.yetkili}</p>}
-                    </div>
-                    <div>
-                      <label className={LABEL_STIL}>Şehir</label>
-                      <input type="text" value={form.sehir} onChange={(e) => guncelle("sehir", e.target.value)} className={INPUT_STIL} placeholder="Şehir" />
-                    </div>
-                    <div>
-                      <label className={LABEL_STIL}>E-posta</label>
-                      <input type="email" value={form.eposta} onChange={(e) => guncelle("eposta", e.target.value)} className={INPUT_STIL} placeholder="ornek@bayi.com" />
-                    </div>
-                  </>
-                )}
-                {aktifSekme === "yabanci" && (
-                  <>
-                    <div>
-                      <label className={LABEL_STIL}>Pasaport No <span className="text-red-500">*</span></label>
-                      <input type="text" value={form.pasaportNo} onChange={(e) => guncelle("pasaportNo", e.target.value)}
-                        className={hatalar.pasaportNo ? HATA_INPUT : INPUT_STIL} placeholder="Pasaport No" />
-                      {hatalar.pasaportNo && <p className="text-red-500 text-xs mt-0.5">{hatalar.pasaportNo}</p>}
-                    </div>
-                    <div>
-                      <label className={LABEL_STIL}>Yetkili Kişi <span className="text-red-500">*</span></label>
-                      <input type="text" value={form.yetkili} onChange={(e) => guncelle("yetkili", e.target.value)}
-                        className={hatalar.yetkili ? HATA_INPUT : INPUT_STIL} placeholder="Yetkili" />
-                      {hatalar.yetkili && <p className="text-red-500 text-xs mt-0.5">{hatalar.yetkili}</p>}
-                    </div>
-                    <div>
-                      <label className={LABEL_STIL}>Ad Soyad</label>
-                      <input type="text" value={form.adSoyad} onChange={(e) => guncelle("adSoyad", e.target.value)} className={INPUT_STIL} placeholder="Opsiyonel" />
-                    </div>
-                    <div>
-                      <label className={LABEL_STIL}>Şehir</label>
-                      <input type="text" value={form.sehir} onChange={(e) => guncelle("sehir", e.target.value)} className={INPUT_STIL} placeholder="Şehir" />
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* İletişim */}
-            <div className="rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 p-4">
-              <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">İletişim</p>
-              <div className="mb-3">
-                <label className={LABEL_STIL}>Telefonlar <span className="text-red-500">*</span></label>
-                {hatalar.telefonlar && <p className="text-red-500 text-xs mb-1">{hatalar.telefonlar}</p>}
-                {form.telefonlar.map((tel, idx) => (
-                  <div key={idx} className="flex items-center gap-2 mb-2">
-                    <input type="text" placeholder="(5XX) XXX XX XX" value={tel}
-                      onChange={(e) => listeGuncelle("telefonlar", idx, telefonFormatla(e.target.value))} className={INPUT_STIL} />
-                    {form.telefonlar.length > 1 && (
-                      <button type="button" onClick={() => listeSil("telefonlar", idx)}
-                        className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 cursor-pointer shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <button type="button" onClick={() => listeEkle("telefonlar")}
-                  className="text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 cursor-pointer font-medium inline-flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                  Telefon Ekle
-                </button>
-              </div>
-              <div>
-                <label className={LABEL_STIL}>Adresler <span className="text-red-500">*</span></label>
-                {hatalar.adresler && <p className="text-red-500 text-xs mb-1">{hatalar.adresler}</p>}
-                {form.adresler.map((adres, idx) => (
-                  <div key={idx} className="flex items-start gap-2 mb-2">
-                    <textarea placeholder="Adres" value={adres} onChange={(e) => listeGuncelle("adresler", idx, e.target.value)}
-                      rows={2} className={INPUT_STIL + " resize-none"} />
-                    {form.adresler.length > 1 && (
-                      <button type="button" onClick={() => listeSil("adresler", idx)}
-                        className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 cursor-pointer shrink-0 mt-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <button type="button" onClick={() => listeEkle("adresler")}
-                  className="text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 cursor-pointer font-medium inline-flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                  Adres Ekle
-                </button>
-              </div>
-            </div>
-
-            {/* Durum */}
-            <div className="rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 p-4">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Bayi Durumu</p>
-                <div className="flex items-center gap-3">
-                  <button type="button" onClick={() => guncelle("durum", !form.durum)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 cursor-pointer ${form.durum ? "bg-emerald-500" : "bg-gray-300 dark:bg-white/20"}`}>
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-200 ${form.durum ? "translate-x-6" : "translate-x-1"}`} />
-                  </button>
-                  <span className={`text-sm font-medium ${form.durum ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500 dark:text-slate-400"}`}>
-                    {form.durum ? "Aktif" : "Pasif"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Hatalar */}
-            {Object.keys(hatalar).length > 0 && (
-              <div className="rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 p-3">
-                <p className="text-xs text-red-600 dark:text-red-400 font-medium">Lütfen zorunlu alanları doldurun.</p>
-              </div>
-            )}
-
-            {/* Butonlar */}
-            <div className="flex justify-end gap-3 pt-2">
-              <button type="button" onClick={() => setEkleModalAcik(false)}
-                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer">İptal</button>
-              <button type="submit"
-                className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold cursor-pointer inline-flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                Bayi Kaydet
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  }
 
   /* ============================================= */
   /*  Bayi Düzenleme Modalı (Ok İle Gezinme)      */
@@ -595,7 +301,7 @@ export default function BayilerPage() {
       pasaportNo: duzenleModal.pasaportNo || "",
       adSoyad: duzenleModal.adSoyad || "",
       sirketAdi: duzenleModal.sirketAdi || "",
-      sehir: duzenleModal.sehir || "",
+      sektorId: duzenleModal.sektorId || "",
       durum: duzenleModal.durum === "aktif",
       telefonlar: (duzenleModal.telefonlar && duzenleModal.telefonlar.length > 0) ? [...duzenleModal.telefonlar] : [duzenleModal.telefon || ""],
       adresler: (duzenleModal.adresler && duzenleModal.adresler.length > 0) ? [...duzenleModal.adresler] : [""],
@@ -616,7 +322,7 @@ export default function BayilerPage() {
         pasaportNo: bayi.pasaportNo || "",
         adSoyad: bayi.adSoyad || "",
         sirketAdi: bayi.sirketAdi || "",
-        sehir: bayi.sehir || "",
+        sektorId: bayi.sektorId || "",
         durum: bayi.durum === "aktif",
         telefonlar: (bayi.telefonlar && bayi.telefonlar.length > 0) ? [...bayi.telefonlar] : [bayi.telefon || ""],
         adresler: (bayi.adresler && bayi.adresler.length > 0) ? [...bayi.adresler] : [""],
@@ -683,7 +389,7 @@ export default function BayilerPage() {
         pasaportNo: form.pasaportNo,
         adSoyad: form.adSoyad,
         sirketAdi: form.sirketAdi,
-        sehir: form.sehir,
+        sektorId: form.sektorId || null,
         durum: form.durum ? "aktif" : "pasif",
         tur: form.tur,
         telefonlar: form.telefonlar.filter((t) => t.trim()),
@@ -696,7 +402,7 @@ export default function BayilerPage() {
         telefon: guncellenen.telefon,
         vergi_no: guncellenen.vergiNo,
         vergi_dairesi: guncellenen.vergiDairesi,
-        sehir: guncellenen.sehir,
+        sektor_id: guncellenen.sektorId || null,
         durum: guncellenen.durum,
         tur: guncellenen.tur,
         tc_kimlik_no: guncellenen.tcKimlikNo,
@@ -840,8 +546,8 @@ export default function BayilerPage() {
                   {hatalar.eposta && <p className="text-red-500 text-xs mt-0.5">{hatalar.eposta}</p>}
                 </div>
                 <div>
-                  <label className={LABEL_STIL}>Şehir</label>
-                  <input type="text" value={form.sehir} onChange={(e) => guncelle("sehir", e.target.value)} className={INPUT_STIL} />
+                  <label className={LABEL_STIL}>Sektör</label>
+                  <input type="text" value={form.sektor} onChange={(e) => guncelle("sektor", e.target.value)} className={INPUT_STIL} />
                 </div>
               </div>
             </div>
@@ -920,7 +626,6 @@ export default function BayilerPage() {
 
   return (
     <div>
-      <BayiEkleModal />
       <BayiDuzenleModal />
 
       {/* Başlık */}
@@ -929,7 +634,7 @@ export default function BayilerPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Bayiler</h1>
           <p className="text-gray-500 dark:text-slate-400 mt-1">Bayi ağınızı görüntüleyin ve yönetin.</p>
         </div>
-        <button onClick={() => setEkleModalAcik(true)}
+        <button onClick={() => git("/dashboard/bayi-ekle")}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-all shadow-lg shadow-emerald-600/25 cursor-pointer">
           <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
@@ -937,14 +642,58 @@ export default function BayilerPage() {
         </button>
       </div>
 
-      {/* Arama + Görünüm */}
+      {/* Arama + Etiket Filtresi + Görünüm */}
       <div className="mb-6 flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-          <input type="text" placeholder="Bayi adı veya şehir ile arayın..." value={arama} onChange={(e) => setArama(e.target.value)}
+          <input type="text" placeholder="Bayi adı veya sektör ile arayın..." value={arama} onChange={(e) => setArama(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
         </div>
+        
+        {/* Etiket Filtresi */}
+        {tumEtiketler.length > 0 && (
+          <div className="relative" ref={etiketDropdownRef}>
+            <button type="button" onClick={() => setEtiketDropdownAcik(!etiketDropdownAcik)}
+              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all cursor-pointer ${
+                etiketFiltresi.size > 0
+                  ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-300 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
+                  : "bg-white dark:bg-white/5 border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-white/10"
+              }`}>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              Etiketler
+              {etiketFiltresi.size > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-emerald-600 text-white text-xs">{etiketFiltresi.size}</span>
+              )}
+              <svg xmlns="http://www.w3.org/2000/svg" className={`w-4 h-4 transition-transform ${etiketDropdownAcik ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            {etiketDropdownAcik && (
+              <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-white/10 z-30 p-2 max-h-64 overflow-y-auto">
+                <input type="text" placeholder="Etiket ara..." value={etiketArama} onChange={(e) => setEtiketArama(e.target.value)}
+                  className="w-full px-3 py-2 mb-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                {etiketFiltresi.size > 0 && (
+                  <button type="button" onClick={() => setEtiketFiltresi(new Set())}
+                    className="w-full text-left px-3 py-2 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg cursor-pointer mb-1">
+                    Filtreyi Temizle
+                  </button>
+                )}
+                {tumEtiketler.filter((e) => !etiketArama || e.toLowerCase().includes(etiketArama.toLowerCase())).map((etiket) => (
+                  <label key={etiket} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer">
+                    <input type="checkbox" checked={etiketFiltresi.has(etiket)} onChange={() => etiketFiltresiToggle(etiket)}
+                      className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-emerald-600 focus:ring-emerald-500 cursor-pointer" />
+                    <span className="text-sm text-gray-700 dark:text-slate-300">{etiket}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        
         <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-lg border border-gray-200 dark:border-white/10">
           <button onClick={() => setAktifGorunum("tablo")}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer ${aktifGorunum === "tablo" ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm" : "text-gray-500 dark:text-slate-400"}`}>
@@ -989,6 +738,7 @@ export default function BayilerPage() {
                   <th className="text-left px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider">Üst Bayi</th>
                   <th onClick={() => siralamaToggle("sehir")} className="text-left px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-white select-none"><span className="inline-flex items-center">Şehir<SiralamaIkon alan="sehir" /></span></th>
                   <th className="text-left px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider">Telefon</th>
+                  <th className="text-left px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider">Etiketler</th>
                   <th onClick={() => siralamaToggle("durum")} className="text-center px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-white select-none"><span className="inline-flex items-center justify-center">Durum<SiralamaIkon alan="durum" /></span></th>
                   <th className="text-center px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider">İşlemler</th>
                 </tr>
@@ -1011,11 +761,24 @@ export default function BayilerPage() {
                       {bayi.ustBayiId ? ustBayiAdiBul(bayi.ustBayiId) : "—"}
                     </td>
                     <td className="px-6 py-4 text-gray-600 dark:text-slate-400">{bayi.sehir}</td>
-                    <td className="px-6 py-4 text-gray-600 dark:text-slate-400">
+                    <td className="px-6 py-4 text-gray-600 dark:text-slate-400 whitespace-nowrap">
                       <span className="inline-flex items-center group">
                         {bayi.telefon || (bayi.telefonlar && bayi.telefonlar[0]) || "—"}
                         <KopyalaButonu metin={bayi.telefon || (bayi.telefonlar && bayi.telefonlar[0])} />
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-1 max-w-[200px]">
+                        {Array.isArray(bayi.etiketler) && bayi.etiketler.length > 0 ? (
+                          bayi.etiketler.map((etiket, idx) => (
+                            <span key={idx} className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">
+                              {etiket}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-gray-400 dark:text-slate-500 text-xs">-</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium ${bayi.durum === "aktif" ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-500"}`}>
@@ -1023,17 +786,25 @@ export default function BayilerPage() {
                         {bayi.durum === "aktif" ? "Aktif" : "Pasif"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-center">
-                      <button onClick={() => setDuzenleModal(bayi)} title="Düzenle"
-                        className="w-8 h-8 rounded-lg bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center cursor-pointer transition-colors mx-auto">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                      </button>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <button onClick={() => setDetayModal(bayi)} title="Detay Görüntüle"
+                          className="w-8 h-8 rounded-lg bg-gray-500 hover:bg-gray-600 text-white flex items-center justify-center cursor-pointer transition-colors">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        </button>
+                        <button onClick={() => setDuzenleModal(bayi)} title="Düzenle"
+                          className="w-8 h-8 rounded-lg bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center cursor-pointer transition-colors">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400 dark:text-slate-500">
+                    <td colSpan={8} className="px-6 py-12 text-center text-gray-400 dark:text-slate-500">
                       "{arama}" ile eşleşen bayi bulunamadı.
                     </td>
                   </tr>
@@ -1060,6 +831,141 @@ export default function BayilerPage() {
             {kokBayiler.map((bayi) => (
               <AgacDugumu key={bayi.id} bayi={bayi} tumBayiler={bayiler} odakliId={odakliId} setOdakliId={setOdakliId} />
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ---- Bayi Detay Modalı ---- */}
+      {detayModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            {/* Başlık */}
+            <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 px-6 py-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between rounded-t-2xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">{detayModal.ad}</h3>
+                  <p className="text-xs text-gray-400 dark:text-slate-500">{detayModal.tur === "gercek" ? "Gerçek Kişi" : detayModal.tur === "tuzel" ? "Tüzel Kişi" : "Yabancı"}</p>
+                </div>
+              </div>
+              <button onClick={() => setDetayModal(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Durum */}
+              <div className="flex justify-end">
+                <span className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-medium ${
+                  detayModal.durum === "aktif" ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-500"
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${detayModal.durum === "aktif" ? "bg-emerald-500" : "bg-gray-400"}`} />
+                  {detayModal.durum === "aktif" ? "Aktif" : "Pasif"}
+                </span>
+              </div>
+
+              {/* Temel Bilgiler */}
+              <div className="rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 p-4">
+                <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">Temel Bilgiler</p>
+                <div className="space-y-3">
+                  {detayModal.yetkili && (
+                    <div className="flex items-center justify-between">
+                      <div><p className="text-xs text-gray-400 dark:text-slate-500">Yetkili</p><p className="text-sm text-gray-900 dark:text-white font-medium">{detayModal.yetkili}</p></div>
+                      <KopyalaButonu metin={detayModal.yetkili} />
+                    </div>
+                  )}
+                  {detayModal.sektor && (
+                    <div className="flex items-center justify-between">
+                      <div><p className="text-xs text-gray-400 dark:text-slate-500">Sektör</p><p className="text-sm text-gray-900 dark:text-white font-medium">{detayModal.sektor}</p></div>
+                    </div>
+                  )}
+                  {detayModal.ustBayiId && (
+                    <div className="flex items-center justify-between">
+                      <div><p className="text-xs text-gray-400 dark:text-slate-500">Üst Bayi</p><p className="text-sm text-gray-900 dark:text-white font-medium">{ustBayiAdiBul(detayModal.ustBayiId)}</p></div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* İletişim Bilgileri */}
+              <div className="rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 p-4">
+                <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">İletişim</p>
+                <div className="space-y-3">
+                  {detayModal.telefon && (
+                    <div className="flex items-center justify-between">
+                      <div><p className="text-xs text-gray-400 dark:text-slate-500">Telefon</p><p className="text-sm text-gray-900 dark:text-white font-medium">{detayModal.telefon}</p></div>
+                      <KopyalaButonu metin={detayModal.telefon} />
+                    </div>
+                  )}
+                  {detayModal.eposta && (
+                    <div className="flex items-center justify-between">
+                      <div><p className="text-xs text-gray-400 dark:text-slate-500">E-posta</p><p className="text-sm text-gray-900 dark:text-white font-medium">{detayModal.eposta}</p></div>
+                      <KopyalaButonu metin={detayModal.eposta} />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Vergi Bilgileri */}
+              {(detayModal.vergiNo || detayModal.vergiDairesi || detayModal.tcKimlikNo || detayModal.pasaportNo) && (
+                <div className="rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 p-4">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">Vergi / Kimlik</p>
+                  <div className="space-y-3">
+                    {detayModal.vergiNo && (
+                      <div className="flex items-center justify-between">
+                        <div><p className="text-xs text-gray-400 dark:text-slate-500">Vergi No</p><p className="text-sm text-gray-900 dark:text-white font-medium">{detayModal.vergiNo}</p></div>
+                        <KopyalaButonu metin={detayModal.vergiNo} />
+                      </div>
+                    )}
+                    {detayModal.vergiDairesi && (
+                      <div className="flex items-center justify-between">
+                        <div><p className="text-xs text-gray-400 dark:text-slate-500">Vergi Dairesi</p><p className="text-sm text-gray-900 dark:text-white font-medium">{detayModal.vergiDairesi}</p></div>
+                      </div>
+                    )}
+                    {detayModal.tcKimlikNo && (
+                      <div className="flex items-center justify-between">
+                        <div><p className="text-xs text-gray-400 dark:text-slate-500">TC Kimlik No</p><p className="text-sm text-gray-900 dark:text-white font-medium">{detayModal.tcKimlikNo}</p></div>
+                        <KopyalaButonu metin={detayModal.tcKimlikNo} />
+                      </div>
+                    )}
+                    {detayModal.pasaportNo && (
+                      <div className="flex items-center justify-between">
+                        <div><p className="text-xs text-gray-400 dark:text-slate-500">Pasaport No</p><p className="text-sm text-gray-900 dark:text-white font-medium">{detayModal.pasaportNo}</p></div>
+                        <KopyalaButonu metin={detayModal.pasaportNo} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Etiketler */}
+              {Array.isArray(detayModal.etiketler) && detayModal.etiketler.length > 0 && (
+                <div className="rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 p-4">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">Etiketler</p>
+                  <div className="flex flex-wrap gap-2">
+                    {detayModal.etiketler.map((etiket, idx) => (
+                      <span key={idx} className="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">
+                        {etiket}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Düzenle Butonu */}
+              <div className="pt-2">
+                <button onClick={() => { setDetayModal(null); setDuzenleModal(detayModal); }}
+                  className="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors cursor-pointer">
+                  Düzenle
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

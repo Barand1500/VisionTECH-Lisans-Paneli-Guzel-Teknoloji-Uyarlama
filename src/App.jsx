@@ -13,6 +13,7 @@ import DashboardHome from "./sayfalar/DashboardHome";
 import MusterilerPage from "./sayfalar/MusterilerPage";
 import MusteriEklePage from "./sayfalar/MusteriEklePage";
 import BayilerPage from "./sayfalar/BayilerPage";
+import BayiEklePage from "./sayfalar/BayiEklePage";
 import LisansYonetimiPage from "./sayfalar/LisansYonetimiPage";
 import YonetimPage from "./sayfalar/YonetimPage";
 import RaporlarPage from "./sayfalar/RaporlarPage";
@@ -58,6 +59,9 @@ function App() {
 
           {/* Bayiler Sayfasi */}
           <Route path="bayiler" element={<BayilerPage />} />
+
+          {/* Bayi Ekleme Sayfasi */}
+          <Route path="bayi-ekle" element={<BayiEklePage />} />
 
           {/* Yonetim Sayfasi */}
           <Route path="yonetim" element={<YonetimPage />} />

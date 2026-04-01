@@ -12,15 +12,21 @@ const jwt = require("jsonwebtoken");
 /* ---- Tablolarin sirasi (FK bagimliliklarina gore) ---- */
 const TABLO_SIRASI = [
   "roller",
+  "sektorler",
   "kullanicilar",
+  "musteriler",
+  "musteri_telefonlari",
+  "musteri_adresleri",
+  "musteri_dosyalar",
+  "bayiler",
+  "bayi_dosyalar",
   "urun_gruplari",
   "urunler",
   "paketler",
-  "musteriler",
-  "bayiler",
   "lisanslar",
   "surumler",
   "notlar",
+  "iletisim_kayitlari",
   "aktivite_loglari",
   "yedekleme_loglari",
 ];

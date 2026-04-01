@@ -11,6 +11,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMusteriler } from "../baglam/MusteriContext";
 import { useAktiviteLog } from "../baglam/AktiviteLogContext";
+import { apiGet, apiPost } from "../yardimcilar/api";
 
 /* ============================================= */
 /*  Sabit Tanımlamalar                            */
@@ -46,10 +47,7 @@ const SEKMELER = [
   },
 ];
 
-const SEKTORLER = [
-  "Teknoloji", "Sağlık", "Eğitim", "Finans", "Üretim",
-  "Perakende", "İnşaat", "Hukuk", "Gıda", "Lojistik", "Turizm", "Diğer",
-];
+/* Sektörler artık API'den çekilecek */
 
 /* ---- Boş Form Verisi Şablonu ---- */
 const bosFormOlustur = () => ({
@@ -57,6 +55,7 @@ const bosFormOlustur = () => ({
   yetkiliKisi: "",
   adSoyad: "",
   eposta: "",
+  telefon: "",
   sektor: "",
   sektorDiger: "",
   vergiDairesi: "",
@@ -65,8 +64,8 @@ const bosFormOlustur = () => ({
   pasaportNo: "",
   ustMusteri: "",
   ustMusteriArama: "",
-  telefonlar: [""],
-  adresler: [""],
+  adres: "",
+  kisiler: [],
   notlar: "",
   etiketler: [],
   yeniEtiket: "",
@@ -119,7 +118,18 @@ export default function MusteriEklePage() {
   const [basarili, setBasarili] = useState(false);
   const [ustMusteriAcik, setUstMusteriAcik] = useState(false);
   const [kayitDisiOnay, setKayitDisiOnay] = useState(false);
+  const [sektorler, setSektorler] = useState([]);
+  const [dosyalar, setDosyalar] = useState([]);
+  const [dosyaYukleniyor, setDosyaYukleniyor] = useState(false);
+  const dosyaInputRef = useRef(null);
   const ustMusteriRef = useRef(null);
+
+  /* ---- Sektörleri API'den Çek ---- */
+  useEffect(() => {
+    apiGet("/sektorler").then((yanit) => {
+      if (yanit?.veri) setSektorler(yanit.veri);
+    }).catch(() => {});
+  }, []);
 
   /* ---- Üst Müşteri dropdown dışına tıklanınca kapat ---- */
   useEffect(() => {
@@ -166,6 +176,18 @@ export default function MusteriEklePage() {
     setForm((o) => { const yeni = o[alan].filter((_, i) => i !== idx); return { ...o, [alan]: yeni.length === 0 ? [""] : yeni }; });
   };
 
+  /* ---- Kişi İşlemleri ---- */
+  const bosKisi = () => ({ adSoyad: "", telefon: "", eposta: "", gorev: "", adres: "" });
+  const kisiEkle = () => setForm((o) => ({ ...o, kisiler: [...o.kisiler, bosKisi()] }));
+  const kisiGuncelle = (idx, alan, deger) => {
+    setForm((o) => {
+      const yeni = [...o.kisiler];
+      yeni[idx] = { ...yeni[idx], [alan]: alan === "telefon" ? telefonFormatla(deger) : deger };
+      return { ...o, kisiler: yeni };
+    });
+  };
+  const kisiSil = (idx) => setForm((o) => ({ ...o, kisiler: o.kisiler.filter((_, i) => i !== idx) }));
+
   /* ---- Etiketler ---- */
   const etiketEkle = () => {
     const etiket = form.yeniEtiket.trim();
@@ -183,22 +205,23 @@ export default function MusteriEklePage() {
   const formuDogrula = () => {
     const h = {};
 
-    /* Ortak zorunlu alanlar */
-    if (!form.eposta.trim()) h.eposta = "E-posta zorunludur.";
-    else if (!epostaGecerliMi(form.eposta)) h.eposta = "Geçerli bir e-posta adresi giriniz.";
+    /* Adres zorunlu (Fatura Bilgileri) */
+    if (!form.adres.trim()) h.adres = "Adres zorunludur.";
 
-    if (!form.adresler[0] || !form.adresler[0].trim()) h.adresler = "En az 1 adres girilmelidir.";
-    if (!form.telefonlar[0] || !form.telefonlar[0].trim()) h.telefonlar = "En az 1 telefon girilmelidir.";
+    /* E-Posta zorunlu (Fatura Bilgileri) */
+    if (!form.eposta.trim()) h.eposta = "E-Posta zorunludur.";
+    else if (!epostaGecerliMi(form.eposta)) h.eposta = "Geçerli bir e-posta adresi giriniz.";
 
     /* Gerçek müşteri */
     if (aktifSekme === "gercek") {
+      if (!form.adSoyad.trim()) h.adSoyad = "Ad Soyad zorunludur.";
       if (!form.tcKimlikNo.trim()) h.tcKimlikNo = "TC Kimlik No zorunludur.";
       else if (form.tcKimlikNo.length !== 11) h.tcKimlikNo = "TC Kimlik No 11 haneli olmalıdır.";
-      if (!form.adSoyad.trim()) h.adSoyad = "Ad Soyad zorunludur.";
     }
 
     /* Tüzel müşteri */
     if (aktifSekme === "tuzel") {
+      if (!form.sirketAdi.trim()) h.sirketAdi = "Şirket Ünvanı zorunludur.";
       if (!form.vergiNo.trim()) h.vergiNo = "Vergi Numarası zorunludur.";
       else if (form.vergiNo.length !== 10) h.vergiNo = "Vergi Numarası 10 haneli olmalıdır.";
       if (!form.vergiDairesi.trim()) h.vergiDairesi = "Vergi Dairesi zorunludur.";
@@ -206,8 +229,8 @@ export default function MusteriEklePage() {
 
     /* Yabancı müşteri */
     if (aktifSekme === "yabanci") {
+      if (!form.adSoyad.trim()) h.adSoyad = "Ad Soyad zorunludur.";
       if (!form.pasaportNo.trim()) h.pasaportNo = "Pasaport No zorunludur.";
-      if (!form.yetkiliKisi.trim()) h.yetkiliKisi = "Yetkili Kişi zorunludur.";
     }
 
     setHatalar(h);
@@ -218,25 +241,24 @@ export default function MusteriEklePage() {
   /*  Form Gönderme                                */
   /* ============================================= */
 
-  const formGonder = (e) => {
+  const formGonder = async (e) => {
     e.preventDefault();
     if (!formuDogrula()) return;
 
     const veri = {
       tur: aktifSekme,
       eposta: form.eposta,
-      sektor: form.sektor === "Diğer" ? form.sektorDiger : form.sektor,
+      sektorId: form.sektor ? Number(form.sektor) : null,
       ustMusteri: form.ustMusteri,
-      telefonlar: form.telefonlar.filter((t) => t.trim()),
-      adresler: form.adresler.filter((a) => a.trim()),
+      telefonlar: form.kisiler.map((k) => k.telefon).filter(Boolean),
+      adresler: form.adres.trim() ? [form.adres.trim()] : [],
+      kisiler: form.kisiler.filter((k) => k.adSoyad.trim() || k.telefon.trim()),
       notlar: form.notlar,
       etiketler: form.etiketler,
       durum: form.durum ? "Aktif" : "Pasif",
       ...(aktifSekme === "gercek" && {
         adSoyad: form.adSoyad,
         tcKimlikNo: form.tcKimlikNo,
-        yetkiliKisi: form.yetkiliKisi,
-        sirketAdi: form.sirketAdi || undefined,
       }),
       ...(aktifSekme === "tuzel" && {
         sirketAdi: form.sirketAdi,
@@ -245,16 +267,36 @@ export default function MusteriEklePage() {
         vergiNo: form.vergiNo,
       }),
       ...(aktifSekme === "yabanci" && {
-        adSoyad: form.adSoyad || undefined,
+        adSoyad: form.adSoyad,
         sirketAdi: form.sirketAdi || undefined,
         pasaportNo: form.pasaportNo,
-        yetkiliKisi: form.yetkiliKisi,
       }),
     };
 
     console.log("📦 Müşteri verisi (backend'e gönderilecek):", veri);
-    musteriEkle(veri);
-    logEkle("musteri_ekleme", `"${veri.adSoyad || veri.sirketAdi || veri.yetkiliKisi || 'Yeni Müşteri'}" adlı müşteri eklendi.`);
+    const sonuc = await musteriEkle(veri);
+
+    /* Dosya varsa yükle */
+    if (dosyalar.length > 0 && sonuc?.id) {
+      setDosyaYukleniyor(true);
+      for (const dosya of dosyalar) {
+        const fd = new FormData();
+        fd.append("dosyalar", dosya);
+        try {
+          const token = localStorage.getItem("token");
+          await fetch(`http://localhost:5000/api/musteriler/${sonuc.id}/dosyalar`, {
+            method: "POST",
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            body: fd,
+          });
+        } catch (err) {
+          console.error("Dosya yükleme hatası:", err);
+        }
+      }
+      setDosyaYukleniyor(false);
+    }
+
+    logEkle("musteri_ekleme", `"${veri.adSoyad || veri.sirketAdi || 'Yeni Müşteri'}" adlı müşteri eklendi.`);
 
     setBasarili(true);
     setTimeout(() => git("/dashboard/musteriler"), 2000);
@@ -423,21 +465,46 @@ export default function MusteriEklePage() {
         </div>
 
         {/* ============================================= */}
-        {/*  Bölüm 1: Temel Bilgiler (Tipe Göre)         */}
+        {/*  Bölüm 1: Fatura Bilgileri (Tipe Göre)       */}
         {/* ============================================= */}
         <div className="rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Temel Bilgiler
-          </h3>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Fatura Bilgileri
+            </h3>
+            <div className="flex items-center gap-3">
+              <span className={`text-sm font-medium ${form.durum ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500 dark:text-slate-400"}`}>
+                {form.durum ? "Aktif" : "Pasif"}
+              </span>
+              <button
+                type="button"
+                onClick={() => alanGuncelle("durum", !form.durum)}
+                className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-200 cursor-pointer ${
+                  form.durum ? "bg-emerald-500" : "bg-gray-300 dark:bg-white/20"
+                }`}
+              >
+                <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-200 ${
+                  form.durum ? "translate-x-6" : "translate-x-1"
+                }`} />
+              </button>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
             {/* ======== GERÇEK MÜŞTERİ ALANLARI ======== */}
             {aktifSekme === "gercek" && (
               <>
+                <div>
+                  <label className={LABEL_STIL}>Ad Soyad <span className="text-red-500">*</span></label>
+                  <input type="text" placeholder="Ad ve soyadını giriniz" value={form.adSoyad}
+                    onChange={(e) => alanGuncelle("adSoyad", e.target.value)}
+                    className={hatalar.adSoyad ? HATA_INPUT_STIL : INPUT_STIL} />
+                  {hatalar.adSoyad && <p className="text-red-500 text-xs mt-1">{hatalar.adSoyad}</p>}
+                </div>
                 <div>
                   <label className={LABEL_STIL}>TC Kimlik No <span className="text-red-500">*</span></label>
                   <input type="text" placeholder="11 haneli TC kimlik numarası" value={form.tcKimlikNo}
@@ -447,23 +514,24 @@ export default function MusteriEklePage() {
                   {hatalar.tcKimlikNo && <p className="text-red-500 text-xs mt-0.5">{hatalar.tcKimlikNo}</p>}
                 </div>
                 <div>
-                  <label className={LABEL_STIL}>Ad Soyad <span className="text-red-500">*</span></label>
-                  <input type="text" placeholder="Ad ve soyadını giriniz" value={form.adSoyad}
-                    onChange={(e) => alanGuncelle("adSoyad", e.target.value)}
-                    className={hatalar.adSoyad ? HATA_INPUT_STIL : INPUT_STIL} />
-                  {hatalar.adSoyad && <p className="text-red-500 text-xs mt-1">{hatalar.adSoyad}</p>}
+                  <label className={LABEL_STIL}>E-Posta <span className="text-red-500">*</span></label>
+                  <input type="email" placeholder="ornek@sirket.com" value={form.eposta}
+                    onChange={(e) => alanGuncelle("eposta", e.target.value)}
+                    className={hatalar.eposta ? HATA_INPUT_STIL : INPUT_STIL} />
+                  {hatalar.eposta && <p className="text-red-500 text-xs mt-1">{hatalar.eposta}</p>}
                 </div>
                 <div>
-                  <label className={LABEL_STIL}>Yetkili Kişi</label>
-                  <input type="text" placeholder="Yetkili kişi adı" value={form.yetkiliKisi}
-                    onChange={(e) => alanGuncelle("yetkiliKisi", e.target.value)} className={INPUT_STIL} />
+                  <label className={LABEL_STIL}>Telefon</label>
+                  <input type="text" placeholder="(XXX) XXX XX XX" value={form.telefon}
+                    onChange={(e) => alanGuncelle("telefon", telefonFormatla(e.target.value))}
+                    className={INPUT_STIL} maxLength={15} />
                 </div>
-                <div>
-                  <label className={LABEL_STIL}>
-                    Şirket Adı <span className="text-gray-400 dark:text-slate-500 text-xs ml-1">(Opsiyonel)</span>
-                  </label>
-                  <input type="text" placeholder="Şirket adını giriniz" value={form.sirketAdi}
-                    onChange={(e) => alanGuncelle("sirketAdi", e.target.value)} className={INPUT_STIL} />
+                <div className="md:col-span-2">
+                  <label className={LABEL_STIL}>Adres <span className="text-red-500">*</span></label>
+                  <textarea placeholder="Adres bilgisi" value={form.adres}
+                    onChange={(e) => alanGuncelle("adres", e.target.value)}
+                    rows={2} className={(hatalar.adres ? HATA_INPUT_STIL : INPUT_STIL) + " resize-none"} />
+                  {hatalar.adres && <p className="text-red-500 text-xs mt-1">{hatalar.adres}</p>}
                 </div>
               </>
             )}
@@ -471,13 +539,12 @@ export default function MusteriEklePage() {
             {/* ======== TÜZEL MÜŞTERİ ALANLARI ======== */}
             {aktifSekme === "tuzel" && (
               <>
-                <div>
-                  <label className={LABEL_STIL}>Vergi Numarası <span className="text-red-500">*</span></label>
-                  <input type="text" placeholder="10 haneli vergi numarası" value={form.vergiNo}
-                    onChange={(e) => alanGuncelle("vergiNo", sadeceSayi(e.target.value, 10))}
-                    className={hatalar.vergiNo ? HATA_INPUT_STIL : INPUT_STIL} maxLength={10} />
-                  <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{form.vergiNo.length}/10 hane</p>
-                  {hatalar.vergiNo && <p className="text-red-500 text-xs mt-0.5">{hatalar.vergiNo}</p>}
+                <div className="md:col-span-2">
+                  <label className={LABEL_STIL}>Şirket Ünvanı <span className="text-red-500">*</span></label>
+                  <input type="text" placeholder="Şirket ünvanını giriniz" value={form.sirketAdi}
+                    onChange={(e) => alanGuncelle("sirketAdi", e.target.value)}
+                    className={hatalar.sirketAdi ? HATA_INPUT_STIL : INPUT_STIL} />
+                  {hatalar.sirketAdi && <p className="text-red-500 text-xs mt-1">{hatalar.sirketAdi}</p>}
                 </div>
                 <div>
                   <label className={LABEL_STIL}>Vergi Dairesi <span className="text-red-500">*</span></label>
@@ -487,14 +554,32 @@ export default function MusteriEklePage() {
                   {hatalar.vergiDairesi && <p className="text-red-500 text-xs mt-1">{hatalar.vergiDairesi}</p>}
                 </div>
                 <div>
-                  <label className={LABEL_STIL}>Şirket Adı</label>
-                  <input type="text" placeholder="Şirket adını giriniz" value={form.sirketAdi}
-                    onChange={(e) => alanGuncelle("sirketAdi", e.target.value)} className={INPUT_STIL} />
+                  <label className={LABEL_STIL}>Vergi Numarası <span className="text-red-500">*</span></label>
+                  <input type="text" placeholder="10 haneli vergi numarası" value={form.vergiNo}
+                    onChange={(e) => alanGuncelle("vergiNo", sadeceSayi(e.target.value, 10))}
+                    className={hatalar.vergiNo ? HATA_INPUT_STIL : INPUT_STIL} maxLength={10} />
+                  <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{form.vergiNo.length}/10 hane</p>
+                  {hatalar.vergiNo && <p className="text-red-500 text-xs mt-0.5">{hatalar.vergiNo}</p>}
                 </div>
                 <div>
-                  <label className={LABEL_STIL}>Yetkili Kişi</label>
-                  <input type="text" placeholder="Yetkili kişi adı" value={form.yetkiliKisi}
-                    onChange={(e) => alanGuncelle("yetkiliKisi", e.target.value)} className={INPUT_STIL} />
+                  <label className={LABEL_STIL}>E-Posta <span className="text-red-500">*</span></label>
+                  <input type="email" placeholder="ornek@sirket.com" value={form.eposta}
+                    onChange={(e) => alanGuncelle("eposta", e.target.value)}
+                    className={hatalar.eposta ? HATA_INPUT_STIL : INPUT_STIL} />
+                  {hatalar.eposta && <p className="text-red-500 text-xs mt-1">{hatalar.eposta}</p>}
+                </div>
+                <div>
+                  <label className={LABEL_STIL}>Telefon</label>
+                  <input type="text" placeholder="(XXX) XXX XX XX" value={form.telefon}
+                    onChange={(e) => alanGuncelle("telefon", telefonFormatla(e.target.value))}
+                    className={INPUT_STIL} maxLength={15} />
+                </div>
+                <div className="md:col-span-2">
+                  <label className={LABEL_STIL}>Adres <span className="text-red-500">*</span></label>
+                  <textarea placeholder="Adres bilgisi" value={form.adres}
+                    onChange={(e) => alanGuncelle("adres", e.target.value)}
+                    rows={2} className={(hatalar.adres ? HATA_INPUT_STIL : INPUT_STIL) + " resize-none"} />
+                  {hatalar.adres && <p className="text-red-500 text-xs mt-1">{hatalar.adres}</p>}
                 </div>
               </>
             )}
@@ -503,6 +588,13 @@ export default function MusteriEklePage() {
             {aktifSekme === "yabanci" && (
               <>
                 <div>
+                  <label className={LABEL_STIL}>Ad Soyad <span className="text-red-500">*</span></label>
+                  <input type="text" placeholder="Ad ve soyadını giriniz" value={form.adSoyad}
+                    onChange={(e) => alanGuncelle("adSoyad", e.target.value)}
+                    className={hatalar.adSoyad ? HATA_INPUT_STIL : INPUT_STIL} />
+                  {hatalar.adSoyad && <p className="text-red-500 text-xs mt-1">{hatalar.adSoyad}</p>}
+                </div>
+                <div>
                   <label className={LABEL_STIL}>Pasaport No <span className="text-red-500">*</span></label>
                   <input type="text" placeholder="Pasaport numarası" value={form.pasaportNo}
                     onChange={(e) => alanGuncelle("pasaportNo", e.target.value)}
@@ -510,155 +602,100 @@ export default function MusteriEklePage() {
                   {hatalar.pasaportNo && <p className="text-red-500 text-xs mt-1">{hatalar.pasaportNo}</p>}
                 </div>
                 <div>
-                  <label className={LABEL_STIL}>Yetkili Kişi <span className="text-red-500">*</span></label>
-                  <input type="text" placeholder="Yetkili kişi adı" value={form.yetkiliKisi}
-                    onChange={(e) => alanGuncelle("yetkiliKisi", e.target.value)}
-                    className={hatalar.yetkiliKisi ? HATA_INPUT_STIL : INPUT_STIL} />
-                  {hatalar.yetkiliKisi && <p className="text-red-500 text-xs mt-1">{hatalar.yetkiliKisi}</p>}
+                  <label className={LABEL_STIL}>E-Posta <span className="text-red-500">*</span></label>
+                  <input type="email" placeholder="ornek@sirket.com" value={form.eposta}
+                    onChange={(e) => alanGuncelle("eposta", e.target.value)}
+                    className={hatalar.eposta ? HATA_INPUT_STIL : INPUT_STIL} />
+                  {hatalar.eposta && <p className="text-red-500 text-xs mt-1">{hatalar.eposta}</p>}
                 </div>
                 <div>
-                  <label className={LABEL_STIL}>
-                    Ad Soyad <span className="text-gray-400 dark:text-slate-500 text-xs ml-1">(Opsiyonel)</span>
-                  </label>
-                  <input type="text" placeholder="Ad ve soyadını giriniz" value={form.adSoyad}
-                    onChange={(e) => alanGuncelle("adSoyad", e.target.value)} className={INPUT_STIL} />
+                  <label className={LABEL_STIL}>Telefon</label>
+                  <input type="text" placeholder="(XXX) XXX XX XX" value={form.telefon}
+                    onChange={(e) => alanGuncelle("telefon", telefonFormatla(e.target.value))}
+                    className={INPUT_STIL} maxLength={15} />
                 </div>
-                <div>
-                  <label className={LABEL_STIL}>
-                    Şirket Adı <span className="text-gray-400 dark:text-slate-500 text-xs ml-1">(Opsiyonel)</span>
-                  </label>
-                  <input type="text" placeholder="Şirket adını giriniz" value={form.sirketAdi}
-                    onChange={(e) => alanGuncelle("sirketAdi", e.target.value)} className={INPUT_STIL} />
+                <div className="md:col-span-2">
+                  <label className={LABEL_STIL}>Adres <span className="text-red-500">*</span></label>
+                  <textarea placeholder="Adres bilgisi" value={form.adres}
+                    onChange={(e) => alanGuncelle("adres", e.target.value)}
+                    rows={2} className={(hatalar.adres ? HATA_INPUT_STIL : INPUT_STIL) + " resize-none"} />
+                  {hatalar.adres && <p className="text-red-500 text-xs mt-1">{hatalar.adres}</p>}
                 </div>
               </>
             )}
-
-            {/* ---- E-posta (Tüm Tipler: Zorunlu) ---- */}
-            <div>
-              <label className={LABEL_STIL}>E-posta <span className="text-red-500">*</span></label>
-              <input type="email" placeholder="ornek@sirket.com" value={form.eposta}
-                onChange={(e) => alanGuncelle("eposta", e.target.value)}
-                className={hatalar.eposta ? HATA_INPUT_STIL : INPUT_STIL} />
-              {hatalar.eposta && <p className="text-red-500 text-xs mt-1">{hatalar.eposta}</p>}
-            </div>
-
-            {/* ---- Sektör ---- */}
-            <div>
-              <label className={LABEL_STIL}>Sektör</label>
-              <select value={form.sektor} onChange={(e) => alanGuncelle("sektor", e.target.value)}
-                className={INPUT_STIL + " [&>option]:bg-white [&>option]:dark:bg-slate-800 [&>option]:text-gray-900 [&>option]:dark:text-white"}>
-                <option value="">Sektör seçiniz</option>
-                {SEKTORLER.map((s) => (<option key={s} value={s}>{s}</option>))}
-              </select>
-              {form.sektor === "Diğer" && (
-                <input type="text" placeholder="Sektör adını yazınız..." value={form.sektorDiger}
-                  onChange={(e) => alanGuncelle("sektorDiger", e.target.value)} className={INPUT_STIL + " mt-2"} />
-              )}
-            </div>
           </div>
         </div>
 
         {/* ============================================= */}
-        {/*  Bölüm 2: İletişim Bilgileri                  */}
+        {/*  Bölüm 2: Kişi Ekleme                        */}
         {/* ============================================= */}
         <div className="rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-            </svg>
-            İletişim Bilgileri
-          </h3>
-
-          {/* ---- Telefonlar ---- */}
-          <div className="mb-6">
-            <label className={LABEL_STIL}>Telefonlar <span className="text-red-500">*</span></label>
-            {hatalar.telefonlar && <p className="text-red-500 text-xs mb-2">{hatalar.telefonlar}</p>}
-            <div className="space-y-3">
-              {form.telefonlar.map((tel, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <input type="text" placeholder="(5XX) XXX XX XX" value={tel}
-                    onChange={(e) => listeGuncelle("telefonlar", idx, telefonFormatla(e.target.value))} className={INPUT_STIL} />
-                  {form.telefonlar.length > 1 && (
-                    <button type="button" onClick={() => listeSil("telefonlar", idx)}
-                      className="p-2.5 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-colors cursor-pointer shrink-0">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-            <button type="button" onClick={() => listeEkle("telefonlar")}
-              className="mt-3 inline-flex items-center gap-1.5 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer font-medium">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Kişi Ekleme
+            </h3>
+            <button type="button" onClick={kisiEkle}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors cursor-pointer">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-              Telefon Ekle
+              Kişi Ekle
             </button>
           </div>
 
-          {/* ---- Adresler ---- */}
-          <div>
-            <label className={LABEL_STIL}>Adresler <span className="text-red-500">*</span></label>
-            {hatalar.adresler && <p className="text-red-500 text-xs mb-2">{hatalar.adresler}</p>}
-            <div className="space-y-3">
-              {form.adresler.map((adres, idx) => (
-                <div key={idx} className="flex items-start gap-2">
-                  <textarea placeholder="Adres bilgisini giriniz" value={adres}
-                    onChange={(e) => listeGuncelle("adresler", idx, e.target.value)}
-                    rows={2} className={INPUT_STIL + " resize-none"} />
-                  {form.adresler.length > 1 && (
-                    <button type="button" onClick={() => listeSil("adresler", idx)}
-                      className="p-2.5 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-colors cursor-pointer shrink-0 mt-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  )}
+          {form.kisiler.length === 0 ? (
+            <p className="text-sm text-gray-400 dark:text-slate-500 text-center py-4">
+              Henüz kişi eklenmedi. Kişi eklemek için yukarıdaki butona tıklayın.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {form.kisiler.map((kisi, idx) => (
+                <div key={idx} className="relative rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.02] p-4">
+                  <button type="button" onClick={() => kisiSil(idx)}
+                    className="absolute top-3 right-3 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-8">
+                    <div>
+                      <label className={LABEL_STIL}>Ad Soyad</label>
+                      <input type="text" placeholder="Ad ve soyad" value={kisi.adSoyad}
+                        onChange={(e) => kisiGuncelle(idx, "adSoyad", e.target.value)} className={INPUT_STIL} />
+                    </div>
+                    <div>
+                      <label className={LABEL_STIL}>Görevi</label>
+                      <input type="text" placeholder="Görevi" value={kisi.gorev}
+                        onChange={(e) => kisiGuncelle(idx, "gorev", e.target.value)} className={INPUT_STIL} />
+                    </div>
+                    <div>
+                      <label className={LABEL_STIL}>E-Posta</label>
+                      <input type="email" placeholder="ornek@sirket.com" value={kisi.eposta}
+                        onChange={(e) => kisiGuncelle(idx, "eposta", e.target.value)} className={INPUT_STIL} />
+                    </div>
+                    <div>
+                      <label className={LABEL_STIL}>Telefon</label>
+                      <input type="text" placeholder="(XXX) XXX XX XX" value={kisi.telefon}
+                        onChange={(e) => kisiGuncelle(idx, "telefon", e.target.value)} className={INPUT_STIL} />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className={LABEL_STIL}>Adres</label>
+                      <textarea placeholder="Adres bilgisi" value={kisi.adres}
+                        onChange={(e) => kisiGuncelle(idx, "adres", e.target.value)}
+                        rows={2} className={INPUT_STIL + " resize-none"} />
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
-            <button type="button" onClick={() => listeEkle("adresler")}
-              className="mt-3 inline-flex items-center gap-1.5 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer font-medium">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              Adres Ekle
-            </button>
-          </div>
+          )}
         </div>
 
         {/* ============================================= */}
-        {/*  Bölüm 3: Durum (Aktif/Pasif Toggle)         */}
-        {/* ============================================= */}
-        <div className="rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Müşteri Durumu <span className="text-red-500">*</span>
-          </h3>
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => alanGuncelle("durum", !form.durum)}
-              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-200 cursor-pointer ${
-                form.durum ? "bg-emerald-500" : "bg-gray-300 dark:bg-white/20"
-              }`}
-            >
-              <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-200 ${
-                form.durum ? "translate-x-6" : "translate-x-1"
-              }`} />
-            </button>
-            <span className={`text-sm font-medium ${form.durum ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500 dark:text-slate-400"}`}>
-              {form.durum ? "Aktif" : "Pasif"}
-            </span>
-          </div>
-        </div>
-
-        {/* ============================================= */}
-        {/*  Bölüm 4: Ek Bilgiler                        */}
+        {/*  Bölüm 3: Ek Bilgiler                        */}
         {/* ============================================= */}
         <div className="rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
@@ -668,10 +705,81 @@ export default function MusteriEklePage() {
             Ek Bilgiler
           </h3>
 
+          {/* ---- Sektör ---- */}
+          <div className="mb-6">
+            <label className={LABEL_STIL}>Sektör</label>
+            <select value={form.sektor} onChange={(e) => alanGuncelle("sektor", e.target.value)}
+              className={INPUT_STIL + " [&>option]:bg-white [&>option]:dark:bg-slate-800 [&>option]:text-gray-900 [&>option]:dark:text-white"}>
+              <option value="">Sektör seçiniz</option>
+              {sektorler.filter((s) => s.aktif).map((s) => (<option key={s.id} value={s.id}>{s.ad}</option>))}
+            </select>
+          </div>
+
           <div className="mb-6">
             <label className={LABEL_STIL}>Notlar</label>
             <textarea placeholder="Müşteriyle ilgili notlarınızı yazınız..." value={form.notlar}
               onChange={(e) => alanGuncelle("notlar", e.target.value)} rows={4} className={INPUT_STIL + " resize-none"} />
+          </div>
+
+          {/* ---- Dosya Yükleme ---- */}
+          <div className="mb-6">
+            <label className={LABEL_STIL}>Dosya Ekle (PDF, Resim)</label>
+            <input type="file" ref={dosyaInputRef} multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp"
+              onChange={(e) => {
+                const yeniDosyalar = Array.from(e.target.files);
+                setDosyalar((o) => [...o, ...yeniDosyalar]);
+                e.target.value = "";
+              }}
+              className="hidden" />
+            <div
+              onClick={() => dosyaInputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("border-blue-500", "bg-blue-50", "dark:bg-blue-500/10"); }}
+              onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove("border-blue-500", "bg-blue-50", "dark:bg-blue-500/10"); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.currentTarget.classList.remove("border-blue-500", "bg-blue-50", "dark:bg-blue-500/10");
+                const birakilan = Array.from(e.dataTransfer.files).filter((f) =>
+                  /\.(pdf|png|jpe?g|gif|webp)$/i.test(f.name)
+                );
+                setDosyalar((o) => [...o, ...birakilan]);
+              }}
+              className="border-2 border-dashed border-gray-300 dark:border-white/10 rounded-xl p-4 text-center cursor-pointer hover:border-blue-400 dark:hover:border-blue-500/40 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 mx-auto mb-1 text-gray-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              <p className="text-sm text-gray-500 dark:text-slate-400">
+                Dosya sürükleyip bırakın veya <span className="text-blue-600 dark:text-blue-400 font-medium">tıklayarak seçin</span>
+              </p>
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">PDF, PNG, JPG, GIF, WEBP — maks. 10MB</p>
+            </div>
+            {dosyalar.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {dosyalar.map((dosya, idx) => (
+                  <div key={idx} className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {dosya.type?.startsWith("image/") ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      )}
+                      <span className="text-sm text-gray-700 dark:text-slate-300 truncate">{dosya.name}</span>
+                      <span className="text-xs text-gray-400 dark:text-slate-500 shrink-0">({(dosya.size / 1024).toFixed(0)} KB)</span>
+                    </div>
+                    <button type="button" onClick={() => setDosyalar((o) => o.filter((_, i) => i !== idx))}
+                      className="p-1 text-gray-400 hover:text-red-500 transition-colors cursor-pointer shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* ---- Etiketler ---- */}

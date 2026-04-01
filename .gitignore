@@ -27,3 +27,4 @@ backend/.env
 *.db
 *.db-shm
 *.db-wal
+backend/uploads/
