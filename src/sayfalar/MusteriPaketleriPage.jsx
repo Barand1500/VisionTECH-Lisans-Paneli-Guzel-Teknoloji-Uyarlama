@@ -2,13 +2,13 @@
 /*  Güzel Teknoloji - Müşteri Paketleri Sayfası  */
 /*  Müşteri paket listesi, arama, sayfalama,     */
 /*  cihaz, lisans, fatura, ek kullanıcı yönetimi */
-/*  ve yeni paket ekleme                         */
+/*  ve gelişmiş yeni paket ekleme modalı         */
 /* ============================================= */
 
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useMusteriler } from "../baglam/MusteriContext";
-import { apiGet } from "../yardimcilar/api";
+import { apiGet, apiPost } from "../yardimcilar/api";
 import KopyalaButonu from "../bilesenler/KopyalaButonu";
 
 /* ---- Stil Sabitleri ---- */
@@ -16,15 +16,29 @@ const INPUT_STIL =
   "w-full px-3 py-2 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm";
 const LABEL_STIL = "block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1";
 
-/* ---- Ürün & Paket Sabitleri ---- */
-const URUN_LISTESI = [
-  "Yazılım - VEMobil Ana Modül",
-  "Yazılım - VEMobil Yıllık Yenileme",
-  "Yazılım - Vega E-Dönüşüm",
-  "Yazılım - Vega Muhasebe Pro",
-  "Yazılım - Vega CRM Enterprise",
+/* ---- Sabit Değerler ---- */
+const LISANS_TIPLERI = [
+  { id: "demo", ad: "Demo", renk: "gray", gun: 30 },
+  { id: "standart", ad: "Standart", renk: "blue", gun: 365 },
+  { id: "profesyonel", ad: "Profesyonel", renk: "violet", gun: 365 },
+  { id: "enterprise", ad: "Enterprise", renk: "emerald", gun: 730 },
 ];
-const PAKET_TIPLERI = ["Aktivasyon", "Yenileme", "Yükseltme"];
+
+const ODEME_YONTEMLERI = [
+  { id: "nakit", ad: "Nakit" },
+  { id: "havale", ad: "Havale/EFT" },
+  { id: "eft", ad: "EFT" },
+  { id: "kredi_karti", ad: "Kredi Kartı" },
+  { id: "cek", ad: "Çek" },
+  { id: "senet", ad: "Senet" },
+  { id: "diger", ad: "Diğer" },
+];
+
+const ODEME_DURUMLARI = [
+  { id: "odenmedi", ad: "Ödenmedi", renk: "red" },
+  { id: "kismi", ad: "Kısmi Ödeme", renk: "amber" },
+  { id: "odendi", ad: "Ödendi", renk: "emerald" },
+];
 
 /* ---- Yardımcı Fonksiyonlar ---- */
 const tarihGosterTR = (iso) => {
@@ -35,6 +49,23 @@ const tarihGosterTR = (iso) => {
 const suAnGecmisMi = (tarih) => {
   if (!tarih) return false;
   return new Date(tarih) < new Date();
+};
+const tarihEkle = (baslangic, gun) => {
+  const d = new Date(baslangic);
+  d.setDate(d.getDate() + gun);
+  return d.toISOString().slice(0, 10);
+};
+const rastgeleLisansAnahtari = () => {
+  const karakterler = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const gruplar = [];
+  for (let g = 0; g < 4; g++) {
+    let grup = "";
+    for (let i = 0; i < 4; i++) {
+      grup += karakterler.charAt(Math.floor(Math.random() * karakterler.length));
+    }
+    gruplar.push(grup);
+  }
+  return gruplar.join("-");
 };
 
 /* ---- Sallanma Animasyonu ---- */
@@ -71,25 +102,72 @@ export default function MusteriPaketleriPage() {
   const [paketSayfa, setPaketSayfa] = useState(1);
   const [paketBoyut, setPaketBoyut] = useState(10);
 
+  /* Veritabanı verileri */
+  const [dbUrunler, setDbUrunler] = useState([]);
+  const [dbPaketler, setDbPaketler] = useState([]);
+  const [dbBayiler, setDbBayiler] = useState([]);
+
+  /* Verileri yükle */
   useEffect(() => {
+    /* Lisansları yükle */
     apiGet(`/lisanslar/musteri/${id}`).then((r) => {
       if (r.basarili) {
         setPaketler(r.veri.map((l) => ({
           id: l.id,
           urun: l.urun_adi || "-",
+          urunId: l.urun_id,
           paket: l.paket_adi || "-",
+          paketId: l.paket_id,
+          bayiAdi: l.bayi_adi || "",
+          lisansTipi: l.lisans_tipi || "standart",
           domain: l.domain || "",
           faturaNo: l.fatura_no || "",
+          faturaTarihi: l.fatura_tarihi ? l.fatura_tarihi.slice(0, 10) : "",
           kullanimGunu: l.kullanim_gunu || 365,
           baslangicTarihi: l.baslangic_tarihi ? l.baslangic_tarihi.slice(0, 10) : "",
           bitisTarihi: l.bitis_tarihi ? l.bitis_tarihi.slice(0, 10) : "",
           kullanici: l.kullanici_sayisi ? String(l.kullanici_sayisi) : "1",
+          ekKullanici: l.ek_kullanici || 0,
           fiyat: l.fiyat ? Number(l.fiyat).toFixed(2) : "0.00",
+          indirimOrani: l.indirim_orani || 0,
+          netTutar: l.net_tutar ? Number(l.net_tutar).toFixed(2) : "0.00",
+          odemeDurumu: l.odeme_durumu || "odenmedi",
+          odemeYontemi: l.odeme_yontemi || "",
           faturaGeldi: !!l.fatura_geldi,
           lisansAnahtari: l.lisans_anahtari || "",
+          otomatikYenileme: !!l.otomatik_yenileme,
+          bildirimGun: l.bildirim_gun || 30,
+          notlar: l.notlar || "",
         })));
       }
     }).catch(() => {}).finally(() => setYukleniyor(false));
+
+    /* Ürünleri yükle */
+    apiGet("/urunler").then((r) => {
+      if (r.basarili) setDbUrunler(r.veri);
+    }).catch(() => {});
+
+    /* Paketleri yükle */
+    apiGet("/urunler/paketler/tumu").then((r) => {
+      if (r.basarili) {
+        /* Alan isimlerini camelCase'e dönüştür (modal uyumluluğu için) */
+        setDbPaketler(r.veri.map((p) => ({
+          id: p.id,
+          urunId: p.urun_id,
+          adi: p.ad,
+          tipi: p.tipi,
+          kullanimGunu: p.kullanim_gunu || 365,
+          fiyati: p.fiyat || 0,
+          kullaniciSayisi: p.kullanici_sayisi || 1,
+          aktif: p.aktif,
+        })));
+      }
+    }).catch(() => {});
+
+    /* Bayileri yükle */
+    apiGet("/bayiler").then((r) => {
+      if (r.basarili) setDbBayiler(r.veri.filter((b) => b.durum === "aktif"));
+    }).catch(() => {});
   }, [id]);
 
   /* Sütun sırası (sürüklenebilir) */
@@ -107,12 +185,6 @@ export default function MusteriPaketleriPage() {
   const [faturaModal, setFaturaModal] = useState(null);
   const [yeniPaketModal, setYeniPaketModal] = useState(false);
 
-  /* Yeni paket form */
-  const [yeniForm, setYeniForm] = useState({
-    urun: URUN_LISTESI[0], paket: PAKET_TIPLERI[0], domain: "", kullanimGunu: 365,
-    baslangicTarihi: new Date().toISOString().slice(0, 10), kullanici: "1", fiyat: "0.00",
-  });
-
   /* Filtre & sayfalama */
   const filtreliPaketler = paketler.filter((p) => {
     const q = paketArama.toLowerCase();
@@ -127,17 +199,27 @@ export default function MusteriPaketleriPage() {
     setSilOnay(null);
   };
 
-  const yeniPaketEkle = () => {
+  /* Yeni paket ekleme callback */
+  const yeniPaketEklendi = (yeniLisans) => {
+    /* API'den dönen veriyi listeye ekle */
     const yeni = {
-      ...yeniForm,
-      id: Date.now() + Math.random(),
-      bitisTarihi: tarihEkle(yeniForm.baslangicTarihi, yeniForm.kullanimGunu),
-      faturaGeldi: false,
-      lisansAnahtari: rastgeleLisansAnahtari(),
+      id: yeniLisans.id,
+      urun: yeniLisans.urun_adi || dbUrunler.find(u => u.id === yeniLisans.urun_id)?.ad || "-",
+      paket: yeniLisans.paket_adi || dbPaketler.find(p => p.id === yeniLisans.paket_id)?.ad || "-",
+      domain: yeniLisans.domain || "",
+      faturaNo: yeniLisans.fatura_no || "",
+      kullanimGunu: yeniLisans.kullanim_gunu || 365,
+      baslangicTarihi: yeniLisans.baslangic_tarihi ? yeniLisans.baslangic_tarihi.slice(0, 10) : "",
+      bitisTarihi: yeniLisans.bitis_tarihi ? yeniLisans.bitis_tarihi.slice(0, 10) : "",
+      kullanici: String(yeniLisans.kullanici_sayisi || 1),
+      fiyat: Number(yeniLisans.fiyat || 0).toFixed(2),
+      netTutar: Number(yeniLisans.net_tutar || 0).toFixed(2),
+      odemeDurumu: yeniLisans.odeme_durumu || "odenmedi",
+      faturaGeldi: !!yeniLisans.fatura_geldi,
+      lisansAnahtari: yeniLisans.lisans_anahtari || "",
     };
     setPaketler((o) => [yeni, ...o]);
     setYeniPaketModal(false);
-    setYeniForm({ urun: URUN_LISTESI[0], paket: PAKET_TIPLERI[0], domain: "", kullanimGunu: 365, baslangicTarihi: new Date().toISOString().slice(0, 10), kullanici: "1", fiyat: "0.00" });
   };
 
   /* Sallanma ref */
@@ -526,65 +608,582 @@ export default function MusteriPaketleriPage() {
         </div>
       )}
 
-      {/* Yeni Paket Ekleme */}
+      {/* Yeni Gelişmiş Paket Ekleme Modalı */}
       {yeniPaketModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={sallanma}>
-          <div ref={modalRef} className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-white/10 w-full max-w-lg mx-4 p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-5">
-              <h4 className="font-bold text-gray-900 dark:text-white">Yeni Müşteri Paketi</h4>
-              <button onClick={() => setYeniPaketModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className={LABEL_STIL}>Ürün</label>
-                <select value={yeniForm.urun} onChange={(e) => setYeniForm({ ...yeniForm, urun: e.target.value })}
-                  className={INPUT_STIL + " [&>option]:bg-white [&>option]:dark:bg-slate-800"}>
-                  {URUN_LISTESI.map((u) => <option key={u} value={u}>{u}</option>)}
-                </select>
+        <YeniPaketModal
+          musteriId={id}
+          kapat={() => setYeniPaketModal(false)}
+          onBasarili={yeniPaketEklendi}
+          urunler={dbUrunler}
+          paketler={dbPaketler}
+          bayiler={dbBayiler}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ============================================= */
+/*  Gelişmiş Yeni Paket Ekleme Modalı            */
+/*  Adım adım wizard tarzı, tüm özellikler       */
+/* ============================================= */
+
+function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayiler }) {
+  const modalRef = useRef(null);
+  const sallanma = () => { if (modalRef.current) { modalRef.current.classList.remove("sallan"); void modalRef.current.offsetWidth; modalRef.current.classList.add("sallan"); } };
+
+  /* Aktif adım: 1=Ürün, 2=Lisans, 3=Fiyat, 4=Özet */
+  const [adim, setAdim] = useState(1);
+  const [yukleniyor, setYukleniyor] = useState(false);
+  const [hata, setHata] = useState("");
+
+  /* Form state */
+  const [form, setForm] = useState({
+    /* Adım 1: Ürün Seçimi */
+    urunId: "",
+    paketId: "",
+    /* Adım 2: Lisans Bilgileri */
+    lisansTipi: "standart",
+    baslangicTarihi: new Date().toISOString().slice(0, 10),
+    kullanimGunu: 365,
+    bitisTarihi: tarihEkle(new Date().toISOString().slice(0, 10), 365),
+    domain: "",
+    kullaniciSayisi: 1,
+    ekKullanici: 0,
+    /* Adım 3: Fiyat ve Ödeme */
+    bayiId: "",
+    fiyat: 0,
+    indirimOrani: 0,
+    indirimTutari: 0,
+    netTutar: 0,
+    odemeYontemi: "",
+    odemeDurumu: "odenmedi",
+    faturaNo: "",
+    faturaTarihi: "",
+    faturaGeldi: false,
+    /* Ek Özellikler */
+    otomatikYenileme: false,
+    bildirimGun: 30,
+    notlar: "",
+  });
+
+  /* Seçili ürün ve paket bilgileri */
+  const seciliUrun = urunler.find((u) => u.id === Number(form.urunId));
+  const urunPaketleri = paketler.filter((p) => p.urunId === Number(form.urunId));
+  const seciliPaket = paketler.find((p) => p.id === Number(form.paketId));
+
+  /* Form güncelle */
+  const guncelle = (alan, deger) => {
+    setForm((o) => {
+      const yeni = { ...o, [alan]: deger };
+      
+      /* Otomatik hesaplamalar */
+      if (alan === "baslangicTarihi" || alan === "kullanimGunu") {
+        const baslangic = alan === "baslangicTarihi" ? deger : o.baslangicTarihi;
+        const gun = alan === "kullanimGunu" ? deger : o.kullanimGunu;
+        yeni.bitisTarihi = tarihEkle(baslangic, gun);
+      }
+      
+      if (alan === "lisansTipi") {
+        const tip = LISANS_TIPLERI.find((t) => t.id === deger);
+        if (tip) {
+          yeni.kullanimGunu = tip.gun;
+          yeni.bitisTarihi = tarihEkle(o.baslangicTarihi, tip.gun);
+        }
+      }
+      
+      if (alan === "paketId" && deger) {
+        const paket = paketler.find((p) => p.id === Number(deger));
+        if (paket) {
+          yeni.fiyat = Number(paket.fiyati) || 0;
+          yeni.kullanimGunu = paket.kullanimGunu || 365;
+          yeni.kullaniciSayisi = paket.kullaniciSayisi || 1;
+          yeni.bitisTarihi = tarihEkle(o.baslangicTarihi, paket.kullanimGunu || 365);
+          yeni.netTutar = Number(paket.fiyati) || 0;
+        }
+      }
+      
+      if (alan === "fiyat" || alan === "indirimOrani" || alan === "indirimTutari") {
+        const brut = alan === "fiyat" ? Number(deger) : Number(o.fiyat);
+        const oran = alan === "indirimOrani" ? Number(deger) : Number(o.indirimOrani);
+        let tutar = alan === "indirimTutari" ? Number(deger) : Number(o.indirimTutari);
+        
+        if (alan === "indirimOrani") {
+          tutar = brut * oran / 100;
+          yeni.indirimTutari = tutar;
+        }
+        yeni.netTutar = brut - tutar;
+      }
+      
+      return yeni;
+    });
+  };
+
+  /* Ürün seçildiğinde */
+  const urunSec = (urunId) => {
+    guncelle("urunId", urunId);
+    guncelle("paketId", "");
+  };
+
+  /* Adım validasyonu */
+  const adimGecerliMi = (a) => {
+    switch (a) {
+      case 1: return !!form.urunId;
+      case 2: return !!form.baslangicTarihi && !!form.bitisTarihi;
+      case 3: return true;
+      default: return true;
+    }
+  };
+
+  /* API'ye gönder */
+  const kaydet = async () => {
+    setYukleniyor(true);
+    setHata("");
+    try {
+      const gonderilecek = {
+        musteri_id: Number(musteriId),
+        urun_id: form.urunId ? Number(form.urunId) : null,
+        paket_id: form.paketId ? Number(form.paketId) : null,
+        bayi_id: form.bayiId ? Number(form.bayiId) : null,
+        lisans_tipi: form.lisansTipi,
+        baslangic_tarihi: form.baslangicTarihi,
+        bitis_tarihi: form.bitisTarihi,
+        kullanim_gunu: Number(form.kullanimGunu),
+        domain: form.domain || null,
+        kullanici_sayisi: Number(form.kullaniciSayisi) || 1,
+        ek_kullanici: Number(form.ekKullanici) || 0,
+        fiyat: Number(form.fiyat) || 0,
+        indirim_orani: Number(form.indirimOrani) || 0,
+        indirim_tutari: Number(form.indirimTutari) || 0,
+        net_tutar: Number(form.netTutar) || 0,
+        odeme_yontemi: form.odemeYontemi || null,
+        odeme_durumu: form.odemeDurumu,
+        fatura_no: form.faturaNo || null,
+        fatura_tarihi: form.faturaTarihi || null,
+        fatura_geldi: form.faturaGeldi,
+        otomatik_yenileme: form.otomatikYenileme,
+        bildirim_gun: Number(form.bildirimGun) || 30,
+        notlar: form.notlar || null,
+      };
+      
+      const sonuc = await apiPost("/lisanslar", gonderilecek);
+      if (sonuc.basarili) {
+        onBasarili({ ...gonderilecek, id: sonuc.id, lisans_anahtari: sonuc.lisans_anahtari });
+      } else {
+        setHata(sonuc.mesaj || "Bir hata oluştu.");
+      }
+    } catch (e) {
+      setHata("Sunucu hatası: " + (e.message || "Bilinmeyen hata"));
+    } finally {
+      setYukleniyor(false);
+    }
+  };
+
+  /* Adım başlıkları */
+  const adimlar = [
+    { no: 1, baslik: "Ürün Seçimi", ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg> },
+    { no: 2, baslik: "Lisans Bilgileri", ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg> },
+    { no: 3, baslik: "Fiyat & Ödeme", ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+    { no: 4, baslik: "Özet & Onay", ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={sallanma}>
+      <div ref={modalRef} className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-3xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+
+        {/* Başlık */}
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between shrink-0">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Yeni Müşteri Paketi</h3>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">Adım {adim} / 4</p>
+          </div>
+          <button onClick={kapat} className="text-gray-400 hover:text-gray-600 dark:hover:text-white cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        {/* Adım Göstergesi */}
+        <div className="px-6 py-3 border-b border-gray-200 dark:border-white/10 shrink-0">
+          <div className="flex items-center justify-between">
+            {adimlar.map((a, i) => (
+              <div key={a.no} className="flex items-center">
+                <button
+                  onClick={() => adimGecerliMi(adim) && a.no < adim + 2 && setAdim(a.no)}
+                  disabled={a.no > adim + 1}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                    adim === a.no
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : a.no < adim
+                      ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+                      : "bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-slate-500"
+                  } ${a.no > adim + 1 ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  {a.ikon}
+                  <span className="hidden sm:inline">{a.baslik}</span>
+                </button>
+                {i < adimlar.length - 1 && (
+                  <div className={`w-8 h-0.5 mx-1 ${a.no < adim ? "bg-emerald-400" : "bg-gray-200 dark:bg-white/10"}`} />
+                )}
               </div>
-              <div className="grid grid-cols-2 gap-3">
+            ))}
+          </div>
+        </div>
+
+        {/* İçerik */}
+        <div className="flex-1 overflow-auto p-6">
+          {/* Adım 1: Ürün Seçimi */}
+          {adim === 1 && (
+            <div className="space-y-5">
+              <div>
+                <label className={LABEL_STIL}>Ürün Seçin <span className="text-red-500">*</span></label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                  {urunler.filter((u) => u.aktif).map((u) => (
+                    <button
+                      key={u.id}
+                      onClick={() => urunSec(u.id)}
+                      className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                        form.urunId === u.id
+                          ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10"
+                          : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                          form.urunId === u.id ? "bg-blue-500 text-white" : "bg-gray-100 dark:bg-white/10 text-gray-400"
+                        }`}>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                        </div>
+                        <div>
+                          <p className={`font-medium ${form.urunId === u.id ? "text-blue-700 dark:text-blue-400" : "text-gray-900 dark:text-white"}`}>{u.ad}</p>
+                          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{u.grubu || "Genel"}</p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {form.urunId && urunPaketleri.length > 0 && (
                 <div>
-                  <label className={LABEL_STIL}>Paket Tipi</label>
-                  <select value={yeniForm.paket} onChange={(e) => setYeniForm({ ...yeniForm, paket: e.target.value })}
-                    className={INPUT_STIL + " [&>option]:bg-white [&>option]:dark:bg-slate-800"}>
-                    {PAKET_TIPLERI.map((p) => <option key={p} value={p}>{p}</option>)}
-                  </select>
+                  <label className={LABEL_STIL}>Paket Seçin (Opsiyonel)</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
+                    <button
+                      onClick={() => guncelle("paketId", "")}
+                      className={`p-3 rounded-lg border text-sm transition-all cursor-pointer ${
+                        !form.paketId ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400" : "border-gray-200 dark:border-white/10 text-gray-600 dark:text-slate-400"
+                      }`}
+                    >
+                      Paket Seçme
+                    </button>
+                    {urunPaketleri.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => guncelle("paketId", p.id)}
+                        className={`p-3 rounded-lg border text-sm text-left transition-all cursor-pointer ${
+                          form.paketId === p.id
+                            ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10"
+                            : "border-gray-200 dark:border-white/10 hover:border-gray-300"
+                        }`}
+                      >
+                        <p className={`font-medium ${form.paketId === p.id ? "text-blue-700 dark:text-blue-400" : "text-gray-900 dark:text-white"}`}>{p.adi}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{p.tipi} • {p.kullanimGunu} gün • ₺{Number(p.fiyati).toLocaleString("tr-TR")}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Adım 2: Lisans Bilgileri */}
+          {adim === 2 && (
+            <div className="space-y-4">
+              {/* Lisans Tipi */}
+              <div>
+                <label className={LABEL_STIL}>Lisans Tipi</label>
+                <div className="grid grid-cols-4 gap-2 mt-2">
+                  {LISANS_TIPLERI.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => guncelle("lisansTipi", t.id)}
+                      className={`p-3 rounded-lg border text-center transition-all cursor-pointer ${
+                        form.lisansTipi === t.id
+                          ? `border-${t.renk}-500 bg-${t.renk}-50 dark:bg-${t.renk}-500/10`
+                          : "border-gray-200 dark:border-white/10"
+                      }`}
+                    >
+                      <p className={`text-sm font-medium ${form.lisansTipi === t.id ? `text-${t.renk}-700 dark:text-${t.renk}-400` : "text-gray-700 dark:text-slate-300"}`}>{t.ad}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{t.gun} gün</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tarihler */}
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className={LABEL_STIL}>Başlangıç Tarihi <span className="text-red-500">*</span></label>
+                  <input type="date" value={form.baslangicTarihi} onChange={(e) => guncelle("baslangicTarihi", e.target.value)} className={INPUT_STIL} />
                 </div>
                 <div>
                   <label className={LABEL_STIL}>Kullanım Günü</label>
-                  <input type="number" value={yeniForm.kullanimGunu} onChange={(e) => setYeniForm({ ...yeniForm, kullanimGunu: Number(e.target.value) })} className={INPUT_STIL} />
+                  <input type="number" value={form.kullanimGunu} onChange={(e) => guncelle("kullanimGunu", Number(e.target.value))} className={INPUT_STIL} min={1} />
+                </div>
+                <div>
+                  <label className={LABEL_STIL}>Bitiş Tarihi</label>
+                  <input type="date" value={form.bitisTarihi} onChange={(e) => guncelle("bitisTarihi", e.target.value)} className={INPUT_STIL} readOnly />
                 </div>
               </div>
+
+              {/* Domain */}
               <div>
-                <label className={LABEL_STIL}>Domain</label>
-                <input type="text" value={yeniForm.domain} onChange={(e) => setYeniForm({ ...yeniForm, domain: e.target.value })} className={INPUT_STIL} placeholder="http://ornek.com:9090/" />
+                <label className={LABEL_STIL}>Domain / Server Adresi</label>
+                <input type="text" value={form.domain} onChange={(e) => guncelle("domain", e.target.value)} className={INPUT_STIL} placeholder="http://musteriadi.sirket.com:9090/" />
               </div>
+
+              {/* Kullanıcı Sayıları */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={LABEL_STIL}>Başlangıç Tarihi</label>
-                  <input type="date" value={yeniForm.baslangicTarihi} onChange={(e) => setYeniForm({ ...yeniForm, baslangicTarihi: e.target.value })} className={INPUT_STIL} />
+                  <label className={LABEL_STIL}>Temel Kullanıcı Sayısı</label>
+                  <input type="number" value={form.kullaniciSayisi} onChange={(e) => guncelle("kullaniciSayisi", Number(e.target.value))} className={INPUT_STIL} min={1} />
                 </div>
                 <div>
-                  <label className={LABEL_STIL}>Fiyat</label>
-                  <input type="text" value={yeniForm.fiyat} onChange={(e) => setYeniForm({ ...yeniForm, fiyat: e.target.value })} className={INPUT_STIL} placeholder="0.00" />
+                  <label className={LABEL_STIL}>Ek Kullanıcı</label>
+                  <input type="number" value={form.ekKullanici} onChange={(e) => guncelle("ekKullanici", Number(e.target.value))} className={INPUT_STIL} min={0} />
                 </div>
               </div>
-              <div>
-                <label className={LABEL_STIL}>Kullanıcı</label>
-                <input type="text" value={yeniForm.kullanici} onChange={(e) => setYeniForm({ ...yeniForm, kullanici: e.target.value })} className={INPUT_STIL} placeholder="1 + 1" />
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button onClick={() => setYeniPaketModal(false)}
-                  className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer">İptal</button>
-                <button onClick={yeniPaketEkle}
-                  className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold cursor-pointer">Paket Ekle</button>
+
+              {/* Ek Seçenekler */}
+              <div className="grid grid-cols-2 gap-3">
+                <label className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 dark:border-white/10 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">
+                  <input type="checkbox" checked={form.otomatikYenileme} onChange={(e) => guncelle("otomatikYenileme", e.target.checked)}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 dark:text-slate-300">Otomatik Yenileme</p>
+                    <p className="text-xs text-gray-400">Süre bitince otomatik uzat</p>
+                  </div>
+                </label>
+                <div>
+                  <label className={LABEL_STIL}>Bildirim Süresi (Gün)</label>
+                  <input type="number" value={form.bildirimGun} onChange={(e) => guncelle("bildirimGun", Number(e.target.value))} className={INPUT_STIL} min={1} placeholder="30" />
+                </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Adım 3: Fiyat ve Ödeme */}
+          {adim === 3 && (
+            <div className="space-y-4">
+              {/* Bayi Seçimi */}
+              {bayiler.length > 0 && (
+                <div>
+                  <label className={LABEL_STIL}>Satış Yapan Bayi (Opsiyonel)</label>
+                  <select value={form.bayiId} onChange={(e) => guncelle("bayiId", e.target.value)} className={INPUT_STIL}>
+                    <option value="">Bayi Seçilmedi (Doğrudan Satış)</option>
+                    {bayiler.map((b) => (
+                      <option key={b.id} value={b.id}>{b.ad}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Fiyat Bilgileri */}
+              <div className="p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-3">Fiyat Bilgileri</h4>
+                <div className="grid grid-cols-4 gap-3">
+                  <div>
+                    <label className={LABEL_STIL}>Brüt Fiyat (₺)</label>
+                    <input type="number" value={form.fiyat} onChange={(e) => guncelle("fiyat", e.target.value)} className={INPUT_STIL} min={0} step="0.01" />
+                  </div>
+                  <div>
+                    <label className={LABEL_STIL}>İndirim (%)</label>
+                    <input type="number" value={form.indirimOrani} onChange={(e) => guncelle("indirimOrani", e.target.value)} className={INPUT_STIL} min={0} max={100} />
+                  </div>
+                  <div>
+                    <label className={LABEL_STIL}>İndirim Tutarı</label>
+                    <input type="number" value={form.indirimTutari} onChange={(e) => guncelle("indirimTutari", e.target.value)} className={INPUT_STIL} min={0} step="0.01" />
+                  </div>
+                  <div>
+                    <label className={LABEL_STIL}>Net Tutar (₺)</label>
+                    <input type="number" value={form.netTutar} className={`${INPUT_STIL} bg-emerald-50 dark:bg-emerald-500/10 font-bold text-emerald-700 dark:text-emerald-400`} readOnly />
+                  </div>
+                </div>
+              </div>
+
+              {/* Ödeme Bilgileri */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={LABEL_STIL}>Ödeme Yöntemi</label>
+                  <select value={form.odemeYontemi} onChange={(e) => guncelle("odemeYontemi", e.target.value)} className={INPUT_STIL}>
+                    <option value="">Seçiniz</option>
+                    {ODEME_YONTEMLERI.map((y) => (
+                      <option key={y.id} value={y.id}>{y.ad}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={LABEL_STIL}>Ödeme Durumu</label>
+                  <select value={form.odemeDurumu} onChange={(e) => guncelle("odemeDurumu", e.target.value)} className={INPUT_STIL}>
+                    {ODEME_DURUMLARI.map((d) => (
+                      <option key={d.id} value={d.id}>{d.ad}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Fatura Bilgileri */}
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className={LABEL_STIL}>Fatura No</label>
+                  <input type="text" value={form.faturaNo} onChange={(e) => guncelle("faturaNo", e.target.value)} className={INPUT_STIL} placeholder="FTR-2026-001" />
+                </div>
+                <div>
+                  <label className={LABEL_STIL}>Fatura Tarihi</label>
+                  <input type="date" value={form.faturaTarihi} onChange={(e) => guncelle("faturaTarihi", e.target.value)} className={INPUT_STIL} />
+                </div>
+                <div className="flex items-end">
+                  <label className="flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 dark:border-white/10 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 w-full">
+                    <input type="checkbox" checked={form.faturaGeldi} onChange={(e) => guncelle("faturaGeldi", e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                    <span className="text-sm text-gray-700 dark:text-slate-300">Fatura Geldi</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Not */}
+              <div>
+                <label className={LABEL_STIL}>Notlar</label>
+                <textarea value={form.notlar} onChange={(e) => guncelle("notlar", e.target.value)} className={`${INPUT_STIL} h-20 resize-none`} placeholder="Ek açıklamalar..." />
+              </div>
+            </div>
+          )}
+
+          {/* Adım 4: Özet */}
+          {adim === 4 && (
+            <div className="space-y-4">
+              <div className="p-5 rounded-xl bg-gradient-to-br from-blue-50 to-violet-50 dark:from-blue-500/10 dark:to-violet-500/10 border border-blue-200 dark:border-blue-500/20">
+                <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Lisans Özeti</h4>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs text-gray-400 dark:text-slate-500">Ürün</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{seciliUrun?.ad || "-"}</p>
+                    </div>
+                    {seciliPaket && (
+                      <div>
+                        <p className="text-xs text-gray-400 dark:text-slate-500">Paket</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{seciliPaket.adi}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs text-gray-400 dark:text-slate-500">Lisans Tipi</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{LISANS_TIPLERI.find((t) => t.id === form.lisansTipi)?.ad}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 dark:text-slate-500">Süre</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{tarihGosterTR(form.baslangicTarihi)} - {tarihGosterTR(form.bitisTarihi)} ({form.kullanimGunu} gün)</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs text-gray-400 dark:text-slate-500">Kullanıcı Sayısı</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{form.kullaniciSayisi} {form.ekKullanici > 0 ? `+ ${form.ekKullanici} ek` : ""}</p>
+                    </div>
+                    {form.domain && (
+                      <div>
+                        <p className="text-xs text-gray-400 dark:text-slate-500">Domain</p>
+                        <p className="font-medium text-gray-900 dark:text-white text-sm break-all">{form.domain}</p>
+                      </div>
+                    )}
+                    {form.bayiId && (
+                      <div>
+                        <p className="text-xs text-gray-400 dark:text-slate-500">Bayi</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{bayiler.find((b) => b.id === Number(form.bayiId))?.ad}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-500/20">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-gray-400 dark:text-slate-500">Ödeme Durumu</p>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium mt-1 ${
+                        form.odemeDurumu === "odendi" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" :
+                        form.odemeDurumu === "kismi" ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400" :
+                        "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400"
+                      }`}>
+                        {ODEME_DURUMLARI.find((d) => d.id === form.odemeDurumu)?.ad}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-gray-400 dark:text-slate-500">Net Tutar</p>
+                      <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">₺{Number(form.netTutar).toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</p>
+                      {form.indirimOrani > 0 && (
+                        <p className="text-xs text-gray-400 line-through">₺{Number(form.fiyat).toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ({form.indirimOrani}% indirim)</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {hata && (
+                <div className="p-3 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-400 text-sm">
+                  {hata}
+                </div>
+              )}
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Alt Butonlar */}
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-white/10 flex items-center justify-between shrink-0">
+          <button
+            onClick={() => adim > 1 ? setAdim(adim - 1) : kapat()}
+            className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer"
+          >
+            {adim === 1 ? "İptal" : "Geri"}
+          </button>
+          
+          {adim < 4 ? (
+            <button
+              onClick={() => adimGecerliMi(adim) && setAdim(adim + 1)}
+              disabled={!adimGecerliMi(adim)}
+              className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-semibold cursor-pointer inline-flex items-center gap-2"
+            >
+              İleri
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </button>
+          ) : (
+            <button
+              onClick={kaydet}
+              disabled={yukleniyor}
+              className="px-6 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white text-sm font-semibold cursor-pointer inline-flex items-center gap-2"
+            >
+              {yukleniyor ? (
+                <>
+                  <svg className="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Kaydediliyor...
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                  Lisans Oluştur
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

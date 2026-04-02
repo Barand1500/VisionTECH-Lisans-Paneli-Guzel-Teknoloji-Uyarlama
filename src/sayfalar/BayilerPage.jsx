@@ -130,6 +130,10 @@ export default function BayilerPage() {
   const [odakliId, setOdakliId] = useState(null);
   const [detayModal, setDetayModal] = useState(null);
 
+  /* ---- Toplu İşlem State'leri ---- */
+  const [seciliIdler, setSeciliIdler] = useState(new Set());
+  const [topluSilOnay, setTopluSilOnay] = useState(false);
+
   /* ---- Backend'den bayileri çek ---- */
   const bayileriYukle = async () => {
     try {
@@ -168,6 +172,7 @@ export default function BayilerPage() {
       if (e.key === "Escape") {
         setDetayModal(null);
         setDuzenleModal(null);
+        setTopluSilOnay(false);
         setEtiketDropdownAcik(false);
       }
     };
@@ -279,6 +284,53 @@ export default function BayilerPage() {
     if (dA > dB) return siralamaYonu === "asc" ? 1 : -1;
     return 0;
   });
+
+  /* ---- Toplu İşlem Yardımcıları ---- */
+  const tekSecimToggle = (id) => {
+    const yeni = new Set(seciliIdler);
+    if (yeni.has(id)) yeni.delete(id);
+    else yeni.add(id);
+    setSeciliIdler(yeni);
+  };
+
+  const tumunuSec = () => {
+    if (seciliIdler.size === siraliBayiler.length && siraliBayiler.every((b) => seciliIdler.has(b.id))) {
+      setSeciliIdler(new Set());
+    } else {
+      setSeciliIdler(new Set(siraliBayiler.map((b) => b.id)));
+    }
+  };
+
+  const hepsiSecili = siraliBayiler.length > 0 && siraliBayiler.every((b) => seciliIdler.has(b.id));
+
+  /* ---- Toplu Silme (Çöp Kutusuna Gönder) ---- */
+  const topluSilIslem = async () => {
+    const silinecekler = bayiler.filter((b) => seciliIdler.has(b.id));
+    for (const bayi of silinecekler) {
+      try {
+        await apiDelete(`/bayiler/${bayi.id}`);
+      } catch (e) {
+        console.error("Bayi silinemedi:", bayi.id, e);
+      }
+    }
+    setSeciliIdler(new Set());
+    setTopluSilOnay(false);
+    bayileriYukle();
+  };
+
+  /* ---- Toplu Durum Değiştir ---- */
+  const topluDurumIslem = async (yeniDurum) => {
+    const hedefler = bayiler.filter((b) => seciliIdler.has(b.id));
+    for (const bayi of hedefler) {
+      try {
+        await apiPut(`/bayiler/${bayi.id}`, { durum: yeniDurum });
+      } catch (e) {
+        console.error("Bayi durumu guncellenemedi:", bayi.id, e);
+      }
+    }
+    setSeciliIdler(new Set());
+    bayileriYukle();
+  };
 
   /* ============================================= */
   /*  Bayi Düzenleme Modalı (Ok İle Gezinme)      */
@@ -628,6 +680,35 @@ export default function BayilerPage() {
     <div>
       <BayiDuzenleModal />
 
+      {/* ---- Toplu Silme Onay Modalı ---- */}
+      {topluSilOnay && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setTopluSilOnay(false)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 text-center">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-red-100 dark:bg-red-500/20 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Toplu Silme Onayı</h3>
+              <p className="text-sm text-gray-500 dark:text-slate-400">
+                Seçili <span className="font-semibold text-gray-700 dark:text-white">{seciliIdler.size} bayi</span> çöp kutusuna taşınacaktır.
+              </p>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-white/10 flex justify-end gap-3">
+              <button onClick={() => setTopluSilOnay(false)}
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer">İptal</button>
+              <button onClick={topluSilIslem}
+                className="px-5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold cursor-pointer inline-flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                {seciliIdler.size} Bayi Sil
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Başlık */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -726,6 +807,54 @@ export default function BayilerPage() {
         ))}
       </div>
 
+      {/* ---- Toplu İşlem Barı ---- */}
+      {seciliIdler.size > 0 && (
+        <div className="mb-4 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">{seciliIdler.size} bayi seçildi</p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400/80">Toplu işlem yapmak için bir aksiyon seçin</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Aktif Yap */}
+              <button onClick={() => topluDurumIslem("aktif")}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                Aktif Yap
+              </button>
+              {/* Pasif Yap */}
+              <button onClick={() => topluDurumIslem("pasif")}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-500 hover:bg-gray-600 text-white text-xs font-semibold cursor-pointer transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                Pasif Yap
+              </button>
+              {/* Toplu Sil */}
+              <button onClick={() => setTopluSilOnay(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold cursor-pointer transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                Toplu Sil
+              </button>
+              {/* Seçimi Temizle */}
+              <button onClick={() => setSeciliIdler(new Set())}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-xs font-semibold cursor-pointer hover:bg-emerald-100 dark:hover:bg-emerald-500/10 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                Seçimi Temizle
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tablo Görünümü */}
       {aktifGorunum === "tablo" && (
         <div className="rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 overflow-hidden">
@@ -733,6 +862,10 @@ export default function BayilerPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-white/10">
+                  <th className="px-4 py-4 w-12">
+                    <input type="checkbox" checked={hepsiSecili} onChange={tumunuSec}
+                      className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-emerald-600 focus:ring-emerald-500 cursor-pointer" />
+                  </th>
                   <th onClick={() => siralamaToggle("ad")} className="text-left px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-white select-none"><span className="inline-flex items-center">Bayi Adı<SiralamaIkon alan="ad" /></span></th>
                   <th onClick={() => siralamaToggle("tur")} className="text-left px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-white select-none"><span className="inline-flex items-center">Türü<SiralamaIkon alan="tur" /></span></th>
                   <th className="text-left px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider">Üst Bayi</th>
@@ -745,7 +878,11 @@ export default function BayilerPage() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-white/5">
                 {siraliBayiler.length > 0 ? siraliBayiler.map((bayi) => (
-                  <tr key={bayi.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors">
+                  <tr key={bayi.id} className={`hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors ${seciliIdler.has(bayi.id) ? "bg-emerald-50/50 dark:bg-emerald-500/5" : ""}`}>
+                    <td className="px-4 py-4">
+                      <input type="checkbox" checked={seciliIdler.has(bayi.id)} onChange={() => tekSecimToggle(bayi.id)}
+                        className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-emerald-600 focus:ring-emerald-500 cursor-pointer" />
+                    </td>
                     <td className="px-6 py-4">
                       <div>
                         <p className="font-medium text-gray-900 dark:text-white">{bayi.ad}</p>
@@ -788,7 +925,7 @@ export default function BayilerPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => setDetayModal(bayi)} title="Detay Görüntüle"
+                        <button onClick={() => git(`/dashboard/bayi/${bayi.id}`)} title="Detay Görüntüle"
                           className="w-8 h-8 rounded-lg bg-gray-500 hover:bg-gray-600 text-white flex items-center justify-center cursor-pointer transition-colors">
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -804,7 +941,7 @@ export default function BayilerPage() {
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-gray-400 dark:text-slate-500">
+                    <td colSpan={9} className="px-6 py-12 text-center text-gray-400 dark:text-slate-500">
                       "{arama}" ile eşleşen bayi bulunamadı.
                     </td>
                   </tr>

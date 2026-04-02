@@ -21,6 +21,8 @@ const TUR_ETIKETLERI = {
   bayi_ekleme: { etiket: "Bayi Ekleme", renk: "emerald" },
   giris: { etiket: "Giriş", renk: "blue" },
   cikis: { etiket: "Çıkış", renk: "amber" },
+  yedek_alma: { etiket: "Yedek Alma", renk: "cyan" },
+  geri_yukleme: { etiket: "Geri Yükleme", renk: "orange" },
   diger: { etiket: "Diğer", renk: "gray" },
 };
 
@@ -35,6 +37,9 @@ export function AktiviteLogProvider({ children }) {
         tur: l.tip,
         detay: l.mesaj,
         tarih: l.tarih,
+        kullanici_id: l.kullanici_id,
+        kullanici_adi: l.kullanici_adi || "Sistem",
+        kullanici_eposta: l.kullanici_eposta,
       })));
     } catch (e) {
       console.error("Aktivite loglari yuklenemedi:", e);

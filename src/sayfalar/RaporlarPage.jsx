@@ -699,13 +699,17 @@ function TahsilatlarSekmesi() {
           <option value="">Tüm Durumlar</option>
           <option value="Ödendi">Ödendi</option>
           <option value="Bekliyor">Bekliyor</option>
-          <option value="Gecikmiş">Gecikmiş</option>
+          <option value="Kısmi">Kısmi Ödeme</option>
         </select>
         <select value={filtreYontem} onChange={(e) => { setFiltreYontem(e.target.value); setSayfa(1); }} className={`${INPUT_STIL} !w-40`}>
           <option value="">Tüm Yöntemler</option>
-          <option value="Havale">Havale</option>
-          <option value="Kredi Kartı">Kredi Kartı</option>
           <option value="Nakit">Nakit</option>
+          <option value="Havale">Havale</option>
+          <option value="EFT">EFT</option>
+          <option value="Kredi Kartı">Kredi Kartı</option>
+          <option value="Çek">Çek</option>
+          <option value="Senet">Senet</option>
+          <option value="Diğer">Diğer</option>
         </select>
         {(arama || filtreDurum || filtreYontem) && (
           <button onClick={() => { setArama(""); setFiltreDurum(""); setFiltreYontem(""); setSayfa(1); }}
@@ -746,15 +750,17 @@ function TahsilatlarSekmesi() {
                   <td className="px-4 py-3.5 text-gray-600 dark:text-slate-400 text-sm">{t.odemeTarihi}</td>
                   <td className="px-4 py-3.5">
                     <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                      t.yontem === "Havale" ? "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400"
+                      t.yontem === "Havale" || t.yontem === "EFT" ? "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400"
                       : t.yontem === "Kredi Kartı" ? "bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400"
                       : t.yontem === "Nakit" ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                      : t.yontem === "Çek" || t.yontem === "Senet" ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400"
                       : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-500"
                     }`}>{t.yontem}</span>
                   </td>
                   <td className="px-4 py-3.5">
                     <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                       t.durum === "Ödendi" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+                      : t.durum === "Kısmi" ? "bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-400"
                       : t.durum === "Bekliyor" ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400"
                       : "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400"
                     }`}>{t.durum}</span>

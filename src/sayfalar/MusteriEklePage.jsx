@@ -249,13 +249,13 @@ export default function MusteriEklePage() {
       tur: aktifSekme,
       eposta: form.eposta,
       sektorId: form.sektor ? Number(form.sektor) : null,
-      ustMusteri: form.ustMusteri,
+      ustMusteriId: form.ustMusteri ? Number(form.ustMusteri) : null,
       telefonlar: form.kisiler.map((k) => k.telefon).filter(Boolean),
       adresler: form.adres.trim() ? [form.adres.trim()] : [],
       kisiler: form.kisiler.filter((k) => k.adSoyad.trim() || k.telefon.trim()),
       notlar: form.notlar,
       etiketler: form.etiketler,
-      durum: form.durum ? "Aktif" : "Pasif",
+      durum: form.durum ? "aktif" : "pasif",
       ...(aktifSekme === "gercek" && {
         adSoyad: form.adSoyad,
         tcKimlikNo: form.tcKimlikNo,
@@ -283,8 +283,8 @@ export default function MusteriEklePage() {
         const fd = new FormData();
         fd.append("dosyalar", dosya);
         try {
-          const token = localStorage.getItem("token");
-          await fetch(`http://localhost:5000/api/musteriler/${sonuc.id}/dosyalar`, {
+          const token = localStorage.getItem("gt_token");
+          await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/musteriler/${sonuc.id}/dosyalar`, {
             method: "POST",
             headers: token ? { Authorization: `Bearer ${token}` } : {},
             body: fd,

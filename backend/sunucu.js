@@ -17,7 +17,8 @@ const PORT = process.env.PORT || 5000;
 
 /* ---- Middleware ---- */
 uygulama.use(cors());
-uygulama.use(express.json());
+uygulama.use(express.json({ limit: "50mb" }));
+uygulama.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 /* ---- API Rotalari ---- */
 uygulama.use("/api/yetki", require("./rotalar/yetki-rotalari"));
@@ -35,6 +36,7 @@ uygulama.use("/api/yedekleme", require("./rotalar/yedekleme-rotalari"));
 uygulama.use("/api/sektorler", require("./rotalar/sektor-rotalari"));
 uygulama.use("/api/musteriler", require("./rotalar/dosya-rotalari"));
 uygulama.use("/api/iletisim", require("./rotalar/iletisim-rotalari"));
+uygulama.use("/api/kisiler", require("./rotalar/iletisim-kisileri-rotalari"));
 uygulama.use("/api/cop-kutusu", require("./rotalar/cop-kutusu-rotalari"));
 
 /* ---- Statik dosya servisi (uploads) ---- */

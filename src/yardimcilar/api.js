@@ -3,7 +3,8 @@
 /*  Merkezi fetch helper                          */
 /* ============================================= */
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+export const BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:5000";
 
 function tokenAl() {
   return localStorage.getItem("gt_token");
@@ -25,7 +26,10 @@ async function apiIstek(yol, secenekler = {}) {
   }
 
   const veri = await yanit.json();
-  if (!yanit.ok) throw new Error(veri.mesaj || "API hatası");
+  if (!yanit.ok) {
+    console.error(`API Hatası [${yol}]:`, veri);
+    throw new Error(veri.mesaj || `Sunucu hatası: ${yanit.status}`);
+  }
   return veri;
 }
 

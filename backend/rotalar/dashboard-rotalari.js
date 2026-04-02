@@ -89,4 +89,63 @@ router.get("/son-lisanslar", hataYakala(async (req, res) => {
   res.json({ basarili: true, veri });
 }));
 
+/* ---- Yaklaşan Lisans Bitişleri (30 gün içinde) ---- */
+router.get("/yaklasan-lisanslar", hataYakala(async (req, res) => {
+  const [rows] = await havuz.query(`
+    SELECT l.id, COALESCE(m.ad_soyad, m.sirket_adi) as musteri,
+      COALESCE(u.ad, 'Bilinmiyor') as urun,
+      l.bitis_tarihi,
+      DATEDIFF(l.bitis_tarihi, CURDATE()) as kalan_gun
+    FROM lisanslar l
+    LEFT JOIN musteriler m ON l.musteri_id = m.id
+    LEFT JOIN urunler u ON l.urun_id = u.id
+    WHERE l.durum = 'aktif' 
+      AND l.bitis_tarihi BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+    ORDER BY l.bitis_tarihi ASC
+    LIMIT 10
+  `);
+
+  res.json({ basarili: true, veri: rows });
+}));
+
+/* ---- Aylık Müşteri Ekleme İstatistikleri (son 12 ay) ---- */
+router.get("/aylik-musteriler", hataYakala(async (req, res) => {
+  const [rows] = await havuz.query(`
+    SELECT DATE_FORMAT(kayit_tarihi, '%Y-%m') as ay, COUNT(*) as sayi
+    FROM musteriler
+    WHERE kayit_tarihi >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+      AND silinme_tarihi IS NULL
+    GROUP BY DATE_FORMAT(kayit_tarihi, '%Y-%m')
+    ORDER BY ay ASC
+  `);
+
+  const AY_ISIMLERI = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
+  const veri = rows.map(r => {
+    const ayIndex = parseInt(r.ay.split("-")[1], 10) - 1;
+    return { ay: AY_ISIMLERI[ayIndex], sayi: r.sayi };
+  });
+
+  res.json({ basarili: true, veri });
+}));
+
+/* ---- Aylık Bayi Ekleme İstatistikleri (son 12 ay) ---- */
+router.get("/aylik-bayiler", hataYakala(async (req, res) => {
+  const [rows] = await havuz.query(`
+    SELECT DATE_FORMAT(kayit_tarihi, '%Y-%m') as ay, COUNT(*) as sayi
+    FROM bayiler
+    WHERE kayit_tarihi >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+      AND silinme_tarihi IS NULL
+    GROUP BY DATE_FORMAT(kayit_tarihi, '%Y-%m')
+    ORDER BY ay ASC
+  `);
+
+  const AY_ISIMLERI = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
+  const veri = rows.map(r => {
+    const ayIndex = parseInt(r.ay.split("-")[1], 10) - 1;
+    return { ay: AY_ISIMLERI[ayIndex], sayi: r.sayi };
+  });
+
+  res.json({ basarili: true, veri });
+}));
+
 module.exports = router;

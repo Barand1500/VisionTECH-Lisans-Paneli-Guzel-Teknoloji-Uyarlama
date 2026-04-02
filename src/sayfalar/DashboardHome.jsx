@@ -71,12 +71,13 @@ const PIE_RENKLERI = ["#3b82f6", "#10b981", "#f59e0b"];
 /*  Yardımcı: Tooltip özelleştirme                */
 /* ============================================= */
 
-function GrafikTooltip({ active, payload, label }) {
+function GrafikTooltip({ active, payload, label, tur }) {
   if (!active || !payload?.length) return null;
+  const etiket = tur === "bayiler" ? "bayi" : "müşteri";
   return (
     <div className="rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 px-3 py-2 shadow-lg text-sm">
       <p className="font-semibold text-gray-900 dark:text-white">{label}</p>
-      <p className="text-blue-600 dark:text-blue-400">{payload[0].value} lisans</p>
+      <p className="text-blue-600 dark:text-blue-400">{payload[0].value} {etiket}</p>
     </div>
   );
 }
@@ -99,7 +100,7 @@ function PastaTooltip({ active, payload }) {
 const VARSAYILAN_BOLUMLER = [
   { id: "kartlar",    baslik: "Özet Kartları",    ikon: "M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" },
   { id: "grafikler",  baslik: "Grafikler",        ikon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" },
-  { id: "aksiyonlar", baslik: "Hızlı Aksiyonlar", ikon: "M13 10V3L4 14h7v7l9-11h-7z" },
+  { id: "yaklasanlar", baslik: "Yaklaşan Bitişler", ikon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
   { id: "islemler",   baslik: "Son İşlemler",     ikon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
 ];
 
@@ -122,29 +123,38 @@ export default function DashboardHome() {
 
   /** Son işlemler sekmesi (müşteriler / lisanslar) */
   const [sonIslemSekme, setSonIslemSekme] = useState("musteriler");
+  
+  /** Grafik türü seçimi (musteriler / bayiler) */
+  const [grafikTuru, setGrafikTuru] = useState("musteriler");
 
   /* ---- API Verileri ---- */
   const [ozetVerisi, setOzetVerisi] = useState({ toplamMusteri: 0, aktifBayi: 0, aktifLisans: 0, buAyBitenLisans: 0 });
-  const [aylikSatislar, setAylikSatislar] = useState([]);
+  const [aylikMusteriler, setAylikMusteriler] = useState([]);
+  const [aylikBayiler, setAylikBayiler] = useState([]);
   const [musteriDagilimi, setMusteriDagilimi] = useState([]);
   const [sonMusteriler, setSonMusteriler] = useState([]);
   const [sonLisanslar, setSonLisanslar] = useState([]);
+  const [yaklasanLisanslar, setYaklasanLisanslar] = useState([]);
 
   useEffect(() => {
     const verileriYukle = async () => {
       try {
-        const [ozetRes, aylikRes, dagilimRes, musteriRes, lisansRes] = await Promise.all([
+        const [ozetRes, aylikMusteriRes, aylikBayiRes, dagilimRes, musteriRes, lisansRes, yaklasanRes] = await Promise.all([
           apiGet("/dashboard/ozet"),
-          apiGet("/dashboard/aylik-lisanslar"),
+          apiGet("/dashboard/aylik-musteriler"),
+          apiGet("/dashboard/aylik-bayiler"),
           apiGet("/dashboard/musteri-dagilimi"),
           apiGet("/dashboard/son-musteriler"),
           apiGet("/dashboard/son-lisanslar"),
+          apiGet("/dashboard/yaklasan-lisanslar"),
         ]);
         if (ozetRes.veri) setOzetVerisi(ozetRes.veri);
-        if (aylikRes.veri) setAylikSatislar(aylikRes.veri);
+        if (aylikMusteriRes.veri) setAylikMusteriler(aylikMusteriRes.veri);
+        if (aylikBayiRes.veri) setAylikBayiler(aylikBayiRes.veri);
         if (dagilimRes.veri) setMusteriDagilimi(dagilimRes.veri);
         if (musteriRes.veri) setSonMusteriler(musteriRes.veri);
         if (lisansRes.veri) setSonLisanslar(lisansRes.veri);
+        if (yaklasanRes.veri) setYaklasanLisanslar(yaklasanRes.veri);
       } catch (e) {
         console.error("Dashboard verileri yuklenemedi:", e);
       }
@@ -220,7 +230,7 @@ export default function DashboardHome() {
       renk: "from-violet-600 to-violet-400",
       ikonBg: "bg-violet-100 dark:bg-violet-500/20",
       ikonRenk: "text-violet-600 dark:text-violet-400",
-      yol: "/dashboard/yonetim/lisanslar",
+      yol: null,
       ikon: (
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
@@ -235,59 +245,11 @@ export default function DashboardHome() {
       renk: "from-red-600 to-red-400",
       ikonBg: "bg-red-100 dark:bg-red-500/20",
       ikonRenk: "text-red-600 dark:text-red-400",
-      yol: "/dashboard/yonetim/lisanslar",
+      yol: null,
       vurgulu: true,
       ikon: (
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-        </svg>
-      ),
-    },
-  ];
-
-  /* ---- Hızlı Aksiyon Butonları ---- */
-  const hizliAksiyonlar = [
-    {
-      baslik: "Yeni Müşteri Ekle",
-      aciklama: "Tüzel, gerçek veya yabancı müşteri kaydı oluşturun",
-      yol: "/dashboard/musteri-ekle",
-      renk: "bg-blue-600 hover:bg-blue-700",
-      ikon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
-        </svg>
-      ),
-    },
-    {
-      baslik: "Lisans Yenile",
-      aciklama: "Mevcut bir lisansın süresini uzatın",
-      yol: "/dashboard/yonetim/lisanslar",
-      renk: "bg-emerald-600 hover:bg-emerald-700",
-      ikon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" />
-        </svg>
-      ),
-    },
-    {
-      baslik: "Yeni Bayi Ekle",
-      aciklama: "Sisteme yeni bir bayi tanımlayın",
-      yol: "/dashboard/bayiler",
-      renk: "bg-violet-600 hover:bg-violet-700",
-      ikon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0 0 12 9.75c-2.551 0-5.056.2-7.5.582V21" />
-        </svg>
-      ),
-    },
-    {
-      baslik: "Raporları Gör",
-      aciklama: "Detaylı istatistik ve grafikler",
-      yol: null,
-      renk: "bg-amber-600 hover:bg-amber-700",
-      ikon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
         </svg>
       ),
     },
@@ -312,6 +274,12 @@ export default function DashboardHome() {
     return harita[tur] || "bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-slate-400";
   };
 
+  const kalanGunRozeti = (gun) => {
+    if (gun <= 3) return "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400";
+    if (gun <= 7) return "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400";
+    return "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400";
+  };
+
   /* ---- Render ---- */
   return (
     <div className="space-y-6">
@@ -324,8 +292,21 @@ export default function DashboardHome() {
           </p>
         </div>
 
-        {/* Özelleştirme butonu */}
-        <div className="relative">
+        {/* Yenile + Özelleştirme butonları */}
+        <div className="flex items-center gap-2">
+          {/* Yenile butonu */}
+          <button
+            onClick={() => window.location.reload()}
+            className="w-9 h-9 rounded-lg border bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-500/30 flex items-center justify-center cursor-pointer transition-all duration-200"
+            title="Sayfayı Yenile"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+
+          {/* Özelleştirme butonu */}
+          <div className="relative">
           <button
             onClick={() => setAyarPaneli(!ayarPaneli)}
             className={`w-9 h-9 rounded-lg border flex items-center justify-center cursor-pointer transition-all duration-200 ${
@@ -389,6 +370,7 @@ export default function DashboardHome() {
             </div>
           )}
         </div>
+        </div>
       </div>
 
       {/* =========== BÖLÜMLERİ SIRAYA GÖRE RENDER ET =========== */}
@@ -402,9 +384,10 @@ export default function DashboardHome() {
             key={kart.baslik}
             onClick={() => kart.yol && navigate(kart.yol)}
             style={{ animationDelay: `${idx * 120}ms` }}
-            className={`group relative overflow-hidden rounded-xl bg-white dark:bg-white/5 p-5 cursor-pointer
+            className={`group relative overflow-hidden rounded-xl bg-white dark:bg-white/5 p-5
               transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]
               animate-[kartGir_0.6s_ease-out_both]
+              ${kart.yol ? "cursor-pointer" : ""}
               ${
               kart.vurgulu
                 ? "border-2 border-red-300 dark:border-red-500/40 ring-1 ring-red-200 dark:ring-red-500/20"
@@ -448,14 +431,39 @@ export default function DashboardHome() {
       </div>
           ); case "grafikler": return (
             <div key="grafikler" className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* ---- Bar Chart: Aylara Göre Lisans Satışı ---- */}
+        {/* ---- Bar Chart: Aylara Göre Müşteriler/Bayiler ---- */}
         <div className="lg:col-span-2 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-5">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
-            Aylara Göre Lisans Satışı
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+              Aylara Göre {grafikTuru === "musteriler" ? "Müşteriler" : "Bayiler"}
+            </h2>
+            {/* Seçim Dropdown */}
+            <div className="flex rounded-lg bg-gray-100 dark:bg-white/5 p-0.5">
+              <button
+                onClick={() => setGrafikTuru("musteriler")}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  grafikTuru === "musteriler"
+                    ? "bg-white dark:bg-white/10 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300"
+                }`}
+              >
+                Müşteriler
+              </button>
+              <button
+                onClick={() => setGrafikTuru("bayiler")}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  grafikTuru === "bayiler"
+                    ? "bg-white dark:bg-white/10 text-emerald-600 dark:text-emerald-400 shadow-sm"
+                    : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300"
+                }`}
+              >
+                Bayiler
+              </button>
+            </div>
+          </div>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={aylikSatislar} barSize={28}>
+              <BarChart data={grafikTuru === "musteriler" ? aylikMusteriler : aylikBayiler} barSize={28}>
                 <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-gray-200 dark:text-white/10" />
                 <XAxis
                   dataKey="ay"
@@ -470,8 +478,8 @@ export default function DashboardHome() {
                   axisLine={false}
                   tickLine={false}
                 />
-                <Tooltip content={<GrafikTooltip />} cursor={{ fill: "rgba(59,130,246,0.08)" }} />
-                <Bar dataKey="satis" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+                <Tooltip content={<GrafikTooltip tur={grafikTuru} />} cursor={{ fill: "rgba(59,130,246,0.08)" }} />
+                <Bar dataKey="sayi" fill={grafikTuru === "musteriler" ? "#3b82f6" : "#10b981"} radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -514,27 +522,63 @@ export default function DashboardHome() {
           </div>
         </div>
       </div>
-          ); case "aksiyonlar": return (
-            <div key="aksiyonlar" className="rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-5">
-        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
-          Hızlı Aksiyonlar
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {hizliAksiyonlar.map((aksiyon) => (
-            <button
-              key={aksiyon.baslik}
-              onClick={() => aksiyon.yol && navigate(aksiyon.yol)}
-              className={`flex items-center gap-3 rounded-lg px-4 py-3 text-white text-sm font-medium transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${aksiyon.renk} ${!aksiyon.yol ? "opacity-60 cursor-not-allowed" : ""}`}
-              disabled={!aksiyon.yol}
-            >
-              {aksiyon.ikon}
-              <div className="text-left">
-                <p className="font-semibold">{aksiyon.baslik}</p>
-                <p className="text-xs text-white/70">{aksiyon.aciklama}</p>
-              </div>
-            </button>
-          ))}
+          ); case "yaklasanlar": return (
+            <div key="yaklasanlar" className="rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+              Yaklaşan Lisans Bitişleri
+            </h2>
+            {yaklasanLisanslar.length > 0 && (
+              <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400">
+                {yaklasanLisanslar.length}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => navigate("/dashboard/yonetim/lisanslar")}
+            className="text-xs font-medium text-violet-600 dark:text-violet-400 hover:underline"
+          >
+            Tümünü Gör →
+          </button>
         </div>
+        {yaklasanLisanslar.length === 0 ? (
+          <div className="py-8 text-center">
+            <svg className="w-10 h-10 mx-auto text-emerald-400 mb-2" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-sm text-gray-500 dark:text-slate-400">30 gün içinde biten lisans yok</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-white/10">
+                  <th className="text-left py-2.5 px-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Müşteri</th>
+                  <th className="text-left py-2.5 px-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Ürün</th>
+                  <th className="text-left py-2.5 px-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Bitiş Tarihi</th>
+                  <th className="text-left py-2.5 px-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Kalan</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                {yaklasanLisanslar.map((l) => (
+                  <tr key={l.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                    <td className="py-2.5 px-3 text-gray-900 dark:text-white font-medium">{l.musteri}</td>
+                    <td className="py-2.5 px-3 text-gray-600 dark:text-slate-300">{l.urun}</td>
+                    <td className="py-2.5 px-3 text-gray-500 dark:text-slate-400">
+                      {l.bitis_tarihi ? new Date(l.bitis_tarihi).toLocaleDateString("tr-TR") : "-"}
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${kalanGunRozeti(l.kalan_gun)}`}>
+                        {l.kalan_gun} gün
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
           ); case "islemler": return (
             <div key="islemler" className="rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-5">

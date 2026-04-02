@@ -15,6 +15,8 @@ const renkSinif = (renk) => {
     red: "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400",
     amber: "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400",
     violet: "bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300",
+    cyan: "bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-400",
+    orange: "bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400",
     gray: "bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-400",
   };
   return harita[renk] || harita.gray;
@@ -27,6 +29,8 @@ const ikonRenk = (renk) => {
     red: "bg-red-500",
     amber: "bg-amber-500",
     violet: "bg-violet-500",
+    cyan: "bg-cyan-500",
+    orange: "bg-orange-500",
     gray: "bg-gray-500",
   };
   return harita[renk] || harita.gray;
@@ -55,9 +59,40 @@ const turIkonu = (tur) => {
         </svg>
       );
     case "lisans_goruntuleme":
+    case "lisans_olusturma":
       return (
         <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      );
+    case "yedek_alma":
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+      );
+    case "geri_yukleme":
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+        </svg>
+      );
+    case "giris":
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+        </svg>
+      );
+    case "cikis":
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        </svg>
+      );
+    case "bayi_ekleme":
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
         </svg>
       );
     default:
@@ -132,9 +167,10 @@ export default function AktiviteLoguPage() {
   /* ---- İstatistikler ---- */
   const istatistikler = [
     { etiket: "Toplam İşlem", deger: loglar.length, renk: "blue" },
-    { etiket: "Ekleme", deger: loglar.filter((l) => l.tur === "musteri_ekleme").length, renk: "emerald" },
+    { etiket: "Ekleme", deger: loglar.filter((l) => l.tur === "musteri_ekleme" || l.tur === "bayi_ekleme").length, renk: "emerald" },
     { etiket: "Güncelleme", deger: loglar.filter((l) => l.tur === "musteri_guncelleme").length, renk: "blue" },
     { etiket: "Silme", deger: loglar.filter((l) => l.tur === "musteri_silme" || l.tur === "toplu_silme").length, renk: "red" },
+    { etiket: "Yedekleme", deger: loglar.filter((l) => l.tur === "yedek_alma" || l.tur === "geri_yukleme").length, renk: "cyan" },
   ];
 
   return (
@@ -146,13 +182,14 @@ export default function AktiviteLoguPage() {
       </div>
 
       {/* İstatistik Kartları */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         {istatistikler.map((ist) => (
           <div key={ist.etiket} className="rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-4">
             <p className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">{ist.etiket}</p>
             <p className={`text-2xl font-bold mt-1 ${
               ist.renk === "emerald" ? "text-emerald-600 dark:text-emerald-400" :
               ist.renk === "red" ? "text-red-600 dark:text-red-400" :
+              ist.renk === "cyan" ? "text-cyan-600 dark:text-cyan-400" :
               "text-blue-600 dark:text-blue-400"
             }`}>{ist.deger}</p>
           </div>
@@ -258,10 +295,27 @@ export default function AktiviteLoguPage() {
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${renkSinif(turBilgi.renk)}`}>
                         {turBilgi.etiket}
                       </span>
+                      {/* Kullanıcı Bilgisi */}
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-500/20 text-slate-600 dark:text-slate-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        {log.kullanici_adi || "Bilinmiyor"}
+                      </span>
                       <span className="text-xs text-gray-400 dark:text-slate-500">{gecenSure(log.tarih)}</span>
                     </div>
                     <p className="text-sm text-gray-700 dark:text-slate-300">{log.detay}</p>
-                    <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{tarihFormatla(log.tarih)}</p>
+                    <div className="flex items-center gap-3 mt-1">
+                      <p className="text-xs text-gray-400 dark:text-slate-500">{tarihFormatla(log.tarih)}</p>
+                      {log.kullanici_eposta && (
+                        <p className="text-xs text-gray-400 dark:text-slate-500 flex items-center gap-1">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                          {log.kullanici_eposta}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

@@ -7,9 +7,17 @@ const router = express.Router();
 const havuz = require("../veritabani/baglanti");
 const { hataYakala } = require("../yardimcilar/hata-yonetimi");
 
-/* ---- Tum Loglari Listele ---- */
+/* ---- Tum Loglari Listele (kullanici bilgisiyle) ---- */
 router.get("/", hataYakala(async (req, res) => {
-  const [loglar] = await havuz.query("SELECT * FROM aktivite_loglari ORDER BY tarih DESC LIMIT 500");
+  const [loglar] = await havuz.query(`
+    SELECT al.*, 
+           k.ad_soyad as kullanici_adi,
+           k.eposta as kullanici_eposta
+    FROM aktivite_loglari al
+    LEFT JOIN kullanicilar k ON al.kullanici_id = k.id
+    ORDER BY al.tarih DESC 
+    LIMIT 500
+  `);
   res.json({ basarili: true, veri: loglar });
 }));
 

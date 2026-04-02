@@ -1129,7 +1129,7 @@ export default function MusterilerPage() {
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => setDetayModal(m)} title="Detay Görüntüle"
+                        <button onClick={() => git(`/dashboard/musteri/${m.id}`)} title="Detay Görüntüle"
                           className="w-8 h-8 rounded-lg bg-gray-500 hover:bg-gray-600 text-white flex items-center justify-center cursor-pointer">
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -1438,7 +1438,7 @@ export default function MusterilerPage() {
                           </div>
                         </div>
                         <a
-                          href={`http://localhost:5000/api/musteriler/${detayModal.id}/dosyalar/${dosya.id}/indir`}
+                          href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/musteriler/${detayModal.id}/dosyalar/${dosya.id}/indir`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"

@@ -275,6 +275,82 @@ async function tablolariOlustur() {
   `);
 
   /* ======================================== */
+  /*  9.5. ILETISIM KISILERI                  */
+  /*  Musterilere ve bayilere ait kisiler     */
+  /*  FK: musteriler.id, bayiler.id           */
+  /* ======================================== */
+  await havuz.query(`
+    CREATE TABLE IF NOT EXISTS iletisim_kisileri (
+      id               INT            AUTO_INCREMENT PRIMARY KEY,
+      musteri_id       INT            NULL,
+      bayi_id          INT            NULL,
+      ad_soyad         VARCHAR(255)   NOT NULL,
+      unvan            VARCHAR(100)   NULL,
+      departman        VARCHAR(100)   NULL,
+      telefon          VARCHAR(50)    NULL,
+      cep_telefon      VARCHAR(50)    NULL,
+      eposta           VARCHAR(255)   NULL,
+      notlar           TEXT           NULL,
+      birincil         TINYINT(1)     NOT NULL DEFAULT 0,
+      aktif            TINYINT(1)     NOT NULL DEFAULT 1,
+      olusturma_tarihi DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      guncelleme_tarihi DATETIME      NULL ON UPDATE CURRENT_TIMESTAMP,
+
+      CONSTRAINT fk_iletisim_kisi_musteri
+        FOREIGN KEY (musteri_id) REFERENCES musteriler(id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+      CONSTRAINT fk_iletisim_kisi_bayi
+        FOREIGN KEY (bayi_id) REFERENCES bayiler(id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+
+      INDEX idx_iletisim_kisi_musteri   (musteri_id),
+      INDEX idx_iletisim_kisi_bayi      (bayi_id),
+      INDEX idx_iletisim_kisi_birincil  (birincil),
+      INDEX idx_iletisim_kisi_aktif     (aktif)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  /* ======================================== */
+  /*  9.6. URUN TIPLERI                       */
+  /*  Grup bazlı ürün tip listesi             */
+  /* ======================================== */
+  await havuz.query(`
+    CREATE TABLE IF NOT EXISTS urun_tipleri (
+      id        INT          AUTO_INCREMENT PRIMARY KEY,
+      grup_id   INT          NULL,
+      ad        VARCHAR(100) NOT NULL,
+      aktif     TINYINT(1)   NOT NULL DEFAULT 1,
+
+      CONSTRAINT fk_urun_tipleri_grup
+        FOREIGN KEY (grup_id) REFERENCES urun_gruplari(id)
+        ON UPDATE CASCADE ON DELETE SET NULL,
+
+      INDEX idx_urun_tipleri_aktif (aktif),
+      INDEX idx_urun_tipleri_grup (grup_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  /* ======================================== */
+  /*  9.7. UYGULAMA TIPLERI                   */
+  /*  Ürün tipi bazlı uygulama tip listesi    */
+  /* ======================================== */
+  await havuz.query(`
+    CREATE TABLE IF NOT EXISTS uygulama_tipleri (
+      id            INT          AUTO_INCREMENT PRIMARY KEY,
+      urun_tipi_id  INT          NULL,
+      ad            VARCHAR(100) NOT NULL,
+      aktif         TINYINT(1)   NOT NULL DEFAULT 1,
+
+      CONSTRAINT fk_uygulama_tipleri_urun_tipi
+        FOREIGN KEY (urun_tipi_id) REFERENCES urun_tipleri(id)
+        ON UPDATE CASCADE ON DELETE SET NULL,
+
+      INDEX idx_uygulama_tipleri_aktif (aktif),
+      INDEX idx_uygulama_tipleri_urun_tipi (urun_tipi_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  /* ======================================== */
   /*  10. URUN GRUPLARI                       */
   /*  Urunlerin kategori/grup bilgisi         */
   /* ======================================== */
@@ -301,6 +377,7 @@ async function tablolariOlustur() {
       ad             VARCHAR(255)   NOT NULL,
       urun_tipi      VARCHAR(50)    NULL,
       uygulama_tipi  VARCHAR(50)    NULL,
+      varsayilan_gun INT            NOT NULL DEFAULT 365,
       ozel_proje     TINYINT(1)     NOT NULL DEFAULT 0,
       aktif          TINYINT(1)     NOT NULL DEFAULT 1,
 
@@ -343,7 +420,8 @@ async function tablolariOlustur() {
   /* ======================================== */
   /*  13. LISANSLAR (Musteri Lisanslari)      */
   /*  Musterilere tanimli lisans kayitlari    */
-  /*  FK: musteriler, urunler, paketler       */
+  /*  FK: musteriler, urunler, paketler,      */
+  /*      bayiler                             */
   /* ======================================== */
   await havuz.query(`
     CREATE TABLE IF NOT EXISTS lisanslar (
@@ -351,16 +429,44 @@ async function tablolariOlustur() {
       musteri_id       INT            NOT NULL,
       urun_id          INT            NULL,
       paket_id         INT            NULL,
+      bayi_id          INT            NULL,
       lisans_anahtari  VARCHAR(100)   NULL UNIQUE,
+      lisans_tipi      ENUM('demo','standart','profesyonel','enterprise') NOT NULL DEFAULT 'standart',
       baslangic_tarihi DATE           NOT NULL,
       bitis_tarihi     DATE           NOT NULL,
+      kullanim_gunu    INT            NOT NULL DEFAULT 365,
       durum            ENUM('aktif','yaklasan','suresi-dolmus','dondurulmus') NOT NULL DEFAULT 'aktif',
       domain           VARCHAR(255)   NULL,
+      
+      /* Fatura Bilgileri */
       fatura_no        VARCHAR(50)    NULL,
-      fiyat            DECIMAL(10,2)  NOT NULL DEFAULT 0.00,
+      fatura_tarihi    DATE           NULL,
       fatura_geldi     TINYINT(1)     NOT NULL DEFAULT 0,
+      
+      /* Fiyat ve Odeme Bilgileri */
+      fiyat            DECIMAL(10,2)  NOT NULL DEFAULT 0.00,
+      indirim_orani    DECIMAL(5,2)   NOT NULL DEFAULT 0.00,
+      indirim_tutari   DECIMAL(10,2)  NOT NULL DEFAULT 0.00,
+      net_tutar        DECIMAL(10,2)  NOT NULL DEFAULT 0.00,
+      odeme_yontemi    ENUM('nakit','havale','eft','kredi_karti','cek','senet','diger') NULL,
+      odeme_durumu     ENUM('odenmedi','kismi','odendi') NOT NULL DEFAULT 'odenmedi',
+      odenen_tutar     DECIMAL(10,2)  NOT NULL DEFAULT 0.00,
+      
+      /* Kullanici ve Cihaz Bilgileri */
       kullanici_sayisi INT            NOT NULL DEFAULT 1,
+      ek_kullanici     INT            NOT NULL DEFAULT 0,
+      mac_adresi       VARCHAR(255)   NULL,
+      ip_adresi        VARCHAR(100)   NULL,
+      
+      /* Ek Ozellikler */
+      moduller         JSON           NULL,
+      otomatik_yenileme TINYINT(1)    NOT NULL DEFAULT 0,
+      bildirim_gun     INT            NOT NULL DEFAULT 30,
+      notlar           TEXT           NULL,
+      
+      /* Tarihler */
       olusturma_tarihi DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      guncelleme_tarihi DATETIME      NULL ON UPDATE CURRENT_TIMESTAMP,
 
       CONSTRAINT fk_lisanslar_musteri
         FOREIGN KEY (musteri_id) REFERENCES musteriler(id)
@@ -371,14 +477,20 @@ async function tablolariOlustur() {
       CONSTRAINT fk_lisanslar_paket
         FOREIGN KEY (paket_id) REFERENCES paketler(id)
         ON DELETE SET NULL ON UPDATE CASCADE,
+      CONSTRAINT fk_lisanslar_bayi
+        FOREIGN KEY (bayi_id) REFERENCES bayiler(id)
+        ON DELETE SET NULL ON UPDATE CASCADE,
 
-      INDEX idx_lisanslar_musteri    (musteri_id),
-      INDEX idx_lisanslar_urun       (urun_id),
-      INDEX idx_lisanslar_paket      (paket_id),
-      INDEX idx_lisanslar_durum      (durum),
-      INDEX idx_lisanslar_bitis      (bitis_tarihi),
-      INDEX idx_lisanslar_baslangic  (baslangic_tarihi),
-      INDEX idx_lisanslar_olusturma  (olusturma_tarihi)
+      INDEX idx_lisanslar_musteri      (musteri_id),
+      INDEX idx_lisanslar_urun         (urun_id),
+      INDEX idx_lisanslar_paket        (paket_id),
+      INDEX idx_lisanslar_bayi         (bayi_id),
+      INDEX idx_lisanslar_durum        (durum),
+      INDEX idx_lisanslar_lisans_tipi  (lisans_tipi),
+      INDEX idx_lisanslar_odeme_durumu (odeme_durumu),
+      INDEX idx_lisanslar_bitis        (bitis_tarihi),
+      INDEX idx_lisanslar_baslangic    (baslangic_tarihi),
+      INDEX idx_lisanslar_olusturma    (olusturma_tarihi)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
 
@@ -411,14 +523,15 @@ async function tablolariOlustur() {
   `);
 
   /* ======================================== */
-  /*  15. NOTLAR (Musteri Notlari)            */
-  /*  Musterilere eklenen notlar/yorumlar     */
-  /*  FK: musteriler.id, kullanicilar.id      */
+  /*  15. NOTLAR (Musteri/Bayi Notlari)       */
+  /*  Musteri ve Bayilere eklenen notlar      */
+  /*  FK: musteriler.id, bayiler.id           */
   /* ======================================== */
   await havuz.query(`
     CREATE TABLE IF NOT EXISTS notlar (
       id           INT        AUTO_INCREMENT PRIMARY KEY,
-      musteri_id   INT        NOT NULL,
+      musteri_id   INT        NULL,
+      bayi_id      INT        NULL,
       kullanici_id INT        NULL,
       metin        TEXT       NOT NULL,
       onemli       TINYINT(1) NOT NULL DEFAULT 0,
@@ -427,11 +540,15 @@ async function tablolariOlustur() {
       CONSTRAINT fk_notlar_musteri
         FOREIGN KEY (musteri_id) REFERENCES musteriler(id)
         ON DELETE CASCADE ON UPDATE CASCADE,
+      CONSTRAINT fk_notlar_bayi
+        FOREIGN KEY (bayi_id) REFERENCES bayiler(id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
       CONSTRAINT fk_notlar_kullanici
         FOREIGN KEY (kullanici_id) REFERENCES kullanicilar(id)
         ON DELETE SET NULL ON UPDATE CASCADE,
 
       INDEX idx_notlar_musteri   (musteri_id),
+      INDEX idx_notlar_bayi      (bayi_id),
       INDEX idx_notlar_kullanici (kullanici_id),
       INDEX idx_notlar_tarih     (tarih),
       INDEX idx_notlar_onemli    (onemli)

@@ -17,40 +17,61 @@ export function MusteriProvider({ children }) {
 
   /* ---- Backend'den müşteri ve not verilerini çek ---- */
   const verileriYukle = useCallback(async () => {
+    // Token yoksa veri yükleme (login sayfasında sonsuz döngü önleme)
+    const token = localStorage.getItem("gt_token");
+    if (!token) {
+      setYukleniyor(false);
+      return;
+    }
+    
     try {
-      const [mRes, nRes] = await Promise.all([
-        apiGet("/musteriler"),
-        apiGet("/notlar"),
-      ]);
-      /* Backend snake_case → camelCase dönüşümü */
-      const donustur = (m) => ({
-        id: m.id,
-        tur: m.tur,
-        adSoyad: m.ad_soyad,
-        sirketAdi: m.sirket_adi,
-        yetkiliKisi: m.yetkili_kisi,
-        eposta: m.eposta,
-        tcKimlikNo: m.tc_kimlik_no,
-        vergiNo: m.vergi_no,
-        vergiDairesi: m.vergi_dairesi,
-        pasaportNo: m.pasaport_no,
-        sektorId: m.sektor_id,
-        sektor: m.sektor_adi || '',
-        etiketler: m.etiketler || [],
-        durum: m.durum,
-        ustMusteriId: m.ust_musteri_id,
-        kayitTarihi: m.kayit_tarihi,
-        telefonlar: m.telefonlar || [],
-        adresler: m.adresler || [],
-      });
-      setMusteriler(mRes.veri.map(donustur));
-      setNotlar(nRes.veri.map((n) => ({
-        id: n.id,
-        musteriId: n.musteri_id,
-        metin: n.metin,
-        tarih: n.tarih,
-        onemli: !!n.onemli,
-      })));
+      /* Müşteri ve not verilerini ayrı ayrı çek */
+      let musterilerData = [];
+      let notlarData = [];
+      
+      try {
+        const mRes = await apiGet("/musteriler");
+        /* Backend snake_case → camelCase dönüşümü */
+        const donustur = (m) => ({
+          id: m.id,
+          tur: m.tur,
+          adSoyad: m.ad_soyad,
+          sirketAdi: m.sirket_adi,
+          yetkiliKisi: m.yetkili_kisi,
+          eposta: m.eposta,
+          tcKimlikNo: m.tc_kimlik_no,
+          vergiNo: m.vergi_no,
+          vergiDairesi: m.vergi_dairesi,
+          pasaportNo: m.pasaport_no,
+          sektorId: m.sektor_id,
+          sektor: m.sektor_adi || '',
+          etiketler: m.etiketler || [],
+          durum: m.durum,
+          ustMusteriId: m.ust_musteri_id,
+          kayitTarihi: m.kayit_tarihi,
+          telefonlar: m.telefonlar || [],
+          adresler: m.adresler || [],
+        });
+        musterilerData = mRes.veri.map(donustur);
+      } catch (e) {
+        console.error("Müşteri verileri yüklenemedi:", e);
+      }
+      
+      try {
+        const nRes = await apiGet("/notlar");
+        notlarData = nRes.veri.map((n) => ({
+          id: n.id,
+          musteriId: n.musteri_id,
+          metin: n.metin,
+          tarih: n.tarih,
+          onemli: !!n.onemli,
+        }));
+      } catch (e) {
+        console.error("Not verileri yüklenemedi:", e);
+      }
+      
+      setMusteriler(musterilerData);
+      setNotlar(notlarData);
     } catch (e) {
       console.error("Musteri verileri yuklenemedi:", e);
     } finally {
@@ -80,10 +101,24 @@ export function MusteriProvider({ children }) {
     };
     const yanit = await apiPost("/musteriler", govde);
     
+    /* Kişiler varsa, iletisim_kisileri tablosuna ekle */
+    if (musteri.kisiler && musteri.kisiler.length > 0) {
+      for (const kisi of musteri.kisiler) {
+        if (kisi.adSoyad?.trim() || kisi.telefon?.trim()) {
+          await apiPost(`/kisiler/musteri/${yanit.id}`, {
+            ad_soyad: kisi.adSoyad || '',
+            telefon: kisi.telefon || null,
+            eposta: kisi.eposta || null,
+            unvan: kisi.unvan || null,
+            birincil: kisi.birincil || false,
+          });
+        }
+      }
+    }
+    
     /* Eğer notlar varsa, ayrıca not ekle */
     if (musteri.notlar && musteri.notlar.trim()) {
-      await apiPost("/notlar", {
-        musteri_id: yanit.id,
+      await apiPost(`/notlar/musteri/${yanit.id}`, {
         metin: musteri.notlar.trim(),
         onemli: false,
       });
@@ -132,7 +167,7 @@ export function MusteriProvider({ children }) {
 
   /* ---- Not CRUD ---- */
   const notEkle = async (musteriId, metin, onemli = false) => {
-    await apiPost("/notlar", { musteri_id: musteriId, metin, onemli });
+    await apiPost(`/notlar/musteri/${musteriId}`, { metin, onemli });
     await verileriYukle();
   };
 

@@ -12,8 +12,10 @@ import DashboardLayout from "./duzenler/DashboardLayout";
 import DashboardHome from "./sayfalar/DashboardHome";
 import MusterilerPage from "./sayfalar/MusterilerPage";
 import MusteriEklePage from "./sayfalar/MusteriEklePage";
+import MusteriDetayPage from "./sayfalar/MusteriDetayPage";
 import BayilerPage from "./sayfalar/BayilerPage";
 import BayiEklePage from "./sayfalar/BayiEklePage";
+import BayiDetayPage from "./sayfalar/BayiDetayPage";
 import LisansYonetimiPage from "./sayfalar/LisansYonetimiPage";
 import YonetimPage from "./sayfalar/YonetimPage";
 import RaporlarPage from "./sayfalar/RaporlarPage";
@@ -54,6 +56,12 @@ function App() {
           {/* Musteri Ekleme Sayfasi */}
           <Route path="musteri-ekle" element={<MusteriEklePage />} />
 
+          {/* Musteri Detay Sayfasi */}
+          <Route path="musteri/:id" element={<MusteriDetayPage />} />
+
+          {/* Musteri Duzenleme Sayfasi (ayni form) */}
+          <Route path="musteri-duzenle/:id" element={<MusteriEklePage />} />
+
           {/* Musteri Paketleri Sayfasi */}
           <Route path="musteri-paketleri/:id" element={<MusteriPaketleriPage />} />
 
@@ -62,6 +70,12 @@ function App() {
 
           {/* Bayi Ekleme Sayfasi */}
           <Route path="bayi-ekle" element={<BayiEklePage />} />
+
+          {/* Bayi Detay Sayfasi */}
+          <Route path="bayi/:id" element={<BayiDetayPage />} />
+
+          {/* Bayi Duzenleme Sayfasi (ayni form) */}
+          <Route path="bayi-duzenle/:id" element={<BayiEklePage />} />
 
           {/* Yonetim Sayfasi */}
           <Route path="yonetim" element={<YonetimPage />} />
