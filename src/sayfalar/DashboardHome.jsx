@@ -536,7 +536,7 @@ export default function DashboardHome() {
             )}
           </div>
           <button
-            onClick={() => navigate("/dashboard/yonetim/lisanslar")}
+            onClick={() => navigate("/dashboard/raporlar?tab=suresiYaklasanlar")}
             className="text-xs font-medium text-violet-600 dark:text-violet-400 hover:underline"
           >
             Tümünü Gör →

@@ -62,8 +62,9 @@ const bosFormOlustur = () => ({
   vergiNo: "",
   tcKimlikNo: "",
   pasaportNo: "",
-  ustMusteri: "",
-  ustMusteriArama: "",
+  bayi: "",
+  bayiAdi: "",
+  bayiArama: "",
   adres: "",
   kisiler: [],
   notlar: "",
@@ -116,41 +117,45 @@ export default function MusteriEklePage() {
   const [form, setForm] = useState(bosFormOlustur());
   const [hatalar, setHatalar] = useState({});
   const [basarili, setBasarili] = useState(false);
-  const [ustMusteriAcik, setUstMusteriAcik] = useState(false);
-  const [kayitDisiOnay, setKayitDisiOnay] = useState(false);
+  const [bayiAcik, setBayiAcik] = useState(false);
   const [sektorler, setSektorler] = useState([]);
+  const [bayiler, setBayiler] = useState([]);
   const [dosyalar, setDosyalar] = useState([]);
   const [dosyaYukleniyor, setDosyaYukleniyor] = useState(false);
   const dosyaInputRef = useRef(null);
-  const ustMusteriRef = useRef(null);
+  const bayiRef = useRef(null);
 
-  /* ---- Sektörleri API'den Çek ---- */
+  /* ---- Sektörleri ve Bayileri API'den Çek ---- */
   useEffect(() => {
     apiGet("/sektorler").then((yanit) => {
       if (yanit?.veri) setSektorler(yanit.veri);
     }).catch(() => {});
+    apiGet("/bayiler").then((yanit) => {
+      if (yanit?.veri) setBayiler(yanit.veri);
+    }).catch(() => {});
   }, []);
 
-  /* ---- Üst Müşteri dropdown dışına tıklanınca kapat ---- */
+  /* ---- Bayi dropdown dışına tıklanınca kapat ---- */
   useEffect(() => {
     const disariTikla = (e) => {
-      if (ustMusteriRef.current && !ustMusteriRef.current.contains(e.target)) {
-        setUstMusteriAcik(false);
-        setKayitDisiOnay(false);
+      if (bayiRef.current && !bayiRef.current.contains(e.target)) {
+        setBayiAcik(false);
       }
     };
     document.addEventListener("mousedown", disariTikla);
     return () => document.removeEventListener("mousedown", disariTikla);
   }, []);
 
-  /* ---- Tüm müşteriler ---- */
-  const tumMusteriler = musteriler.map((m) => ({
-    id: m.id,
-    ad: m.adSoyad || m.sirketAdi || `Müşteri #${m.id}`,
-  }));
+  /* ---- Bayi listesi ---- */
+  const tumBayiler = bayiler
+    .filter(b => !b.silinme_tarihi)
+    .map((b) => ({
+      id: b.id,
+      ad: b.ad || b.sirket_adi || `Bayi #${b.id}`,
+    }));
 
-  const filtrelenmislerMusteriler = tumMusteriler.filter((m) =>
-    m.ad.toLowerCase().includes(form.ustMusteriArama.toLowerCase())
+  const filtreliBayiler = tumBayiler.filter((b) =>
+    b.ad.toLowerCase().includes(form.bayiArama.toLowerCase())
   );
 
   /* ---- Tekil Alan Güncelleme ---- */
@@ -249,7 +254,7 @@ export default function MusteriEklePage() {
       tur: aktifSekme,
       eposta: form.eposta,
       sektorId: form.sektor ? Number(form.sektor) : null,
-      ustMusteriId: form.ustMusteri ? Number(form.ustMusteri) : null,
+      bayiId: form.bayi ? Number(form.bayi) : null,
       telefonlar: form.kisiler.map((k) => k.telefon).filter(Boolean),
       adresler: form.adres.trim() ? [form.adres.trim()] : [],
       kisiler: form.kisiler.filter((k) => k.adSoyad.trim() || k.telefon.trim()),
@@ -349,25 +354,25 @@ export default function MusteriEklePage() {
       <form onSubmit={formGonder} className="space-y-8">
 
         {/* ============================================= */}
-        {/*  Bölüm 0: Üst Müşteri (En Üstte)            */}
+        {/*  Bölüm 0: Bayi Seçimi (En Üstte)             */}
         {/* ============================================= */}
         <div className="rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            Üst Müşteri
+            Bayi
           </h3>
-          <p className="text-sm text-gray-400 dark:text-slate-500 mb-4">Bu müşteriyi bir üst müşteriye bağlamak istiyorsanız aşağıdan arayın.</p>
+          <p className="text-sm text-gray-400 dark:text-slate-500 mb-4">Bu müşteriyi bir bayiye bağlamak istiyorsanız aşağıdan arayın.</p>
 
-          <div className="relative" ref={ustMusteriRef}>
-            {form.ustMusteri ? (
+          <div className="relative" ref={bayiRef}>
+            {form.bayi ? (
               <div className="flex items-center gap-2">
                 <div className={INPUT_STIL + " flex items-center justify-between"}>
-                  <span>{form.ustMusteri}</span>
+                  <span>{form.bayiAdi}</span>
                   <button
                     type="button"
-                    onClick={() => { alanGuncelle("ustMusteri", ""); alanGuncelle("ustMusteriArama", ""); }}
+                    onClick={() => { alanGuncelle("bayi", ""); alanGuncelle("bayiAdi", ""); alanGuncelle("bayiArama", ""); }}
                     className="text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -380,64 +385,38 @@ export default function MusteriEklePage() {
               <>
                 <input
                   type="text"
-                  placeholder="Müşteri adı yazarak arayın..."
-                  value={form.ustMusteriArama}
+                  placeholder="Bayi adı yazarak arayın..."
+                  value={form.bayiArama}
                   onChange={(e) => {
-                    alanGuncelle("ustMusteriArama", e.target.value);
-                    setUstMusteriAcik(true);
-                    setKayitDisiOnay(false);
+                    alanGuncelle("bayiArama", e.target.value);
+                    setBayiAcik(true);
                   }}
-                  onFocus={() => setUstMusteriAcik(true)}
+                  onFocus={() => setBayiAcik(true)}
                   className={INPUT_STIL}
                 />
-                {ustMusteriAcik && form.ustMusteriArama.length > 0 && (
+                {bayiAcik && form.bayiArama.length > 0 && (
                   <div className="absolute z-20 left-0 right-0 mt-1 rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 shadow-xl max-h-56 overflow-y-auto">
-                    {filtrelenmislerMusteriler.length > 0 ? (
-                      filtrelenmislerMusteriler.map((m) => (
+                    {filtreliBayiler.length > 0 ? (
+                      filtreliBayiler.map((b) => (
                         <button
-                          key={m.id}
+                          key={b.id}
                           type="button"
                           onClick={() => {
-                            alanGuncelle("ustMusteri", m.ad);
-                            alanGuncelle("ustMusteriArama", "");
-                            setUstMusteriAcik(false);
+                            alanGuncelle("bayi", String(b.id));
+                            alanGuncelle("bayiAdi", b.ad);
+                            alanGuncelle("bayiArama", "");
+                            setBayiAcik(false);
                           }}
                           className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer"
                         >
-                          {m.ad}
+                          {b.ad}
                         </button>
                       ))
-                    ) : !kayitDisiOnay ? (
+                    ) : (
                       <div className="p-4">
-                        <p className="text-sm text-amber-600 dark:text-amber-400 mb-3">
-                          Bu kullanıcı mevcut sistemde kayıtlı değil. Yine de eklemek ister misiniz?
-                        </p>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              alanGuncelle("ustMusteri", form.ustMusteriArama);
-                              alanGuncelle("ustMusteriArama", "");
-                              setUstMusteriAcik(false);
-                              setKayitDisiOnay(false);
-                            }}
-                            className="px-4 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors cursor-pointer"
-                          >
-                            Evet, Ekle
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              alanGuncelle("ustMusteriArama", "");
-                              setUstMusteriAcik(false);
-                            }}
-                            className="px-4 py-1.5 rounded-lg border border-gray-300 dark:border-white/10 text-gray-600 dark:text-slate-400 text-sm font-medium hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
-                          >
-                            Hayır
-                          </button>
-                        </div>
+                        <p className="text-sm text-gray-400 dark:text-slate-500">Eşleşen bayi bulunamadı.</p>
                       </div>
-                    ) : null}
+                    )}
                   </div>
                 )}
               </>

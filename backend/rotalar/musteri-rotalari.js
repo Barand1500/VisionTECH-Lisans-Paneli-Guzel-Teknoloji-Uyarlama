@@ -49,16 +49,16 @@ router.get("/:id", hataYakala(async (req, res) => {
 
 /* ---- Musteri Ekle ---- */
 router.post("/", hataYakala(async (req, res) => {
-  const { tur, ad_soyad, sirket_adi, yetkili_kisi, eposta, tc_kimlik_no, vergi_no, vergi_dairesi, pasaport_no, sektor_id, durum, ust_musteri_id, telefonlar, adresler, etiketler } = req.body;
+  const { tur, ad_soyad, sirket_adi, yetkili_kisi, eposta, tc_kimlik_no, vergi_no, vergi_dairesi, pasaport_no, sektor_id, durum, ust_musteri_id, bayi_id, telefonlar, adresler, etiketler } = req.body;
 
   if (!tur) return dogrulamaHatasi(res, "Musteri turu zorunludur.");
   if (tur === "gercek" && !ad_soyad) return dogrulamaHatasi(res, "Gercek kisi icin ad soyad zorunludur.");
   if (tur === "tuzel" && !sirket_adi) return dogrulamaHatasi(res, "Tuzel kisi icin sirket adi zorunludur.");
 
   const [sonuc] = await havuz.query(
-    `INSERT INTO musteriler (tur, ad_soyad, sirket_adi, yetkili_kisi, eposta, tc_kimlik_no, vergi_no, vergi_dairesi, pasaport_no, sektor_id, etiketler, durum, ust_musteri_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [tur, ad_soyad || null, sirket_adi || null, yetkili_kisi || null, eposta || null, tc_kimlik_no || null, vergi_no || null, vergi_dairesi || null, pasaport_no || null, sektor_id || null, etiketler ? JSON.stringify(etiketler) : null, durum || "aktif", ust_musteri_id || null]
+    `INSERT INTO musteriler (tur, ad_soyad, sirket_adi, yetkili_kisi, eposta, tc_kimlik_no, vergi_no, vergi_dairesi, pasaport_no, sektor_id, etiketler, durum, ust_musteri_id, bayi_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [tur, ad_soyad || null, sirket_adi || null, yetkili_kisi || null, eposta || null, tc_kimlik_no || null, vergi_no || null, vergi_dairesi || null, pasaport_no || null, sektor_id || null, etiketler ? JSON.stringify(etiketler) : null, durum || "aktif", ust_musteri_id || null, bayi_id || null]
   );
 
   const musteriId = sonuc.insertId;
@@ -79,15 +79,15 @@ router.put("/:id", hataYakala(async (req, res) => {
   const [mevcut] = await havuz.query("SELECT id FROM musteriler WHERE id = ?", [id]);
   if (mevcut.length === 0) return bulunamadiHatasi(res, "Musteri bulunamadi.");
 
-  const { tur, ad_soyad, sirket_adi, yetkili_kisi, eposta, tc_kimlik_no, vergi_no, vergi_dairesi, pasaport_no, sektor_id, etiketler, durum, ust_musteri_id, telefonlar, adresler } = req.body;
+  const { tur, ad_soyad, sirket_adi, yetkili_kisi, eposta, tc_kimlik_no, vergi_no, vergi_dairesi, pasaport_no, sektor_id, etiketler, durum, ust_musteri_id, bayi_id, telefonlar, adresler } = req.body;
 
   await havuz.query(
     `UPDATE musteriler SET
       tur = COALESCE(?, tur), ad_soyad = ?, sirket_adi = ?, yetkili_kisi = ?, eposta = ?,
       tc_kimlik_no = ?, vergi_no = ?, vergi_dairesi = ?, pasaport_no = ?, sektor_id = ?,
-      etiketler = ?, durum = COALESCE(?, durum), ust_musteri_id = ?, guncelleme_tarihi = NOW()
+      etiketler = ?, durum = COALESCE(?, durum), ust_musteri_id = ?, bayi_id = ?, guncelleme_tarihi = NOW()
     WHERE id = ?`,
-    [tur || null, ad_soyad || null, sirket_adi || null, yetkili_kisi || null, eposta || null, tc_kimlik_no || null, vergi_no || null, vergi_dairesi || null, pasaport_no || null, sektor_id !== undefined ? (sektor_id || null) : null, etiketler ? JSON.stringify(etiketler) : null, durum || null, ust_musteri_id || null, id]
+    [tur || null, ad_soyad || null, sirket_adi || null, yetkili_kisi || null, eposta || null, tc_kimlik_no || null, vergi_no || null, vergi_dairesi || null, pasaport_no || null, sektor_id !== undefined ? (sektor_id || null) : null, etiketler ? JSON.stringify(etiketler) : null, durum || null, ust_musteri_id || null, bayi_id || null, id]
   );
 
   if (Array.isArray(telefonlar)) {

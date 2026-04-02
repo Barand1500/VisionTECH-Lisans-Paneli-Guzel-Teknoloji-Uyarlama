@@ -48,6 +48,7 @@ export default function BayiDetayPage() {
   /* Modal state'leri */
   const [kisiModal, setKisiModal] = useState(null);
   const [kisiSilOnay, setKisiSilOnay] = useState(null);
+  const [dosyaSilOnay, setDosyaSilOnay] = useState(null);
   const [notModal, setNotModal] = useState(false);
   const [yeniNot, setYeniNot] = useState("");
   const [dosyaYukleniyor, setDosyaYukleniyor] = useState(false);
@@ -172,11 +173,13 @@ export default function BayiDetayPage() {
     }
   };
 
-  /* ---- Dosya Sil ---- */
-  const dosyaSil = async (dosyaId) => {
+  /* ---- Dosya Sil (Onay sonrasi) ---- */
+  const dosyaSilOnayla = async () => {
+    if (!dosyaSilOnay) return;
     try {
-      await apiDelete(`/bayiler/${id}/dosyalar/${dosyaId}`);
-      setDosyalar((prev) => prev.filter((d) => d.id !== dosyaId));
+      await apiDelete(`/bayiler/${id}/dosyalar/${dosyaSilOnay.id}`);
+      setDosyalar((prev) => prev.filter((d) => d.id !== dosyaSilOnay.id));
+      setDosyaSilOnay(null);
     } catch (e) {
       console.error("Dosya silinemedi:", e);
     }
@@ -633,7 +636,7 @@ export default function BayiDetayPage() {
                               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                             </svg>
                           </a>
-                          <button onClick={() => dosyaSil(dosya.id)} className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors cursor-pointer">
+                          <button onClick={() => setDosyaSilOnay(dosya)} className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors cursor-pointer">
                             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
@@ -718,6 +721,29 @@ export default function BayiDetayPage() {
               <div className="flex justify-center gap-3">
                 <button onClick={() => setKisiSilOnay(null)} className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer">İptal</button>
                 <button onClick={kisiSil} className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold cursor-pointer">Sil</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---- Dosya Sil Onay ---- */}
+      {dosyaSilOnay && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setDosyaSilOnay(null)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center">
+              <div className="w-14 h-14 mx-auto rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Dosyayı Sil</h3>
+              <p className="text-sm text-gray-500 dark:text-slate-400 mb-6">
+                <span className="font-semibold text-gray-900 dark:text-white">{dosyaSilOnay.orijinal_ad}</span> dosyasını silmek istediğinize emin misiniz?
+              </p>
+              <div className="flex justify-center gap-3">
+                <button onClick={() => setDosyaSilOnay(null)} className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer">İptal</button>
+                <button onClick={dosyaSilOnayla} className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold cursor-pointer">Sil</button>
               </div>
             </div>
           </div>

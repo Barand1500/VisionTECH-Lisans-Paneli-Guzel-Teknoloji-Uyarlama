@@ -7,6 +7,7 @@
 /* ============================================= */
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import KopyalaButonu from "../bilesenler/KopyalaButonu";
 import { apiGet } from "../yardimcilar/api";
 
@@ -83,7 +84,16 @@ const SEKMELER = [
 /* ============================================= */
 
 export default function RaporlarPage() {
-  const [aktifSekme, setAktifSekme] = useState("satislar");
+  const [searchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get("tab");
+  const [aktifSekme, setAktifSekme] = useState(tabFromUrl || "satislar");
+
+  // URL'den tab parametresi değişirse sekmeyi güncelle
+  useEffect(() => {
+    if (tabFromUrl && SEKMELER.some(s => s.id === tabFromUrl)) {
+      setAktifSekme(tabFromUrl);
+    }
+  }, [tabFromUrl]);
 
   return (
     <div>

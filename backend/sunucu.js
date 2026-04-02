@@ -26,6 +26,7 @@ uygulama.use("/api/musteriler", require("./rotalar/musteri-rotalari"));
 uygulama.use("/api/bayiler", require("./rotalar/bayi-rotalari"));
 uygulama.use("/api/urunler", require("./rotalar/urun-rotalari"));
 uygulama.use("/api/lisanslar", require("./rotalar/lisans-rotalari"));
+uygulama.use("/api/lisans-tipleri", require("./rotalar/lisans-tipi-rotalari"));
 uygulama.use("/api/notlar", require("./rotalar/not-rotalari"));
 uygulama.use("/api/aktivite-loglar", require("./rotalar/aktivite-log-rotalari"));
 uygulama.use("/api/dashboard", require("./rotalar/dashboard-rotalari"));

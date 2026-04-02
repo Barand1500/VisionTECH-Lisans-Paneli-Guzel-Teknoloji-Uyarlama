@@ -219,6 +219,14 @@ export default function MusterilerPage() {
   const [aktifGorunum, setAktifGorunum] = useState("tablo");
   const [odakliId, setOdakliId] = useState(null);
 
+  /* Bayi listesi (Düzenle modalında kullanılır) */
+  const [bayiListesi, setBayiListesi] = useState([]);
+  useEffect(() => {
+    apiGet("/bayiler").then((yanit) => {
+      if (yanit?.veri) setBayiListesi(yanit.veri);
+    }).catch(() => {});
+  }, []);
+
   /* Etiket dropdown ref'i */
   const etiketDropdownRef = useRef(null);
 
@@ -442,29 +450,32 @@ export default function MusterilerPage() {
       vergiNo: m.vergiNo || "",
       vergiDairesi: m.vergiDairesi || "",
       pasaportNo: m.pasaportNo || "",
-      ustMusteri: m.ustMusteri || "",
-      ustMusteriArama: "",
+      bayi: m.bayiId ? String(m.bayiId) : "",
+      bayiAdi: (() => { const b = bayiListesi.find(x => x.id === m.bayiId); return b ? (b.ad || b.sirket_adi || `Bayi #${b.id}`) : ""; })(),
+      bayiArama: "",
       telefonlar: (m.telefonlar && m.telefonlar.length > 0) ? [...m.telefonlar] : [""],
       adresler: (m.adresler && m.adresler.length > 0) ? [...m.adresler] : [""],
       durum: m.durum === "Aktif" || m.durum === true,
       sektorId: m.sektorId || "",
     });
     const [hatalar, setHatalar] = useState({});
-    const [ustAcik, setUstAcik] = useState(false);
-    const ustRef = useRef(null);
+    const [bayiAcik, setBayiAcik] = useState(false);
+    const bayiRef = useRef(null);
 
     useEffect(() => {
       const disari = (e) => {
-        if (ustRef.current && !ustRef.current.contains(e.target)) setUstAcik(false);
+        if (bayiRef.current && !bayiRef.current.contains(e.target)) setBayiAcik(false);
       };
       document.addEventListener("mousedown", disari);
       return () => document.removeEventListener("mousedown", disari);
     }, []);
 
-    const tumMusteriler = musteriler.filter((x) => x.id !== m.id).map((x) => ({ id: x.id, ad: x.adSoyad || x.sirketAdi || `Müşteri #${x.id}` }));
+    const tumBayiler = bayiListesi
+      .filter(b => !b.silinme_tarihi)
+      .map((b) => ({ id: b.id, ad: b.ad || b.sirket_adi || `Bayi #${b.id}` }));
 
-    const filtreliUstler = tumMusteriler.filter((x) =>
-      x.ad.toLowerCase().includes(form.ustMusteriArama.toLowerCase())
+    const filtreliBayiler = tumBayiler.filter((b) =>
+      b.ad.toLowerCase().includes(form.bayiArama.toLowerCase())
     );
 
     const guncelle = (alan, deger) => {
@@ -507,7 +518,7 @@ export default function MusterilerPage() {
         tur: aktifSekme,
         eposta: form.eposta,
         sektorId: m.sektorId || null,
-        ustMusteri: form.ustMusteri,
+        bayiId: form.bayi ? Number(form.bayi) : null,
         telefonlar: form.telefonlar.filter((t) => t.trim()),
         adresler: form.adresler.filter((a) => a.trim()),
         durum: form.durum ? "Aktif" : "Pasif",
@@ -541,14 +552,14 @@ export default function MusterilerPage() {
           </div>
 
           <div className="p-6 space-y-5">
-            {/* ---- Üst Müşteri ---- */}
+            {/* ---- Bayi ---- */}
             <div className="rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 p-4">
-              <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">Üst Müşteri</p>
-              <div className="relative" ref={ustRef}>
-                {form.ustMusteri ? (
+              <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">Bayi</p>
+              <div className="relative" ref={bayiRef}>
+                {form.bayi ? (
                   <div className={INPUT_STIL + " flex items-center justify-between"}>
-                    <span className="text-sm">{form.ustMusteri}</span>
-                    <button type="button" onClick={() => { guncelle("ustMusteri", ""); guncelle("ustMusteriArama", ""); }}
+                    <span className="text-sm">{form.bayiAdi}</span>
+                    <button type="button" onClick={() => { guncelle("bayi", ""); guncelle("bayiAdi", ""); guncelle("bayiArama", ""); }}
                       className="text-gray-400 hover:text-red-500 cursor-pointer">
                       <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -557,25 +568,19 @@ export default function MusterilerPage() {
                   </div>
                 ) : (
                   <>
-                    <input type="text" placeholder="Müşteri adı yazarak arayın..." value={form.ustMusteriArama}
-                      onChange={(e) => { guncelle("ustMusteriArama", e.target.value); setUstAcik(true); }}
-                      onFocus={() => setUstAcik(true)} className={INPUT_STIL} />
-                    {ustAcik && form.ustMusteriArama.length > 0 && (
+                    <input type="text" placeholder="Bayi adı yazarak arayın..." value={form.bayiArama}
+                      onChange={(e) => { guncelle("bayiArama", e.target.value); setBayiAcik(true); }}
+                      onFocus={() => setBayiAcik(true)} className={INPUT_STIL} />
+                    {bayiAcik && form.bayiArama.length > 0 && (
                       <div className="absolute z-20 left-0 right-0 mt-1 rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 shadow-xl max-h-40 overflow-y-auto">
-                        {filtreliUstler.length > 0 ? filtreliUstler.map((x) => (
-                          <button key={x.id} type="button" onClick={() => { guncelle("ustMusteri", x.ad); guncelle("ustMusteriArama", ""); setUstAcik(false); }}
+                        {filtreliBayiler.length > 0 ? filtreliBayiler.map((b) => (
+                          <button key={b.id} type="button" onClick={() => { guncelle("bayi", String(b.id)); guncelle("bayiAdi", b.ad); guncelle("bayiArama", ""); setBayiAcik(false); }}
                             className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 cursor-pointer">
-                            {x.ad}
+                            {b.ad}
                           </button>
                         )) : (
                           <div className="p-3">
-                            <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">Bu kullanıcı kayıtlı değil. Yine de eklemek ister misiniz?</p>
-                            <div className="flex gap-2">
-                              <button type="button" onClick={() => { guncelle("ustMusteri", form.ustMusteriArama); guncelle("ustMusteriArama", ""); setUstAcik(false); }}
-                                className="px-3 py-1 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 cursor-pointer">Evet</button>
-                              <button type="button" onClick={() => { guncelle("ustMusteriArama", ""); setUstAcik(false); }}
-                                className="px-3 py-1 rounded-lg border border-gray-300 dark:border-white/10 text-gray-600 dark:text-slate-400 text-xs cursor-pointer">Hayır</button>
-                            </div>
+                            <p className="text-xs text-gray-400 dark:text-slate-500">Eşleşen bayi bulunamadı.</p>
                           </div>
                         )}
                       </div>

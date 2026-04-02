@@ -17,7 +17,7 @@ const INPUT_STIL =
 const LABEL_STIL = "block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1";
 
 /* ---- Sabit Değerler ---- */
-const LISANS_TIPLERI = [
+const LISANS_TIPLERI_VARSAYILAN = [
   { id: "demo", ad: "Demo", renk: "gray", gun: 30 },
   { id: "standart", ad: "Standart", renk: "blue", gun: 365 },
   { id: "profesyonel", ad: "Profesyonel", renk: "violet", gun: 365 },
@@ -106,6 +106,7 @@ export default function MusteriPaketleriPage() {
   const [dbUrunler, setDbUrunler] = useState([]);
   const [dbPaketler, setDbPaketler] = useState([]);
   const [dbBayiler, setDbBayiler] = useState([]);
+  const [lisansTipleri, setLisansTipleri] = useState(LISANS_TIPLERI_VARSAYILAN);
 
   /* Verileri yükle */
   useEffect(() => {
@@ -167,6 +168,13 @@ export default function MusteriPaketleriPage() {
     /* Bayileri yükle */
     apiGet("/bayiler").then((r) => {
       if (r.basarili) setDbBayiler(r.veri.filter((b) => b.durum === "aktif"));
+    }).catch(() => {});
+
+    /* Lisans tiplerini yükle */
+    apiGet("/lisans-tipleri/aktif").then((r) => {
+      if (r.basarili && r.veri.length > 0) {
+        setLisansTipleri(r.veri.map((t) => ({ id: t.kod, ad: t.ad, renk: t.renk, gun: t.gun })));
+      }
     }).catch(() => {});
   }, [id]);
 
@@ -617,6 +625,7 @@ export default function MusteriPaketleriPage() {
           urunler={dbUrunler}
           paketler={dbPaketler}
           bayiler={dbBayiler}
+          lisansTipleri={lisansTipleri}
         />
       )}
     </div>
@@ -628,7 +637,7 @@ export default function MusteriPaketleriPage() {
 /*  Adım adım wizard tarzı, tüm özellikler       */
 /* ============================================= */
 
-function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayiler }) {
+function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayiler, lisansTipleri }) {
   const modalRef = useRef(null);
   const sallanma = () => { if (modalRef.current) { modalRef.current.classList.remove("sallan"); void modalRef.current.offsetWidth; modalRef.current.classList.add("sallan"); } };
 
@@ -685,7 +694,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
       }
       
       if (alan === "lisansTipi") {
-        const tip = LISANS_TIPLERI.find((t) => t.id === deger);
+        const tip = lisansTipleri.find((t) => t.id === deger);
         if (tip) {
           yeni.kullanimGunu = tip.gun;
           yeni.bitisTarihi = tarihEkle(o.baslangicTarihi, tip.gun);
@@ -904,7 +913,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
               <div>
                 <label className={LABEL_STIL}>Lisans Tipi</label>
                 <div className="grid grid-cols-4 gap-2 mt-2">
-                  {LISANS_TIPLERI.map((t) => (
+                  {lisansTipleri.map((t) => (
                     <button
                       key={t.id}
                       onClick={() => guncelle("lisansTipi", t.id)}
@@ -1080,7 +1089,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
                     )}
                     <div>
                       <p className="text-xs text-gray-400 dark:text-slate-500">Lisans Tipi</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{LISANS_TIPLERI.find((t) => t.id === form.lisansTipi)?.ad}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{lisansTipleri.find((t) => t.id === form.lisansTipi)?.ad}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-400 dark:text-slate-500">Süre</p>

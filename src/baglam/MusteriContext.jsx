@@ -48,6 +48,7 @@ export function MusteriProvider({ children }) {
           etiketler: m.etiketler || [],
           durum: m.durum,
           ustMusteriId: m.ust_musteri_id,
+          bayiId: m.bayi_id,
           kayitTarihi: m.kayit_tarihi,
           telefonlar: m.telefonlar || [],
           adresler: m.adresler || [],
@@ -96,6 +97,7 @@ export function MusteriProvider({ children }) {
       etiketler: musteri.etiketler?.length > 0 ? musteri.etiketler : null,
       durum: musteri.durum || "aktif",
       ust_musteri_id: musteri.ustMusteriId || null,
+      bayi_id: musteri.bayiId || null,
       telefonlar: musteri.telefonlar?.filter(t => t) || [],
       adresler: musteri.adresler?.filter(a => a) || (musteri.adres ? [musteri.adres] : []),
     };
@@ -139,6 +141,7 @@ export function MusteriProvider({ children }) {
     if (guncelVeri.vergiDairesi !== undefined) govde.vergi_dairesi = guncelVeri.vergiDairesi;
     if (guncelVeri.pasaportNo !== undefined) govde.pasaport_no = guncelVeri.pasaportNo;
     if (guncelVeri.sektorId !== undefined) govde.sektor_id = guncelVeri.sektorId;
+    if (guncelVeri.bayiId !== undefined) govde.bayi_id = guncelVeri.bayiId;
     if (guncelVeri.durum !== undefined) govde.durum = guncelVeri.durum;
     if (guncelVeri.telefonlar) govde.telefonlar = guncelVeri.telefonlar.filter(t => t);
     if (guncelVeri.adresler) govde.adresler = guncelVeri.adresler.filter(a => a);

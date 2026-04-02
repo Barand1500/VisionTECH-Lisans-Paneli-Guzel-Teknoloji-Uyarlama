@@ -133,6 +133,21 @@ export default function BayilerPage() {
   /* ---- Toplu İşlem State'leri ---- */
   const [seciliIdler, setSeciliIdler] = useState(new Set());
   const [topluSilOnay, setTopluSilOnay] = useState(false);
+  const [silOnay, setSilOnay] = useState(null);
+
+  /* ---- Sayfalama ---- */
+  const [sayfaBoyutu, setSayfaBoyutu] = useState(10);
+  const [aktifSayfa, setAktifSayfa] = useState(1);
+
+  /* ---- Not Modalı ---- */
+  const [notModal, setNotModal] = useState(null);
+  const [yeniNot, setYeniNot] = useState("");
+  const [yeniNotOnemli, setYeniNotOnemli] = useState(false);
+  const [bayiNotlar, setBayiNotlar] = useState([]);
+
+  /* ---- Detay Modal Dosyalar ---- */
+  const [detayDosyalar, setDetayDosyalar] = useState([]);
+  const [detayDosyalarYukleniyor, setDetayDosyalarYukleniyor] = useState(false);
 
   /* ---- Backend'den bayileri çek ---- */
   const bayileriYukle = async () => {
@@ -173,6 +188,8 @@ export default function BayilerPage() {
         setDetayModal(null);
         setDuzenleModal(null);
         setTopluSilOnay(false);
+        setSilOnay(null);
+        setNotModal(null);
         setEtiketDropdownAcik(false);
       }
     };
@@ -192,6 +209,30 @@ export default function BayilerPage() {
     }
     return () => document.removeEventListener("mousedown", disariTiklama);
   }, [etiketDropdownAcik]);
+
+  /* Detay modalı açıldığında dosyaları yükle */
+  useEffect(() => {
+    if (detayModal) {
+      setDetayDosyalarYukleniyor(true);
+      apiGet(`/bayiler/${detayModal.id}/dosyalar`)
+        .then((res) => setDetayDosyalar(res.veri || []))
+        .catch(() => setDetayDosyalar([]))
+        .finally(() => setDetayDosyalarYukleniyor(false));
+    } else {
+      setDetayDosyalar([]);
+    }
+  }, [detayModal]);
+
+  /* Not modalı açıldığında notları yükle */
+  useEffect(() => {
+    if (notModal) {
+      apiGet(`/bayiler/${notModal.id}/notlar`)
+        .then((res) => setBayiNotlar(res.veri || []))
+        .catch(() => setBayiNotlar([]));
+    } else {
+      setBayiNotlar([]);
+    }
+  }, [notModal]);
 
   /* ---- Tüm benzersiz etiketler ---- */
   const tumEtiketler = useMemo(() => {
@@ -215,6 +256,7 @@ export default function BayilerPage() {
       }
       return yeni;
     });
+    setAktifSayfa(1);
   };
 
   /* Sıralama */
@@ -285,6 +327,13 @@ export default function BayilerPage() {
     return 0;
   });
 
+  /* ---- Sayfalama Hesaplaması ---- */
+  const toplamSayfa = Math.max(1, Math.ceil(siraliBayiler.length / sayfaBoyutu));
+  const sayfalananlar = siraliBayiler.slice(
+    (aktifSayfa - 1) * sayfaBoyutu,
+    aktifSayfa * sayfaBoyutu
+  );
+
   /* ---- Toplu İşlem Yardımcıları ---- */
   const tekSecimToggle = (id) => {
     const yeni = new Set(seciliIdler);
@@ -294,14 +343,14 @@ export default function BayilerPage() {
   };
 
   const tumunuSec = () => {
-    if (seciliIdler.size === siraliBayiler.length && siraliBayiler.every((b) => seciliIdler.has(b.id))) {
+    if (seciliIdler.size === sayfalananlar.length && sayfalananlar.every((b) => seciliIdler.has(b.id))) {
       setSeciliIdler(new Set());
     } else {
-      setSeciliIdler(new Set(siraliBayiler.map((b) => b.id)));
+      setSeciliIdler(new Set(sayfalananlar.map((b) => b.id)));
     }
   };
 
-  const hepsiSecili = siraliBayiler.length > 0 && siraliBayiler.every((b) => seciliIdler.has(b.id));
+  const hepsiSecili = sayfalananlar.length > 0 && sayfalananlar.every((b) => seciliIdler.has(b.id));
 
   /* ---- Toplu Silme (Çöp Kutusuna Gönder) ---- */
   const topluSilIslem = async () => {
@@ -330,6 +379,65 @@ export default function BayilerPage() {
     }
     setSeciliIdler(new Set());
     bayileriYukle();
+  };
+
+  /* ---- Tekil Silme (Çöp Kutusuna Gönder) ---- */
+  const bayiSilIslem = async (bayi) => {
+    try {
+      await apiDelete(`/bayiler/${bayi.id}`);
+      seciliIdler.delete(bayi.id);
+      setSeciliIdler(new Set(seciliIdler));
+      setSilOnay(null);
+      bayileriYukle();
+    } catch (e) {
+      console.error("Bayi silinemedi:", bayi.id, e);
+    }
+  };
+
+  /* ---- CSV Dışa Aktar ---- */
+  const topluDisaAktar = () => {
+    const secililer = bayiler.filter((b) => seciliIdler.has(b.id));
+    const basliklar = ["Ad", "Türü", "Yetkili", "E-posta", "Telefon", "Durum"];
+    const satirlar = secililer.map((b) => [
+      b.ad,
+      bayiTuruBelirle(b),
+      b.yetkili || "",
+      b.eposta || "",
+      b.telefon || "",
+      b.durum || "",
+    ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","));
+    const csv = "\uFEFF" + [basliklar.join(","), ...satirlar].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `bayiler_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  /* ---- Not Ekleme (Liste Üzerinden) ---- */
+  const bayiNotEkle = async () => {
+    if (!yeniNot.trim() || !notModal) return;
+    try {
+      await apiPost(`/bayiler/${notModal.id}/notlar`, { metin: yeniNot.trim(), onemli: yeniNotOnemli });
+      const res = await apiGet(`/bayiler/${notModal.id}/notlar`);
+      setBayiNotlar(res.veri || []);
+      setYeniNot("");
+      setYeniNotOnemli(false);
+    } catch (e) {
+      console.error("Not eklenemedi:", e);
+    }
+  };
+
+  /* ---- Not Silme ---- */
+  const bayiNotSil = async (notId) => {
+    try {
+      await apiDelete(`/bayiler/notlar/${notId}`);
+      setBayiNotlar((prev) => prev.filter((n) => n.id !== notId));
+    } catch (e) {
+      console.error("Not silinemedi:", e);
+    }
   };
 
   /* ============================================= */
@@ -709,6 +817,35 @@ export default function BayilerPage() {
         </div>
       )}
 
+      {/* ---- Tekil Silme Onay Modalı ---- */}
+      {silOnay && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setSilOnay(null)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 text-center">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-red-100 dark:bg-red-500/20 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Bayi Silinecek</h3>
+              <p className="text-sm text-gray-500 dark:text-slate-400">
+                <span className="font-semibold text-gray-700 dark:text-white">"{silOnay.ad}"</span> adlı bayi çöp kutusuna taşınacaktır.
+              </p>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-white/10 flex justify-end gap-3">
+              <button onClick={() => setSilOnay(null)}
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer">İptal</button>
+              <button onClick={() => bayiSilIslem(silOnay)}
+                className="px-5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold cursor-pointer inline-flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                Sil
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Başlık */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -728,7 +865,7 @@ export default function BayilerPage() {
         <div className="relative flex-1">
           <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-          <input type="text" placeholder="Bayi adı veya sektör ile arayın..." value={arama} onChange={(e) => setArama(e.target.value)}
+          <input type="text" placeholder="Bayi adı veya sektör ile arayın..." value={arama} onChange={(e) => { setArama(e.target.value); setAktifSayfa(1); }}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
         </div>
         
@@ -836,6 +973,13 @@ export default function BayilerPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
                 Pasif Yap
               </button>
+              {/* CSV Dışa Aktar */}
+              <button onClick={topluDisaAktar}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold cursor-pointer transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                CSV İndir
+              </button>
               {/* Toplu Sil */}
               <button onClick={() => setTopluSilOnay(true)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold cursor-pointer transition-colors">
@@ -877,7 +1021,7 @@ export default function BayilerPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                {siraliBayiler.length > 0 ? siraliBayiler.map((bayi) => (
+                {sayfalananlar.length > 0 ? sayfalananlar.map((bayi) => (
                   <tr key={bayi.id} className={`hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors ${seciliIdler.has(bayi.id) ? "bg-emerald-50/50 dark:bg-emerald-500/5" : ""}`}>
                     <td className="px-4 py-4">
                       <input type="checkbox" checked={seciliIdler.has(bayi.id)} onChange={() => tekSecimToggle(bayi.id)}
@@ -936,18 +1080,54 @@ export default function BayilerPage() {
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                         </button>
+                        <button onClick={() => { setNotModal(bayi); setYeniNot(""); setYeniNotOnemli(false); }} title="Notlar"
+                          className="w-8 h-8 rounded-lg bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center cursor-pointer transition-colors">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
+                        </button>
+                        <button onClick={() => setSilOnay(bayi)} title="Sil"
+                          className="w-8 h-8 rounded-lg bg-red-500 hover:bg-red-600 text-white flex items-center justify-center cursor-pointer transition-colors">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
                       </div>
                     </td>
                   </tr>
                 )) : (
                   <tr>
                     <td colSpan={9} className="px-6 py-12 text-center text-gray-400 dark:text-slate-500">
-                      "{arama}" ile eşleşen bayi bulunamadı.
+                      {arama || kartFiltre ? `"${arama}" ile eşleşen bayi bulunamadı.` : "Henüz bayi kaydı bulunmamaktadır."}
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Sayfalama */}
+          <div className="px-6 py-4 flex items-center justify-between border-t border-gray-200 dark:border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-slate-400">
+                <select value={sayfaBoyutu} onChange={(e) => { setSayfaBoyutu(Number(e.target.value)); setAktifSayfa(1); }}
+                  className="px-2 py-1.5 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white text-sm cursor-pointer">
+                  {[5, 10, 25, 50].map((n) => <option key={n} value={n}>{n}</option>)}
+                </select>
+                <span>kayıt göster</span>
+              </div>
+              <span className="text-sm text-gray-500 dark:text-slate-400">
+                — Toplam {siraliBayiler.length} kayıttan {Math.min((aktifSayfa - 1) * sayfaBoyutu + 1, siraliBayiler.length)}-{Math.min(aktifSayfa * sayfaBoyutu, siraliBayiler.length)} arası
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setAktifSayfa((o) => Math.max(1, o - 1))} disabled={aktifSayfa === 1}
+                className="px-3 py-1.5 rounded-lg text-sm text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-40 cursor-pointer">Önceki</button>
+              {Array.from({ length: toplamSayfa }, (_, i) => i + 1).map((s) => (
+                <button key={s} onClick={() => setAktifSayfa(s)}
+                  className={`w-8 h-8 rounded-lg text-sm font-medium cursor-pointer ${aktifSayfa === s ? "bg-emerald-600 text-white" : "text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-white/5"}`}>{s}</button>
+              ))}
+              <button onClick={() => setAktifSayfa((o) => Math.min(toplamSayfa, o + 1))} disabled={aktifSayfa === toplamSayfa}
+                className="px-3 py-1.5 rounded-lg text-sm text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-40 cursor-pointer">Sonraki</button>
+            </div>
           </div>
         </div>
       )}
@@ -1095,6 +1275,30 @@ export default function BayilerPage() {
                 </div>
               )}
 
+              {/* Dosyalar */}
+              <div className="rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 p-4">
+                <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">Dosyalar</p>
+                {detayDosyalarYukleniyor ? (
+                  <p className="text-sm text-gray-400 dark:text-slate-500 text-center py-3">Yükleniyor...</p>
+                ) : detayDosyalar.length === 0 ? (
+                  <p className="text-sm text-gray-400 dark:text-slate-500 text-center py-3">Dosya bulunmamaktadır.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {detayDosyalar.map((dosya) => (
+                      <div key={dosya.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-white dark:hover:bg-white/5">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                          <span className="text-sm text-gray-700 dark:text-slate-300 truncate">{dosya.orijinal_ad}</span>
+                        </div>
+                        <a href={`${import.meta.env.VITE_API_URL || "http://localhost:3001"}/uploads/${dosya.dosya_adi}`} target="_blank" rel="noopener noreferrer"
+                          className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline shrink-0 ml-2">İndir</a>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Düzenle Butonu */}
               <div className="pt-2">
                 <button onClick={() => { setDetayModal(null); setDuzenleModal(detayModal); }}
@@ -1102,6 +1306,68 @@ export default function BayilerPage() {
                   Düzenle
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---- Not Modalı ---- */}
+      {notModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setNotModal(null)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-lg mx-4 max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            {/* Başlık */}
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Notlar</h3>
+                <p className="text-sm text-gray-500 dark:text-slate-400">{notModal.ad}</p>
+              </div>
+              <button onClick={() => setNotModal(null)} className="w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center cursor-pointer text-gray-500 dark:text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            {/* Yeni Not Ekle */}
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10">
+              <textarea value={yeniNot} onChange={(e) => setYeniNot(e.target.value)} rows={2}
+                placeholder="Yeni not yazın..."
+                className="w-full px-3 py-2 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm resize-none" />
+              <div className="flex items-center justify-between mt-2">
+                <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-400 cursor-pointer select-none">
+                  <input type="checkbox" checked={yeniNotOnemli} onChange={(e) => setYeniNotOnemli(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded border-gray-300 dark:border-white/20 text-amber-500 focus:ring-amber-500 cursor-pointer" />
+                  Önemli olarak işaretle
+                </label>
+                <button onClick={bayiNotEkle}
+                  disabled={!yeniNot.trim()}
+                  className="px-4 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white text-xs font-semibold cursor-pointer transition-colors">
+                  Ekle
+                </button>
+              </div>
+            </div>
+            {/* Not Listesi */}
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+              {bayiNotlar.length === 0 ? (
+                <p className="text-center text-gray-400 dark:text-slate-500 py-6 text-sm">Henüz not eklenmemiş.</p>
+              ) : (
+                bayiNotlar.sort((a, b) => new Date(b.olusturma_tarihi || b.tarih) - new Date(a.olusturma_tarihi || a.tarih)).map((n) => (
+                  <div key={n.id} className={`p-3 rounded-lg border ${
+                    n.onemli
+                      ? "border-amber-300 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/5"
+                      : "border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.02]"
+                  }`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm text-gray-800 dark:text-slate-200 flex-1">
+                        {n.onemli ? <span className="text-amber-500 mr-1">★</span> : null}
+                        {n.metin}
+                      </p>
+                      <button onClick={() => bayiNotSil(n.id)} title="Notu Sil" className="shrink-0 w-6 h-6 rounded hover:bg-red-100 dark:hover:bg-red-500/10 flex items-center justify-center text-gray-400 hover:text-red-500 cursor-pointer transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{new Date(n.olusturma_tarihi || n.tarih).toLocaleString("tr-TR")}</p>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

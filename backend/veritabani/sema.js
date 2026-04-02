@@ -311,8 +311,25 @@ async function tablolariOlustur() {
   `);
 
   /* ======================================== */
-  /*  9.6. URUN TIPLERI                       */
+  /*  10. URUN GRUPLARI                       */
+  /*  Urunlerin kategori/grup bilgisi         */
+  /*  (urun_tipleri öncesinde olmalı - FK)    */
+  /* ======================================== */
+  await havuz.query(`
+    CREATE TABLE IF NOT EXISTS urun_gruplari (
+      id        INT          AUTO_INCREMENT PRIMARY KEY,
+      ad        VARCHAR(100) NOT NULL UNIQUE,
+      aciklama  VARCHAR(255) NULL,
+      aktif     TINYINT(1)   NOT NULL DEFAULT 1,
+
+      INDEX idx_urun_gruplari_aktif (aktif)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  /* ======================================== */
+  /*  10.1. URUN TIPLERI                      */
   /*  Grup bazlı ürün tip listesi             */
+  /*  FK: urun_gruplari.id                    */
   /* ======================================== */
   await havuz.query(`
     CREATE TABLE IF NOT EXISTS urun_tipleri (
@@ -331,8 +348,9 @@ async function tablolariOlustur() {
   `);
 
   /* ======================================== */
-  /*  9.7. UYGULAMA TIPLERI                   */
+  /*  10.2. UYGULAMA TIPLERI                  */
   /*  Ürün tipi bazlı uygulama tip listesi    */
+  /*  FK: urun_tipleri.id                     */
   /* ======================================== */
   await havuz.query(`
     CREATE TABLE IF NOT EXISTS uygulama_tipleri (
@@ -347,21 +365,6 @@ async function tablolariOlustur() {
 
       INDEX idx_uygulama_tipleri_aktif (aktif),
       INDEX idx_uygulama_tipleri_urun_tipi (urun_tipi_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  `);
-
-  /* ======================================== */
-  /*  10. URUN GRUPLARI                       */
-  /*  Urunlerin kategori/grup bilgisi         */
-  /* ======================================== */
-  await havuz.query(`
-    CREATE TABLE IF NOT EXISTS urun_gruplari (
-      id        INT          AUTO_INCREMENT PRIMARY KEY,
-      ad        VARCHAR(100) NOT NULL UNIQUE,
-      aciklama  VARCHAR(255) NULL,
-      aktif     TINYINT(1)   NOT NULL DEFAULT 1,
-
-      INDEX idx_urun_gruplari_aktif (aktif)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
 
@@ -418,6 +421,27 @@ async function tablolariOlustur() {
   `);
 
   /* ======================================== */
+  /*  12.5. LISANS TIPLERI                     */
+  /*  Dinamik lisans tipi tanimlari            */
+  /*  (Yonetim panelinden CRUD)                */
+  /* ======================================== */
+  await havuz.query(`
+    CREATE TABLE IF NOT EXISTS lisans_tipleri (
+      id               INT            AUTO_INCREMENT PRIMARY KEY,
+      ad               VARCHAR(100)   NOT NULL,
+      kod              VARCHAR(50)    NOT NULL UNIQUE,
+      renk             VARCHAR(50)    NOT NULL DEFAULT 'blue',
+      gun              INT            NOT NULL DEFAULT 365,
+      sira             INT            NOT NULL DEFAULT 0,
+      aktif            TINYINT(1)     NOT NULL DEFAULT 1,
+      olusturma_tarihi DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+      INDEX idx_lisans_tipleri_aktif (aktif),
+      INDEX idx_lisans_tipleri_sira  (sira)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  /* ======================================== */
   /*  13. LISANSLAR (Musteri Lisanslari)      */
   /*  Musterilere tanimli lisans kayitlari    */
   /*  FK: musteriler, urunler, paketler,      */
@@ -431,7 +455,7 @@ async function tablolariOlustur() {
       paket_id         INT            NULL,
       bayi_id          INT            NULL,
       lisans_anahtari  VARCHAR(100)   NULL UNIQUE,
-      lisans_tipi      ENUM('demo','standart','profesyonel','enterprise') NOT NULL DEFAULT 'standart',
+      lisans_tipi      VARCHAR(100)   NOT NULL DEFAULT 'standart',
       baslangic_tarihi DATE           NOT NULL,
       bitis_tarihi     DATE           NOT NULL,
       kullanim_gunu    INT            NOT NULL DEFAULT 365,
@@ -638,6 +662,43 @@ async function tablolariOlustur() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
 
+  /* ======================================== */
+  /*  OTOMATIK MIGRASYON                       */
+  /*  Mevcut tablolara eksik sutunlari ekler   */
+  /*  (CREATE TABLE IF NOT EXISTS mevcut       */
+  /*   tablolara ALTER yapmaz)                 */
+  /* ======================================== */
+
+  /* -- urunler: eksik sutunlar -- */
+  const urunEkSutunlar = [
+    { ad: 'aciklama',       tip: 'TEXT NULL' },
+    { ad: 'min_kullanici',  tip: 'INT NOT NULL DEFAULT 1' },
+    { ad: 'max_kullanici',  tip: 'INT NULL' },
+    { ad: 'demo_gun',       tip: 'INT NOT NULL DEFAULT 30' },
+    { ad: 'temel_fiyat',    tip: 'DECIMAL(10,2) NOT NULL DEFAULT 0.00' },
+    { ad: 'versiyon',       tip: 'VARCHAR(50) NULL' },
+    { ad: 'logo_url',       tip: 'VARCHAR(500) NULL' },
+    { ad: 'ozellikler',     tip: 'JSON NULL' },
+  ];
+  for (const sutun of urunEkSutunlar) {
+    try {
+      await havuz.query(`ALTER TABLE urunler ADD COLUMN ${sutun.ad} ${sutun.tip}`);
+      console.log(`[Migrasyon] urunler.${sutun.ad} sutunu eklendi.`);
+    } catch (err) {
+      if (err.errno !== 1060) throw err; /* 1060 = Duplicate column name - zaten var */
+    }
+  }
+
+  /* -- musteriler: bayi_id sutunu -- */
+  try {
+    await havuz.query(`ALTER TABLE musteriler ADD COLUMN bayi_id INT NULL`);
+    console.log('[Migrasyon] musteriler.bayi_id sutunu eklendi.');
+    try { await havuz.query(`ALTER TABLE musteriler ADD INDEX idx_musteriler_bayi_id (bayi_id)`); } catch(e) {}
+    try { await havuz.query(`ALTER TABLE musteriler ADD CONSTRAINT fk_musteriler_bayi FOREIGN KEY (bayi_id) REFERENCES bayiler(id) ON DELETE SET NULL ON UPDATE CASCADE`); } catch(e) {}
+  } catch (err) {
+    if (err.errno !== 1060) throw err;
+  }
+
   console.log("[Veritabani] Tum tablolar olusturuldu / kontrol edildi.");
 }
 
@@ -661,9 +722,13 @@ async function tablolariSifirla() {
     "lisanslar",
     "paketler",
     "urunler",
+    "uygulama_tipleri",
+    "urun_tipleri",
     "urun_gruplari",
+    "iletisim_kisileri",
     "bayi_dosyalar",
     "bayiler",
+    "lisans_tipleri",
     "musteri_dosyalar",
     "musteri_adresleri",
     "musteri_telefonlari",
@@ -731,21 +796,32 @@ async function ornekVerileriEkle() {
     console.log("[Veritabani] Varsayilan sektorler eklendi.");
   }
 
+  /* ---- Varsayilan Lisans Tipleri ---- */
+  const [ltSatir] = await havuz.query("SELECT COUNT(*) as sayi FROM lisans_tipleri");
+  if (ltSatir[0].sayi === 0) {
+    const varsayilanLisansTipleri = [
+      ["Demo", "demo", "gray", 30, 1, 1],
+      ["Standart", "standart", "blue", 365, 2, 1],
+      ["Profesyonel", "profesyonel", "violet", 365, 3, 1],
+      ["Enterprise", "enterprise", "emerald", 730, 4, 1],
+    ];
+    for (const lt of varsayilanLisansTipleri) {
+      await havuz.query("INSERT INTO lisans_tipleri (ad, kod, renk, gun, sira, aktif) VALUES (?, ?, ?, ?, ?, ?)", lt);
+    }
+    console.log("[Veritabani] Varsayilan lisans tipleri eklendi.");
+  }
+
   /* ---- Varsayilan Kullanicilar ---- */
   const [kSatir] = await havuz.query("SELECT COUNT(*) as sayi FROM kullanicilar");
   if (kSatir[0].sayi === 0) {
-    const sifreHash = await bcrypt.hash("admin123", 10);
+    const sifreHash = await bcrypt.hash("123456", 10);
     const kullaniciVerileri = [
       ["ercan", sifreHash, "Ercan Guzel", "ercan@guzelteknoloji.com", "admin", 1],
-      ["semihcan", sifreHash, "Semihcan Guzel", "semihcan@guzelteknoloji.com", "kullanici", 1],
-      ["baran", sifreHash, "Baran Uruncan", "baran@guzelteknoloji.com", "izleyici", 0],
-      ["suleyman", sifreHash, "Suleyman Guzel", "suleyman@guzelteknoloji.com", "admin", 1],
-      ["aykut", sifreHash, "Aykut", "aykut@guzelteknoloji.com", "kullanici", 1],
     ];
     for (const k of kullaniciVerileri) {
       await havuz.query("INSERT INTO kullanicilar (kullanici_adi, sifre_hash, ad_soyad, eposta, rol, aktif) VALUES (?, ?, ?, ?, ?, ?)", k);
     }
-    console.log("[Veritabani] Varsayilan kullanicilar eklendi. (Sifre: admin123)");
+    console.log("[Veritabani] Varsayilan kullanicilar eklendi. (Sifre: 123456)");
   }
 }
 

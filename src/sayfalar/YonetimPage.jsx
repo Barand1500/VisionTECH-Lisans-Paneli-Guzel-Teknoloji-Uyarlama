@@ -52,6 +52,10 @@ const SEKMELER = [
     ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>,
   },
   {
+    id: "lisansTipleri", etiket: "Lisans Tipleri",
+    ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" /></svg>,
+  },
+  {
     id: "copKutusu", etiket: "Çöp Kutusu",
     ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
   },
@@ -61,7 +65,34 @@ const SEKMELER = [
 /*  Sabitler (Dropdown Seçenekleri)                */
 /* ============================================= */
 
-const PAKET_TIPLERI = ["AKTIVASYON", "EK KULLANICI", "YENILEME", "UPGRADE", "DENEME", "BAKIM"];
+const VARSAYILAN_PAKET_TIPLERI = ["AKTIVASYON", "EK KULLANICI", "YENILEME", "UPGRADE", "DENEME", "BAKIM"];
+
+// localStorage'dan paket tiplerini oku
+const getPaketTipleri = () => {
+  try {
+    const stored = localStorage.getItem("customPaketTipleri");
+    const custom = stored ? JSON.parse(stored) : [];
+    return [...VARSAYILAN_PAKET_TIPLERI, ...custom];
+  } catch {
+    return VARSAYILAN_PAKET_TIPLERI;
+  }
+};
+
+// Yeni paket tipi ekle
+const addPaketTipi = (yeniTip) => {
+  try {
+    const stored = localStorage.getItem("customPaketTipleri");
+    const custom = stored ? JSON.parse(stored) : [];
+    if (!custom.includes(yeniTip) && !VARSAYILAN_PAKET_TIPLERI.includes(yeniTip)) {
+      custom.push(yeniTip);
+      localStorage.setItem("customPaketTipleri", JSON.stringify(custom));
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+};
 
 
 
@@ -105,6 +136,7 @@ export default function YonetimPage() {
       {aktifSekme === "kullanicilar" && <KullanicilarSekmesi />}
       {aktifSekme === "roller" && <RollerSekmesi />}
       {aktifSekme === "sektorler" && <SektorlerSekmesi />}
+      {aktifSekme === "lisansTipleri" && <LisansTipleriSekmesi />}
       {aktifSekme === "copKutusu" && <CopKutusuSekmesi />}
     </div>
   );
@@ -384,7 +416,7 @@ function UrunlerSekmesi() {
               {sayfaUrunler.length === 0 ? (
                 <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-400 dark:text-slate-500">Ürün bulunamadı.</td></tr>
               ) : sayfaUrunler.map((u) => (
-                <tr key={u.id} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                <tr key={u.id} className={`hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors ${!u.aktif ? "opacity-50" : ""}`}>
                   <td className="px-4 py-3.5">
                     <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400">{u.grubu}</span>
                   </td>
@@ -587,7 +619,7 @@ function PaketlerModal({ urun, kapat, paketler, setPaketler, tumUrunler, paketle
               {sayfaPaketler.length === 0 ? (
                 <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400 dark:text-slate-500">Bu ürüne ait paket bulunamadı.</td></tr>
               ) : sayfaPaketler.map((p) => (
-                <tr key={p.id} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                <tr key={p.id} className={`hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors ${!p.aktif ? "opacity-50" : ""}`}>
                   <td className="px-4 py-3 font-medium text-gray-900 dark:text-white text-sm">{p.urunAdi}</td>
                   <td className="px-4 py-3">
                     <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400">{p.tipi}</span>
@@ -674,12 +706,25 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
     kullaniciSayisi: duzenle ? modal.kullaniciSayisi : 0,
     aktif: duzenle ? modal.aktif : true,
   });
+  const [paketTipleri, setPaketTipleri] = useState(getPaketTipleri());
+  const [yeniTipModal, setYeniTipModal] = useState(false);
+  const [yeniTip, setYeniTip] = useState("");
   const ref = useRef(null);
   const sallanma = () => { if (ref.current) { ref.current.classList.remove("sallan"); void ref.current.offsetWidth; ref.current.classList.add("sallan"); } };
 
   const grupUrunleri = tumUrunler.filter((u) => u.grubu === form.urunGrubu);
 
   const guncelle = (alan, val) => setForm((o) => ({ ...o, [alan]: val }));
+
+  const yeniTipEkle = () => {
+    const temiz = yeniTip.trim().toUpperCase();
+    if (temiz && addPaketTipi(temiz)) {
+      setPaketTipleri(getPaketTipleri());
+      guncelle("tipi", temiz);
+      setYeniTip("");
+      setYeniTipModal(false);
+    }
+  };
 
   const gonder = (e) => {
     e.preventDefault();
@@ -724,11 +769,43 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
           {/* Paket Tipi */}
           <div>
             <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Paket Tipi <span className="text-red-500">*</span></label>
-            <select value={form.tipi} onChange={(e) => guncelle("tipi", e.target.value)} className={INPUT_STIL} required>
-              <option value="">SEÇİNİZ</option>
-              {PAKET_TIPLERI.map((t) => <option key={t} value={t}>{t}</option>)}
-            </select>
+            <div className="flex gap-2">
+              <select value={form.tipi} onChange={(e) => guncelle("tipi", e.target.value)} className={INPUT_STIL + " flex-1"} required>
+                <option value="">SEÇİNİZ</option>
+                {paketTipleri.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <button type="button" onClick={() => setYeniTipModal(true)} title="Yeni Paket Tipi Ekle"
+                className="px-3 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white transition-colors cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
           </div>
+
+          {/* Yeni Paket Tipi Mini Modal */}
+          {yeniTipModal && (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40" onClick={() => setYeniTipModal(false)}>
+              <div className="bg-white dark:bg-slate-800 rounded-xl p-4 w-80 shadow-xl border border-gray-200 dark:border-white/10" onClick={(e) => e.stopPropagation()}>
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Yeni Paket Tipi Ekle</h4>
+                <input
+                  type="text"
+                  value={yeniTip}
+                  onChange={(e) => setYeniTip(e.target.value)}
+                  placeholder="Paket tipi adı"
+                  className={INPUT_STIL}
+                  autoFocus
+                  onKeyDown={(e) => e.key === "Enter" && yeniTipEkle()}
+                />
+                <div className="flex justify-end gap-2 mt-3">
+                  <button type="button" onClick={() => setYeniTipModal(false)}
+                    className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-xs font-medium cursor-pointer">İptal</button>
+                  <button type="button" onClick={yeniTipEkle}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer">Ekle</button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Adı */}
           <div>
@@ -3107,6 +3184,221 @@ function RolModal({ modal, kapat, kaydet }) {
           </div>
         </form>
       </div>
+    </div>
+  );
+}
+
+/* ============================================= */
+/*  Lisans Tipleri Sekmesi                        */
+/* ============================================= */
+
+const RENK_SECENEKLERI = [
+  { id: "gray", ad: "Gri" },
+  { id: "blue", ad: "Mavi" },
+  { id: "violet", ad: "Mor" },
+  { id: "emerald", ad: "Yeşil" },
+  { id: "red", ad: "Kırmızı" },
+  { id: "amber", ad: "Turuncu" },
+  { id: "pink", ad: "Pembe" },
+  { id: "cyan", ad: "Camgöbeği" },
+  { id: "indigo", ad: "İndigo" },
+];
+
+function LisansTipleriSekmesi() {
+  const [tipler, setTipler] = useState([]);
+  const [yukleniyor, setYukleniyor] = useState(true);
+  const [modal, setModal] = useState(null); // null | "yeni" | tipObjesi
+  const [form, setForm] = useState({ ad: "", kod: "", renk: "blue", gun: 365, sira: 0, aktif: true });
+  const [kaydediyor, setKaydediyor] = useState(false);
+  const [sallan, setSallan] = useState(false);
+
+  const yukle = async () => {
+    setYukleniyor(true);
+    try {
+      const yanit = await apiGet("/lisans-tipleri");
+      if (yanit.basarili) setTipler(yanit.veri);
+    } catch (e) { console.error(e); }
+    finally { setYukleniyor(false); }
+  };
+
+  useEffect(() => { yukle(); }, []);
+
+  const modalAc = (tip) => {
+    if (tip === "yeni") {
+      setForm({ ad: "", kod: "", renk: "blue", gun: 365, sira: 0, aktif: true });
+      setModal("yeni");
+    } else {
+      setForm({ ad: tip.ad, kod: tip.kod, renk: tip.renk, gun: tip.gun, sira: tip.sira, aktif: !!tip.aktif });
+      setModal(tip);
+    }
+  };
+
+  const kaydet = async () => {
+    if (!form.ad.trim() || !form.kod.trim()) {
+      setSallan(true);
+      setTimeout(() => setSallan(false), 600);
+      return;
+    }
+    setKaydediyor(true);
+    try {
+      if (modal === "yeni") {
+        await apiPost("/lisans-tipleri", form);
+      } else {
+        await apiPut(`/lisans-tipleri/${modal.id}`, form);
+      }
+      setModal(null);
+      yukle();
+    } catch (e) { console.error(e); }
+    finally { setKaydediyor(false); }
+  };
+
+  const sil = async (tip) => {
+    if (!confirm(`"${tip.ad}" lisans tipini silmek istediğinize emin misiniz?`)) return;
+    try {
+      const yanit = await apiDelete(`/lisans-tipleri/${tip.id}`);
+      if (yanit.basarili) yukle();
+      else alert(yanit.mesaj || "Silinemedi.");
+    } catch (e) { console.error(e); }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Başlık */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Lisans Tipleri</h2>
+          <p className="text-sm text-gray-500 dark:text-slate-400">Paket oluştururken kullanılacak lisans tiplerini yönetin.</p>
+        </div>
+        <button onClick={() => modalAc("yeni")}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          Yeni Tip Ekle
+        </button>
+      </div>
+
+      {/* Tablo */}
+      {yukleniyor ? (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" />
+        </div>
+      ) : tipler.length === 0 ? (
+        <div className="text-center py-16">
+          <p className="text-gray-500 dark:text-slate-400">Henüz lisans tipi tanımlanmamış.</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-white/[0.06]">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 dark:bg-white/[0.02] border-b border-gray-200 dark:border-white/[0.06]">
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Sıra</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Ad</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Kod</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Renk</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Gün</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Durum</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">İşlem</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tipler.map((t) => (
+                <tr key={t.id} className="border-b border-gray-100 dark:border-white/[0.04] hover:bg-gray-50 dark:hover:bg-white/[0.02]">
+                  <td className="px-4 py-3 text-gray-600 dark:text-slate-300">{t.sira}</td>
+                  <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{t.ad}</td>
+                  <td className="px-4 py-3 text-gray-500 dark:text-slate-400 font-mono text-xs">{t.kod}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-block w-6 h-6 rounded-full bg-${t.renk}-500`} title={t.renk} />
+                  </td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-slate-300">{t.gun} gün</td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${t.aktif ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" : "bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-slate-400"}`}>
+                      {t.aktif ? "Aktif" : "Pasif"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <button onClick={() => modalAc(t)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer" title="Düzenle">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button onClick={() => sil(t)} className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors cursor-pointer" title="Sil">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Modal */}
+      {modal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setModal(null)}>
+          <div className={`bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-lg mx-4 p-6 ${sallan ? "sallan" : ""}`} onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{modal === "yeni" ? "Yeni Lisans Tipi" : "Lisans Tipi Düzenle"}</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ad <span className="text-red-500">*</span></label>
+                <input value={form.ad} onChange={(e) => setForm({ ...form, ad: e.target.value })} className={INPUT_STIL} placeholder="Ör: Profesyonel" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Kod <span className="text-red-500">*</span></label>
+                <input value={form.kod} onChange={(e) => setForm({ ...form, kod: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "") })} className={INPUT_STIL} placeholder="Ör: profesyonel" />
+                <p className="text-xs text-gray-400 mt-1">Benzersiz kod (küçük harf, rakam, tire)</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Renk</label>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {RENK_SECENEKLERI.map((r) => (
+                      <button key={r.id} onClick={() => setForm({ ...form, renk: r.id })} title={r.ad}
+                        className={`w-7 h-7 rounded-full bg-${r.id}-500 border-2 transition-all cursor-pointer ${form.renk === r.id ? "border-gray-900 dark:border-white scale-110" : "border-transparent"}`} />
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Varsayılan Gün</label>
+                  <input type="number" value={form.gun} onChange={(e) => setForm({ ...form, gun: parseInt(e.target.value) || 0 })} className={INPUT_STIL} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Sıra</label>
+                  <input type="number" value={form.sira} onChange={(e) => setForm({ ...form, sira: parseInt(e.target.value) || 0 })} className={INPUT_STIL} />
+                </div>
+                <div className="flex items-end">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={form.aktif} onChange={(e) => setForm({ ...form, aktif: e.target.checked })}
+                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                    <span className="text-sm text-gray-700 dark:text-slate-300">Aktif</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Önizleme */}
+              <div className="mt-2 p-3 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                <p className="text-xs text-gray-400 mb-2">Önizleme</p>
+                <button className={`p-3 rounded-lg border text-center transition-all border-${form.renk}-500 bg-${form.renk}-50 dark:bg-${form.renk}-500/10`}>
+                  <p className={`text-sm font-medium text-${form.renk}-700 dark:text-${form.renk}-400`}>{form.ad || "Tip Adı"}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{form.gun} gün</p>
+                </button>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={() => setModal(null)} className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer">İptal</button>
+              <button onClick={kaydet} disabled={kaydediyor} className="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold cursor-pointer disabled:opacity-50">
+                {kaydediyor ? "Kaydediliyor..." : "Kaydet"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
