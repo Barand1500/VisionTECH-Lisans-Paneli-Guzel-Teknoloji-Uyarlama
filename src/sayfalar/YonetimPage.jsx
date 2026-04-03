@@ -1046,6 +1046,67 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
           </button>
         </div>
 
+        {/* Şablon Seçimi - En Üstte */}
+        {!duzenle && sablonlar && sablonlar.length > 0 && (
+          <div className="px-6 py-4 bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-500/5 dark:to-violet-500/5 border-b border-gray-200 dark:border-white/10">
+            <label className="block text-xs font-medium text-purple-700 dark:text-purple-400 mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Şablondan Oluştur (Opsiyonel)
+            </label>
+            <select
+              value={form.sablonId || ""}
+              onChange={(e) => {
+                const seciliSablonId = e.target.value ? Number(e.target.value) : null;
+                const seciliSablon = sablonlar.find((s) => s.id === seciliSablonId);
+                if (seciliSablon) {
+                  /* Şablondan alanları doldur */
+                  const yeniForm = {
+                    ...form,
+                    sablonId: seciliSablonId,
+                    grup_id: seciliSablon.grup_id || seciliSablon.grup?.id || null,
+                    grubu: seciliSablon.grup?.ad || "",
+                  };
+                  /* Ürün Tipi */
+                  if (seciliSablon.urunTipi || seciliSablon.urun_tipi_id) {
+                    const urunTipiAdi = seciliSablon.urunTipi?.ad || urunTipleri.find(t => t.id === seciliSablon.urun_tipi_id)?.ad || "";
+                    yeniForm.urunTipi = urunTipiAdi;
+                  }
+                  /* Uygulama Tipi */
+                  if (seciliSablon.uygulamaTipi || seciliSablon.uygulama_tipi_id) {
+                    const uygulamaTipiAdi = seciliSablon.uygulamaTipi?.ad || uygulamaTipleri.find(t => t.id === seciliSablon.uygulama_tipi_id)?.ad || "-";
+                    yeniForm.uygulamaTipi = uygulamaTipiAdi;
+                  }
+                  /* Şablon adını default olarak ürün adına yaz */
+                  if (!form.adi) {
+                    yeniForm.adi = seciliSablon.ad;
+                  }
+                  setForm(yeniForm);
+                } else {
+                  guncelle("sablonId", null);
+                }
+              }}
+              className="w-full px-3 py-2.5 rounded-lg bg-white dark:bg-white/10 border border-purple-300 dark:border-purple-500/30 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+            >
+              <option value="">Şablon seçin veya manuel girin...</option>
+              {sablonlar.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.ad} {s.grup?.ad ? `(${s.grup.ad})` : ""} {s.urunTipi?.ad ? `- ${s.urunTipi.ad}` : ""}
+                </option>
+              ))}
+            </select>
+            {form.sablonId && (
+              <p className="text-xs text-purple-600 dark:text-purple-400 mt-2 flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Şablon seçildi, alanlar otomatik dolduruldu
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Sekme Navigasyonu */}
         <div className="px-6 pt-4 flex items-center gap-2 border-b border-gray-200 dark:border-white/10 shrink-0">
           <button

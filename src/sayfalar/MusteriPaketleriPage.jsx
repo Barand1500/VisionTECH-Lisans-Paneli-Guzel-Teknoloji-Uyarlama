@@ -107,6 +107,7 @@ export default function MusteriPaketleriPage() {
   const [dbUrunler, setDbUrunler] = useState([]);
   const [dbPaketler, setDbPaketler] = useState([]);
   const [dbBayiler, setDbBayiler] = useState([]);
+  const [dbGruplar, setDbGruplar] = useState([]);
   const [lisansTipleri, setLisansTipleri] = useState(LISANS_TIPLERI_FALLBACK);
 
   /* Verileri yükle */
@@ -159,6 +160,11 @@ export default function MusteriPaketleriPage() {
     /* Ürünleri yükle */
     apiGet("/urunler").then((r) => {
       if (r.basarili) setDbUrunler(r.veri);
+    }).catch(() => {});
+
+    /* Ürün gruplarını yükle */
+    apiGet("/urunler/gruplar").then((r) => {
+      if (r.basarili) setDbGruplar(r.veri.filter((g) => g.aktif));
     }).catch(() => {});
 
     /* Paketleri yükle */
@@ -795,6 +801,7 @@ export default function MusteriPaketleriPage() {
           kapat={() => setYeniPaketModal(false)}
           onBasarili={yeniPaketEklendi}
           urunler={dbUrunler}
+          gruplar={dbGruplar}
           paketler={dbPaketler}
           bayiler={dbBayiler}
           lisansTipleri={lisansTipleri}
@@ -809,9 +816,12 @@ export default function MusteriPaketleriPage() {
 /*  Adım adım wizard tarzı, tüm özellikler       */
 /* ============================================= */
 
-function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayiler, lisansTipleri }) {
+function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], paketler, bayiler, lisansTipleri }) {
   const modalRef = useRef(null);
   const sallanma = () => { if (modalRef.current) { modalRef.current.classList.remove("sallan"); void modalRef.current.offsetWidth; modalRef.current.classList.add("sallan"); } };
+
+  /* Seçili grup */
+  const [seciliGrupId, setSeciliGrupId] = useState(null);
 
   /* Aktif adım: 1=Ürün, 2=Lisans, 3=Fiyat, 4=Özet */
   const [adim, setAdim] = useState(1);
@@ -1110,38 +1120,75 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
 
         {/* İçerik */}
         <div className="flex-1 overflow-auto p-6">
-          {/* Adım 1: Ürün Seçimi */}
+          {/* Adım 1: Grup ve Ürün Seçimi */}
           {adim === 1 && (
             <div className="space-y-5">
+              {/* Grup Seçimi */}
               <div>
-                <label className={LABEL_STIL}>Ürün Seçin <span className="text-red-500">*</span></label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-                  {urunler.filter((u) => u.aktif).map((u) => (
+                <label className={LABEL_STIL}>Ürün Grubu Seçin <span className="text-red-500">*</span></label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
+                  {gruplar.map((g) => (
                     <button
-                      key={u.id}
-                      onClick={() => urunSec(u.id)}
+                      key={g.id}
+                      onClick={() => { setSeciliGrupId(g.id); guncelle("urunId", ""); guncelle("paketId", ""); }}
                       className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
-                        form.urunId === u.id
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10"
+                        seciliGrupId === g.id
+                          ? "border-purple-500 bg-purple-50 dark:bg-purple-500/10"
                           : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
                       }`}
                     >
-                      <div className="flex items-start gap-3">
+                      <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                          form.urunId === u.id ? "bg-blue-500 text-white" : "bg-gray-100 dark:bg-white/10 text-gray-400"
+                          seciliGrupId === g.id ? "bg-purple-500 text-white" : "bg-gray-100 dark:bg-white/10 text-gray-400"
                         }`}>
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                         </div>
                         <div>
-                          <p className={`font-medium ${form.urunId === u.id ? "text-blue-700 dark:text-blue-400" : "text-gray-900 dark:text-white"}`}>{u.ad}</p>
-                          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{u.grubu || "Genel"}</p>
+                          <p className={`font-medium ${seciliGrupId === g.id ? "text-purple-700 dark:text-purple-400" : "text-gray-900 dark:text-white"}`}>{g.ad}</p>
+                          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{urunler.filter(u => u.aktif && u.grup_id === g.id).length} ürün</p>
                         </div>
                       </div>
                     </button>
                   ))}
                 </div>
               </div>
+
+              {/* Ürün Seçimi - Sadece grup seçiliyse */}
+              {seciliGrupId && (
+                <div>
+                  <label className={LABEL_STIL}>Ürün Seçin <span className="text-red-500">*</span></label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                    {urunler.filter((u) => u.aktif && u.grup_id === seciliGrupId).map((u) => (
+                      <button
+                        key={u.id}
+                        onClick={() => urunSec(u.id)}
+                        className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                          form.urunId === u.id
+                            ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10"
+                            : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                            form.urunId === u.id ? "bg-blue-500 text-white" : "bg-gray-100 dark:bg-white/10 text-gray-400"
+                          }`}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                          </div>
+                          <div>
+                            <p className={`font-medium ${form.urunId === u.id ? "text-blue-700 dark:text-blue-400" : "text-gray-900 dark:text-white"}`}>{u.ad}</p>
+                            <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{u.urun_tipi || u.grubu || "Genel"}</p>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                    {urunler.filter((u) => u.aktif && u.grup_id === seciliGrupId).length === 0 && (
+                      <p className="col-span-2 text-center text-gray-400 dark:text-slate-500 py-8">Bu grupta henüz ürün yok</p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {form.urunId && urunPaketleri.length > 0 && (
                 <div>

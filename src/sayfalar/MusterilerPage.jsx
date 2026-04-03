@@ -147,9 +147,9 @@ function MusteriAgacDugumu({ musteri, tumMusteriler, seviye = 0, odakliId, setOd
           <p className="text-xs text-gray-400 dark:text-slate-500">{musteri.eposta || "—"}</p>
         </div>
         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-          musteri.durum === "Aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-500"
+          (musteri.durum || "").toLowerCase() === "aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-500"
         }`}>
-          {musteri.durum || "Aktif"}
+          {(musteri.durum || "").toLowerCase() === "aktif" ? "Aktif" : "Pasif"}
         </span>
       </div>
       {altMusteriler.map((alt) => (
@@ -212,9 +212,9 @@ function MusteriPaketDugumu({ musteri, lisanslar, genislemis, setGenislemis, onU
         </div>
         <div className="flex items-center gap-3">
           <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-            musteri.durum === "aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-500"
+            (musteri.durum || "").toLowerCase() === "aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-500"
           }`}>
-            {musteri.durum === "aktif" ? "Aktif" : "Pasif"}
+            {(musteri.durum || "").toLowerCase() === "aktif" ? "Aktif" : "Pasif"}
           </span>
           <span className="text-xs bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 px-2.5 py-1 rounded-full font-medium">
             {musteriLisanslari.length} Paket
@@ -320,9 +320,9 @@ function BayiMusteriDugumu({ bayi, musteriler, tumLisanslar, genislemis, setGeni
         </div>
         <div className="flex items-center gap-3">
           <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-            bayi.durum === "aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-500"
+            (bayi.durum || "").toLowerCase() === "aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-500"
           }`}>
-            {bayi.durum === "aktif" ? "Aktif" : "Pasif"}
+            {(bayi.durum || "").toLowerCase() === "aktif" ? "Aktif" : "Pasif"}
           </span>
           <span className="text-xs bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400 px-2.5 py-1 rounded-full font-medium">
             {bayiMusterileri.length} Müşteri
@@ -617,8 +617,8 @@ export default function MusterilerPage() {
     if (kartFiltre === "gercek") return m.tur === "gercek";
     if (kartFiltre === "tuzel") return m.tur === "tuzel";
     if (kartFiltre === "yabanci") return m.tur === "yabanci";
-    if (kartFiltre === "aktif") return m.durum === "aktif";
-    if (kartFiltre === "pasif") return m.durum === "pasif";
+    if (kartFiltre === "aktif") return (m.durum || "").toLowerCase() === "aktif";
+    if (kartFiltre === "pasif") return (m.durum || "").toLowerCase() === "pasif";
     return true;
   });
 
@@ -1318,8 +1318,8 @@ export default function MusterilerPage() {
           { etiket: "Toplam Müşteri", deger: musteriler.length, renk: "text-blue-600 dark:text-blue-400", filtre: "toplam", borderRenk: "border-blue-500 dark:border-blue-400" },
           { etiket: "Gerçek Kişi", deger: musteriler.filter((m) => m.tur === "gercek").length, renk: "text-cyan-600 dark:text-cyan-400", filtre: "gercek", borderRenk: "border-cyan-500 dark:border-cyan-400" },
           { etiket: "Tüzel Kişi", deger: musteriler.filter((m) => m.tur === "tuzel").length, renk: "text-violet-600 dark:text-violet-400", filtre: "tuzel", borderRenk: "border-violet-500 dark:border-violet-400" },
-          { etiket: "Aktif", deger: musteriler.filter((m) => m.durum === "aktif").length, renk: "text-emerald-600 dark:text-emerald-400", filtre: "aktif", borderRenk: "border-emerald-500 dark:border-emerald-400" },
-          { etiket: "Pasif", deger: musteriler.filter((m) => m.durum === "pasif").length, renk: "text-gray-500 dark:text-slate-400", filtre: "pasif", borderRenk: "border-gray-500 dark:border-slate-400" },
+          { etiket: "Aktif", deger: musteriler.filter((m) => (m.durum || "").toLowerCase() === "aktif").length, renk: "text-emerald-600 dark:text-emerald-400", filtre: "aktif", borderRenk: "border-emerald-500 dark:border-emerald-400" },
+          { etiket: "Pasif", deger: musteriler.filter((m) => (m.durum || "").toLowerCase() === "pasif").length, renk: "text-gray-500 dark:text-slate-400", filtre: "pasif", borderRenk: "border-gray-500 dark:border-slate-400" },
         ].map((k) => (
           <div key={k.etiket} onClick={() => setKartFiltre(kartFiltre === k.filtre ? null : k.filtre)}
             className={`rounded-xl bg-white dark:bg-white/5 border-2 p-4 cursor-pointer transition-all duration-200 hover:shadow-md ${
@@ -1398,7 +1398,7 @@ export default function MusterilerPage() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-white/5">
                 {sayfalananlar.map((m) => (
-                  <tr key={m.id} className={`hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors ${seciliIdler.has(m.id) ? "bg-blue-50/50 dark:bg-blue-500/5" : ""} ${m.durum !== "aktif" ? "opacity-50" : ""}`}>
+                  <tr key={m.id} className={`hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors ${seciliIdler.has(m.id) ? "bg-blue-50/50 dark:bg-blue-500/5" : ""} ${(m.durum || "").toLowerCase() !== "aktif" ? "opacity-50" : ""}`}>
                     <td className="px-4 py-4">
                       <input type="checkbox" checked={seciliIdler.has(m.id)} onChange={() => tekSecimToggle(m.id)}
                         className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-blue-600 focus:ring-blue-500 cursor-pointer" />
@@ -1426,8 +1426,8 @@ export default function MusterilerPage() {
                     </td>
                     <td className="px-4 py-4 text-center">
                       <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
-                        m.durum === "aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400"
-                      }`}>{m.durum === "aktif" ? "Aktif" : "Pasif"}</span>
+                        (m.durum || "").toLowerCase() === "aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400"
+                      }`}>{(m.durum || "").toLowerCase() === "aktif" ? "Aktif" : "Pasif"}</span>
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center justify-center gap-2">
@@ -1567,7 +1567,7 @@ export default function MusterilerPage() {
                 <div>
                   <p className="text-xs text-gray-500 dark:text-slate-400 mb-4">Müşterilere tıklayarak paketlerini görüntüleyebilirsiniz.</p>
                   <div className="space-y-0">
-                    {musteriler.length > 0 ? musteriler.filter(m => m.durum === "aktif").map((m) => (
+                    {musteriler.length > 0 ? musteriler.filter(m => (m.durum || "").toLowerCase() === "aktif").map((m) => (
                       <MusteriPaketDugumu 
                         key={m.id} 
                         musteri={m} 
@@ -1588,7 +1588,7 @@ export default function MusterilerPage() {
                 <div>
                   <p className="text-xs text-gray-500 dark:text-slate-400 mb-4">Bayilere tıklayarak müşterilerini ve paketlerini görüntüleyebilirsiniz.</p>
                   <div className="space-y-0">
-                    {bayiListesi.length > 0 ? bayiListesi.filter(b => b.durum === "aktif").map((bayi) => (
+                    {bayiListesi.length > 0 ? bayiListesi.filter(b => (b.durum || "").toLowerCase() === "aktif").map((bayi) => (
                       <BayiMusteriDugumu 
                         key={bayi.id} 
                         bayi={bayi} 
