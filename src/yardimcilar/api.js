@@ -49,7 +49,6 @@ export function apiDelete(yol) {
   return apiIstek(yol, { method: "DELETE" });
 }
 
-/* ---- Dosya Yükleme (FormData) ---- */
 export async function apiUpload(yol, formData) {
   const token = tokenAl();
   const basliklar = {};
@@ -61,7 +60,7 @@ export async function apiUpload(yol, formData) {
     body: formData,
   });
 
-  if (yanit.status === 401) {
+  if (yanit.status === 401 && !yol.includes("/yetki/giris")) {
     localStorage.removeItem("gt_token");
     localStorage.removeItem("gt_kullanici");
     window.location.href = "/login";
@@ -69,6 +68,9 @@ export async function apiUpload(yol, formData) {
   }
 
   const veri = await yanit.json();
-  if (!yanit.ok) throw new Error(veri.mesaj || "Dosya yükleme hatası");
+  if (!yanit.ok) {
+    console.error(`API Upload Hatası [${yol}]:`, veri);
+    throw new Error(veri.mesaj || `Sunucu hatası: ${yanit.status}`);
+  }
   return veri;
 }

@@ -100,6 +100,14 @@ const OZELLIK_TIPLERI = [
     varsayilan: { alan_tipi: "sicil_no", zorunlu: false },
   },
   {
+    id: "domain_fiyat",
+    ad: "Domain Uzantı Fiyatlandırma",
+    ikon: "🌍",
+    renk: "cyan",
+    aciklama: "Her domain uzantısı için farklı fiyat (.com, .org, vb.)",
+    varsayilan: { uzantilar: [{ uzanti: ".com", aktivasyon: 0, yenileme: 0 }], para_birimi: "TL" },
+  },
+  {
     id: "kdv",
     ad: "KDV Oranı",
     ikon: "🏛️",
@@ -168,8 +176,8 @@ const OZELLIK_TIPLERI = [
     ad: "Bağımlı Ürün",
     ikon: "🔗",
     renk: "red",
-    aciklama: "Bu ürün için gerekli diğer ürün",
-    varsayilan: { urun_adi: "", zorunlu: true, aciklama: "" },
+    aciklama: "Bu ürün için gerekli diğer ürünler",
+    varsayilan: { urunler: [], zorunlu: true, aciklama: "" },
   },
   {
     id: "marka",
@@ -1053,6 +1061,9 @@ function OzellikFormu({ tip, deger, guncelle }) {
         </div>
       );
 
+    case "domain_fiyat":
+      return <DomainFiyatFormu deger={deger} guncelle={guncelle} />;
+
     case "kdv":
       return (
         <div className="grid grid-cols-2 gap-3">
@@ -1205,25 +1216,7 @@ function OzellikFormu({ tip, deger, guncelle }) {
       );
 
     case "bagimli_urun":
-      return (
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Bağımlı Ürün</label>
-            <input type="text" value={deger.urun_adi || ""} onChange={(e) => guncelle("urun_adi", e.target.value)} className={KUCUK_INPUT + " w-full"} placeholder="Gerekli ürün adı" />
-          </div>
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 cursor-pointer pt-5">
-              <input type="checkbox" checked={deger.zorunlu ?? true} onChange={(e) => guncelle("zorunlu", e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500" />
-              <span className="text-xs text-gray-600 dark:text-slate-400">Zorunlu</span>
-            </label>
-          </div>
-          <div className="col-span-2">
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Açıklama</label>
-            <input type="text" value={deger.aciklama || ""} onChange={(e) => guncelle("aciklama", e.target.value)} className={KUCUK_INPUT + " w-full"} />
-          </div>
-        </div>
-      );
+      return <BagimliUrunFormu deger={deger} guncelle={guncelle} />;
 
     case "marka":
       return (
@@ -1318,6 +1311,199 @@ function KademeliForm({ deger, guncelle, birimLabel, birimKey }) {
         </svg>
         Kademe Ekle
       </button>
+    </div>
+  );
+}
+
+/* ============================================= */
+/*  Domain Uzantı Fiyatlandırma Formu            */
+/* ============================================= */
+
+const YAYGIN_UZANTILAR = [".com", ".com.tr", ".net", ".org", ".org.tr", ".net.tr", ".biz", ".info", ".gen.tr", ".web.tr", ".name.tr", ".tel.tr", ".tv.tr", ".av.tr"];
+
+function DomainFiyatFormu({ deger, guncelle }) {
+  const uzantilar = deger.uzantilar || [];
+
+  const uzantiEkle = () => {
+    guncelle("uzantilar", [...uzantilar, { uzanti: "", aktivasyon: 0, yenileme: 0 }]);
+  };
+
+  const uzantiSil = (idx) => {
+    guncelle("uzantilar", uzantilar.filter((_, i) => i !== idx));
+  };
+
+  const uzantiGuncelle = (idx, alan, val) => {
+    const yeni = uzantilar.map((u, i) => (i === idx ? { ...u, [alan]: val } : u));
+    guncelle("uzantilar", yeni);
+  };
+
+  const mevcutUzantilar = uzantilar.map((u) => u.uzanti);
+  const eklenebilirler = YAYGIN_UZANTILAR.filter((u) => !mevcutUzantilar.includes(u));
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-4">
+          <span className="text-[11px] font-medium text-gray-500 dark:text-slate-400 w-28">Uzantı</span>
+          <span className="text-[11px] font-medium text-gray-500 dark:text-slate-400 w-28">Aktivasyon</span>
+          <span className="text-[11px] font-medium text-gray-500 dark:text-slate-400 w-28">Yenileme</span>
+        </div>
+        <select value={deger.para_birimi || "TL"} onChange={(e) => guncelle("para_birimi", e.target.value)} className="text-[11px] px-2 py-1 rounded bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-slate-400">
+          <option value="TL">TL</option>
+          <option value="USD">USD</option>
+          <option value="EUR">EUR</option>
+        </select>
+      </div>
+      {uzantilar.map((u, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <input type="text" value={u.uzanti} onChange={(e) => uzantiGuncelle(i, "uzanti", e.target.value)}
+            placeholder=".com" className={KUCUK_INPUT + " w-28"} list="uzantiOneriler" />
+          <input type="number" value={u.aktivasyon || 0} onChange={(e) => uzantiGuncelle(i, "aktivasyon", Number(e.target.value))}
+            className={KUCUK_INPUT + " w-28"} min={0} step="0.01" placeholder="Aktivasyon" />
+          <input type="number" value={u.yenileme || 0} onChange={(e) => uzantiGuncelle(i, "yenileme", Number(e.target.value))}
+            className={KUCUK_INPUT + " w-28"} min={0} step="0.01" placeholder="Yenileme" />
+          <button onClick={() => uzantiSil(i)}
+            className="w-7 h-7 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 flex items-center justify-center cursor-pointer transition-colors shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      ))}
+      <datalist id="uzantiOneriler">
+        {eklenebilirler.map((u) => <option key={u} value={u} />)}
+      </datalist>
+      <div className="flex items-center gap-2 flex-wrap">
+        <button onClick={uzantiEkle}
+          className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 font-medium cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          Uzantı Ekle
+        </button>
+        {eklenebilirler.length > 0 && (
+          <span className="text-[10px] text-gray-400 dark:text-slate-500">|</span>
+        )}
+        {eklenebilirler.slice(0, 5).map((u) => (
+          <button key={u} onClick={() => guncelle("uzantilar", [...uzantilar, { uzanti: u, aktivasyon: 0, yenileme: 0 }])}
+            className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-slate-400 hover:bg-cyan-100 dark:hover:bg-cyan-500/10 hover:text-cyan-700 dark:hover:text-cyan-400 cursor-pointer transition-colors">
+            {u}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================= */
+/*  Bağımlı Ürün Seçme Formu (çoklu + arama)    */
+/* ============================================= */
+
+function BagimliUrunFormu({ deger, guncelle }) {
+  const [arama, setArama] = useState("");
+  const [acik, setAcik] = useState(false);
+  const [tumUrunler, setTumUrunler] = useState([]);
+  const wrapRef = useRef(null);
+  const urunler = deger.urunler || [];
+
+  useEffect(() => {
+    apiGet("/urunler").then((r) => setTumUrunler(r.veri || [])).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const tiklanma = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setAcik(false); };
+    document.addEventListener("mousedown", tiklanma);
+    return () => document.removeEventListener("mousedown", tiklanma);
+  }, []);
+
+  const filtrelenmis = tumUrunler.filter((u) => {
+    const ad = u.ad || u.urun_adi || "";
+    const zatenVar = urunler.some((su) => su.id === u.id || su.ad === ad);
+    if (zatenVar) return false;
+    if (!arama) return true;
+    return ad.toLowerCase().includes(arama.toLowerCase());
+  });
+
+  const urunEkle = (urun) => {
+    const ad = urun.ad || urun.urun_adi || "";
+    guncelle("urunler", [...urunler, { id: urun.id, ad }]);
+    setArama("");
+    setAcik(false);
+  };
+
+  const elleEkle = () => {
+    if (!arama.trim()) return;
+    const zatenVar = urunler.some((u) => u.ad.toLowerCase() === arama.trim().toLowerCase());
+    if (zatenVar) return;
+    guncelle("urunler", [...urunler, { id: null, ad: arama.trim() }]);
+    setArama("");
+    setAcik(false);
+  };
+
+  const urunKaldir = (idx) => {
+    guncelle("urunler", urunler.filter((_, i) => i !== idx));
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Seçilen ürünler */}
+      {urunler.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {urunler.map((u, i) => (
+            <span key={i} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-500/20 font-medium">
+              {u.ad}
+              <button onClick={() => urunKaldir(i)} className="ml-0.5 hover:text-red-900 dark:hover:text-red-300 cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Arama / Ekleme */}
+      <div ref={wrapRef} className="relative">
+        <input
+          type="text"
+          value={arama}
+          onChange={(e) => { setArama(e.target.value); setAcik(true); }}
+          onFocus={() => setAcik(true)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); elleEkle(); } }}
+          placeholder="Ürün ara veya elle yaz + Enter..."
+          className={KUCUK_INPUT + " w-full pr-20"}
+        />
+        {arama.trim() && (
+          <button onClick={elleEkle}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 font-medium cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-500/25 transition-colors">
+            Elle Ekle
+          </button>
+        )}
+        {acik && filtrelenmis.length > 0 && (
+          <div className="absolute z-20 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 shadow-xl">
+            {filtrelenmis.slice(0, 15).map((u) => (
+              <button key={u.id} onClick={() => urunEkle(u)}
+                className="w-full text-left px-3 py-2 text-xs hover:bg-blue-50 dark:hover:bg-blue-500/10 text-gray-700 dark:text-slate-300 cursor-pointer transition-colors flex items-center justify-between">
+                <span>{u.ad || u.urun_adi}</span>
+                {u.grup && <span className="text-[10px] text-gray-400 dark:text-slate-500">{u.grup.ad}</span>}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Zorunlu & Açıklama */}
+      <div className="flex items-center gap-4">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={deger.zorunlu ?? true} onChange={(e) => guncelle("zorunlu", e.target.checked)}
+            className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500" />
+          <span className="text-xs text-gray-600 dark:text-slate-400">Zorunlu</span>
+        </label>
+        <div className="flex-1">
+          <input type="text" value={deger.aciklama || ""} onChange={(e) => guncelle("aciklama", e.target.value)}
+            className={KUCUK_INPUT + " w-full"} placeholder="Açıklama (opsiyonel)" />
+        </div>
+      </div>
     </div>
   );
 }

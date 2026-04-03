@@ -8,7 +8,7 @@
 import { useState, useRef, useEffect, useCallback, memo, useMemo } from "react";
 import KopyalaButonu from "../bilesenler/KopyalaButonu";
 import SilmeOnayModal from "../bilesenler/SilmeOnayModal";
-import { apiGet, apiPost, apiPut, apiDelete } from "../yardimcilar/api";
+import { apiGet, apiPost, apiPut, apiDelete, apiUpload } from "../yardimcilar/api";
 import UrunSablonlariSekmesi from "../bilesenler/UrunSablonlariSekmesi";
 
 /* ============================================= */
@@ -2021,17 +2021,30 @@ function SurumlerSekmesi() {
     setDosyaDegistirId(id);
     setTimeout(() => dosyaInputRef.current?.click(), 0);
   };
-  const dosyaKaldirOnayla = () => {
+  const dosyaKaldirOnayla = async () => {
     if (!dosyaSilOnay) return;
-    setSurumler((o) => o.map((s) => s.id === dosyaSilOnay.id ? { ...s, dosyaAdi: "" } : s));
-    if (detayModal && detayModal.id === dosyaSilOnay.id) setDetayModal((o) => ({ ...o, dosyaAdi: "" }));
+    try {
+      await apiDelete(`/surumler/${dosyaSilOnay.id}/dosya`);
+      setSurumler((o) => o.map((s) => s.id === dosyaSilOnay.id ? { ...s, dosyaAdi: "" } : s));
+      if (detayModal && detayModal.id === dosyaSilOnay.id) setDetayModal((o) => ({ ...o, dosyaAdi: "" }));
+    } catch (e) {
+      console.error("Dosya silme hatasi:", e);
+    }
     setDosyaSilOnay(null);
   };
-  const dosyaSecildi = (e) => {
+  const dosyaSecildi = async (e) => {
     const dosya = e.target.files[0];
     if (dosya && dosyaDegistirId) {
-      setSurumler((o) => o.map((s) => s.id === dosyaDegistirId ? { ...s, dosyaAdi: dosya.name } : s));
-      if (detayModal && detayModal.id === dosyaDegistirId) setDetayModal((o) => ({ ...o, dosyaAdi: dosya.name }));
+      try {
+        const fd = new FormData();
+        fd.append("dosya", dosya);
+        const res = await apiUpload(`/surumler/${dosyaDegistirId}/dosya`, fd);
+        const yeniAd = res.dosya_adi || dosya.name;
+        setSurumler((o) => o.map((s) => s.id === dosyaDegistirId ? { ...s, dosyaAdi: yeniAd } : s));
+        if (detayModal && detayModal.id === dosyaDegistirId) setDetayModal((o) => ({ ...o, dosyaAdi: yeniAd }));
+      } catch (err) {
+        console.error("Dosya yukleme hatasi:", err);
+      }
     }
     setDosyaDegistirId(null);
     if (dosyaInputRef.current) dosyaInputRef.current.value = "";
@@ -2062,10 +2075,18 @@ function SurumlerSekmesi() {
         dosya_adi: veri.dosyaAdi,
         aktif: veri.aktif,
       };
+      let surumId = veri.id;
       if (veri.id) {
         await apiPut(`/surumler/${veri.id}`, gonder);
       } else {
-        await apiPost("/surumler", gonder);
+        const res = await apiPost("/surumler", gonder);
+        surumId = res.id;
+      }
+      // Dosya varsa yükle
+      if (veri._dosyaObj && surumId) {
+        const fd = new FormData();
+        fd.append("dosya", veri._dosyaObj);
+        await apiUpload(`/surumler/${surumId}/dosya`, fd);
       }
       await verileriYukle();
       setModal(null);
@@ -2152,6 +2173,11 @@ function SurumlerSekmesi() {
                           <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
                         <span className="text-xs font-medium text-amber-700 dark:text-amber-400 max-w-[180px] truncate">{guncel.dosyaAdi}</span>
                       </div>
+                      <a href={`/api/surumler/${guncel.id}/indir`} download onClick={(e) => e.stopPropagation()} title="İndir"
+                        className="w-6 h-6 rounded-md bg-emerald-100 dark:bg-emerald-500/15 hover:bg-emerald-200 dark:hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 flex items-center justify-center cursor-pointer transition-colors shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                      </a>
                       <button onClick={(e) => { e.stopPropagation(); dosyaDegistir(guncel.id); }} title="Dosyayı Değiştir"
                         className="w-6 h-6 rounded-md bg-blue-100 dark:bg-blue-500/15 hover:bg-blue-200 dark:hover:bg-blue-500/25 text-blue-600 dark:text-blue-400 flex items-center justify-center cursor-pointer transition-colors shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -2240,6 +2266,11 @@ function SurumlerSekmesi() {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
                               <span className="text-[11px] font-medium text-amber-700 dark:text-amber-400 max-w-[140px] truncate">{s.dosyaAdi}</span>
                             </div>
+                            <a href={`/api/surumler/${s.id}/indir`} download onClick={(e) => e.stopPropagation()} title="İndir"
+                              className="w-5 h-5 rounded bg-emerald-100 dark:bg-emerald-500/15 hover:bg-emerald-200 dark:hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 flex items-center justify-center cursor-pointer transition-colors">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            </a>
                             <button onClick={(e) => { e.stopPropagation(); dosyaDegistir(s.id); }} title="Değiştir"
                               className="w-5 h-5 rounded bg-blue-100 dark:bg-blue-500/15 hover:bg-blue-200 dark:hover:bg-blue-500/25 text-blue-600 dark:text-blue-400 flex items-center justify-center cursor-pointer transition-colors">
                               <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -2401,6 +2432,12 @@ function SurumlerSekmesi() {
                         <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-0.5">Yüklü dosya</p>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
+                        <a href={`/api/surumler/${detayModal.id}/indir`} download title="Dosyayı İndir"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-200/60 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-medium cursor-pointer transition-colors">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                          İndir
+                        </a>
                         <button onClick={() => dosyaDegistir(detayModal.id)} title="Dosyayı Değiştir"
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 border border-blue-200/60 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-medium cursor-pointer transition-colors">
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -2512,7 +2549,7 @@ function SurumModal({ modal, kapat, kaydet, surumler }) {
 
   const dosyaSec = (e) => {
     const dosya = e.target.files[0];
-    if (dosya) setForm((o) => ({ ...o, dosyaAdi: dosya.name }));
+    if (dosya) setForm((o) => ({ ...o, dosyaAdi: dosya.name, _dosyaObj: dosya }));
   };
 
   const gonder = (e) => {
@@ -2632,7 +2669,7 @@ function SurumModal({ modal, kapat, kaydet, surumler }) {
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
                   <span className="font-medium text-gray-700 dark:text-slate-300">{form.dosyaAdi}</span>
-                  <button type="button" onClick={(e) => { e.stopPropagation(); setForm((o) => ({ ...o, dosyaAdi: "" })); if (dosyaRef.current) dosyaRef.current.value = ""; }}
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setForm((o) => ({ ...o, dosyaAdi: "", _dosyaObj: null })); if (dosyaRef.current) dosyaRef.current.value = ""; }}
                     className="ml-1 text-red-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer">
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
