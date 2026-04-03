@@ -39,6 +39,7 @@ uygulama.use("/api/sablonlar", require("./rotalar/sablon-rotalari"));
 uygulama.use("/api/paket-tipleri", require("./rotalar/paket-tipi-rotalari"));
 uygulama.use("/api/bayiler", require("./rotalar/bayi-urun-rotalari"));
 uygulama.use("/api/musteriler", require("./rotalar/dosya-rotalari"));
+uygulama.use("/api/dosyalar", require("./rotalar/dosya-rotalari"));
 uygulama.use("/api/iletisim", require("./rotalar/iletisim-rotalari"));
 uygulama.use("/api/kisiler", require("./rotalar/iletisim-kisileri-rotalari"));
 uygulama.use("/api/cop-kutusu", require("./rotalar/cop-kutusu-rotalari"));

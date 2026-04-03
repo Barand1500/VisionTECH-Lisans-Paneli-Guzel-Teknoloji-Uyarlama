@@ -10,7 +10,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import KopyalaButonu from "../bilesenler/KopyalaButonu";
-import { apiGet, apiPost, apiPut, apiDelete } from "../yardimcilar/api";
+import { apiGet, apiPost, apiPut, apiDelete, apiUpload } from "../yardimcilar/api";
 
 /* ============================================= */
 /*  Sabitler                                      */
@@ -145,6 +145,11 @@ export default function BayilerPage() {
   const [yeniNotOnemli, setYeniNotOnemli] = useState(false);
   const [bayiNotlar, setBayiNotlar] = useState([]);
 
+  /* ---- Dosya Modalı ---- */
+  const [dosyaModal, setDosyaModal] = useState(null);
+  const [dosyalar, setDosyalar] = useState([]);
+  const [dosyaYukleniyor, setDosyaYukleniyor] = useState(false);
+
   /* ---- Detay Modal Dosyalar ---- */
   const [detayDosyalar, setDetayDosyalar] = useState([]);
   const [detayDosyalarYukleniyor, setDetayDosyalarYukleniyor] = useState(false);
@@ -233,6 +238,19 @@ export default function BayilerPage() {
       setBayiNotlar([]);
     }
   }, [notModal]);
+
+  /* Dosya modalı açıldığında dosyaları yükle */
+  useEffect(() => {
+    if (dosyaModal) {
+      setDosyaYukleniyor(true);
+      apiGet(`/dosyalar/bayi/${dosyaModal.id}`)
+        .then((res) => setDosyalar(res.veri || []))
+        .catch(() => setDosyalar([]))
+        .finally(() => setDosyaYukleniyor(false));
+    } else {
+      setDosyalar([]);
+    }
+  }, [dosyaModal]);
 
   /* ---- Tüm benzersiz etiketler ---- */
   const tumEtiketler = useMemo(() => {
@@ -438,6 +456,48 @@ export default function BayilerPage() {
     } catch (e) {
       console.error("Not silinemedi:", e);
     }
+  };
+
+  /* ---- Dosya Referansı ---- */
+  const dosyaInputRef = useRef(null);
+
+  /* ---- Dosya Yükle ---- */
+  const bayiDosyaYukle = async (e) => {
+    const secilen = e.target.files;
+    if (!secilen || secilen.length === 0 || !dosyaModal) return;
+    setDosyaYukleniyor(true);
+    try {
+      const formData = new FormData();
+      for (const dosya of secilen) {
+        formData.append("dosyalar", dosya);
+      }
+      await apiUpload(`/dosyalar/bayi/${dosyaModal.id}/dosyalar`, formData);
+      const dosyaYanit = await apiGet(`/dosyalar/bayi/${dosyaModal.id}/dosyalar`);
+      setDosyalar(dosyaYanit.veri || []);
+    } catch (e) {
+      console.error("Dosya yüklenemedi:", e);
+    } finally {
+      setDosyaYukleniyor(false);
+      if (dosyaInputRef.current) dosyaInputRef.current.value = "";
+    }
+  };
+
+  /* ---- Dosya Sil ---- */
+  const bayiDosyaSil = async (dosyaId) => {
+    if (!dosyaModal) return;
+    try {
+      await apiDelete(`/dosyalar/bayi/${dosyaModal.id}/dosyalar/${dosyaId}`);
+      setDosyalar((prev) => prev.filter((d) => d.id !== dosyaId));
+    } catch (e) {
+      console.error("Dosya silinemedi:", e);
+    }
+  };
+
+  /* ---- Dosya Boyutu Formatla ---- */
+  const dosyaBoyutuFormatla = (boyut) => {
+    if (boyut < 1024) return `${boyut} B`;
+    if (boyut < 1024 * 1024) return `${(boyut / 1024).toFixed(1)} KB`;
+    return `${(boyut / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   /* ============================================= */
@@ -1080,6 +1140,16 @@ export default function BayilerPage() {
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                         </button>
+                        <button onClick={() => git(`/dashboard/bayi-urunleri/${bayi.id}`)} title="Bayi Ürünleri"
+                          className="w-8 h-8 rounded-lg bg-teal-500 hover:bg-teal-600 text-white flex items-center justify-center cursor-pointer transition-colors">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                        </button>
+                        <button onClick={() => setDosyaModal(bayi)} title="Dosyalar"
+                          className="w-8 h-8 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center cursor-pointer transition-colors">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        </button>
                         <button onClick={() => { setNotModal(bayi); setYeniNot(""); setYeniNotOnemli(false); }} title="Notlar"
                           className="w-8 h-8 rounded-lg bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center cursor-pointer transition-colors">
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1367,6 +1437,97 @@ export default function BayilerPage() {
                     <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{new Date(n.olusturma_tarihi || n.tarih).toLocaleString("tr-TR")}</p>
                   </div>
                 ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---- Dosya Modalı ---- */}
+      {dosyaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setDosyaModal(null)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            {/* Başlık */}
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Dosyalar</h3>
+                <p className="text-sm text-gray-500 dark:text-slate-400">{dosyaModal.ad}</p>
+              </div>
+              <button onClick={() => setDosyaModal(null)} className="w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center cursor-pointer text-gray-500 dark:text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            {/* Dosya Yükle */}
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10">
+              <input ref={dosyaInputRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" onChange={bayiDosyaYukle} className="hidden" id="bayi-dosya-input" />
+              <label htmlFor="bayi-dosya-input" className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${
+                dosyaYukleniyor
+                  ? "border-gray-300 dark:border-white/10 bg-gray-50 dark:bg-white/[0.02]"
+                  : "border-emerald-300 dark:border-emerald-500/30 hover:border-emerald-400 dark:hover:border-emerald-500/50 bg-emerald-50 dark:bg-emerald-500/5"
+              }`}>
+                {dosyaYukleniyor ? (
+                  <>
+                    <div className="animate-spin w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full" />
+                    <span className="text-sm text-gray-500 dark:text-slate-400">Yükleniyor...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    <span className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">Dosya Yükle (PDF, PNG, JPG, GIF, WEBP)</span>
+                  </>
+                )}
+              </label>
+            </div>
+            {/* Dosya Listesi */}
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              {dosyalar.length === 0 ? (
+                <p className="text-center text-gray-400 dark:text-slate-500 py-6 text-sm">Henüz dosya yüklenmemiş.</p>
+              ) : (
+                <div className="space-y-2">
+                  {dosyalar.map((d) => (
+                    <div key={d.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.02] hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                          d.dosya_tipi?.includes("pdf") ? "bg-red-100 dark:bg-red-500/10" : "bg-blue-100 dark:bg-blue-500/10"
+                        }`}>
+                          {d.dosya_tipi?.includes("pdf") ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{d.orijinal_ad}</p>
+                          <p className="text-xs text-gray-500 dark:text-slate-400">
+                            {dosyaBoyutuFormatla(Number(d.boyut || 0))} • {new Date(d.yuklenme_tarihi).toLocaleDateString("tr-TR")}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 ml-3">
+                        <a href={`${import.meta.env.VITE_API_URL || "http://localhost:3000/api"}/dosyalar/bayi/${dosyaModal.id}/dosyalar/${d.id}/indir`}
+                          className="w-8 h-8 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-500/10 flex items-center justify-center text-gray-400 hover:text-emerald-500 transition-colors"
+                          title="İndir">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                        </a>
+                        <button onClick={() => bayiDosyaSil(d.id)}
+                          className="w-8 h-8 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/10 flex items-center justify-center text-gray-400 hover:text-red-500 cursor-pointer transition-colors"
+                          title="Sil">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>

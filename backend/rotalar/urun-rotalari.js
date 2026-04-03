@@ -118,6 +118,23 @@ router.get("/gruplar", hataYakala(async (_req, res) => {
 router.post("/gruplar", hataYakala(async (req, res) => {
   const { ad, aciklama, aktif } = req.body;
   if (!ad) return dogrulamaHatasi(res, "Grup adi zorunludur.");
+  
+  /* Çöp kutusunda aynı isimle kayıt var mı kontrol et */
+  const copKutusundaVar = await prisma.urunGrubu.findFirst({
+    where: { ad, silinme_tarihi: { not: null } },
+  });
+  if (copKutusundaVar) {
+    return dogrulamaHatasi(res, `Bu isim cop kutusunda mevcut. Lutfen cop kutusundan kalici olarak silin veya farkli bir isim kullanin.`);
+  }
+  
+  /* Aktif kayıtlarda aynı isim var mı */
+  const mevcutAktif = await prisma.urunGrubu.findFirst({
+    where: { ad, silinme_tarihi: null },
+  });
+  if (mevcutAktif) {
+    return dogrulamaHatasi(res, "Bu isimde bir grup zaten mevcut.");
+  }
+  
   const sonuc = await prisma.urunGrubu.create({ data: { ad, aciklama: aciklama || null, aktif: aktif !== undefined ? (aktif ? 1 : 0) : 1 } });
   res.status(201).json({ basarili: true, mesaj: "Grup eklendi.", id: sonuc.id });
 }));

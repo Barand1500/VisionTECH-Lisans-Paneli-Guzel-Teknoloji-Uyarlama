@@ -700,8 +700,8 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
   // Paket tiplerini API'den yükle
   const paketTipleriniYukle = async () => {
     try {
-      const veri = await apiGet("/paket-tipleri");
-      setPaketTipleri(veri);
+      const res = await apiGet("/paket-tipleri");
+      setPaketTipleri(res.veri || res || []);
     } catch { setPaketTipleri([]); }
   };
   useEffect(() => { paketTipleriniYukle(); }, []);

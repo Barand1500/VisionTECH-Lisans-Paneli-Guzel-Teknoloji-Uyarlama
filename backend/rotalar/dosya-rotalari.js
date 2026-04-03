@@ -72,6 +72,56 @@ router.delete("/:musteriId/dosyalar/:dosyaId", yetkiKontrol, hataYakala(async (r
   res.json({ basarili: true, mesaj: "Dosya silindi." });
 }));
 
+/* =============================================
+   BAYI DOSYALARI ENDPOINT'LERI
+   ============================================= */
+
+/* ---- Bayi Dosyalarını Listele ---- */
+router.get("/bayi/:bayiId/dosyalar", yetkiKontrol, hataYakala(async (req, res) => {
+  const dosyalar = await prisma.bayiDosya.findMany({
+    where: { bayi_id: Number(req.params.bayiId) },
+    select: { id: true, dosya_adi: true, orijinal_ad: true, dosya_tipi: true, boyut: true, yuklenme_tarihi: true },
+    orderBy: { yuklenme_tarihi: "desc" },
+  });
+  res.json({ basarili: true, veri: temizle(dosyalar) });
+}));
+
+/* ---- Bayi Dosya Yükle (çoklu) ---- */
+router.post("/bayi/:bayiId/dosyalar", yetkiKontrol, yukleme.array("dosyalar", 10), hataYakala(async (req, res) => {
+  const bayiId = Number(req.params.bayiId);
+  const bayi = await prisma.bayi.findUnique({ where: { id: bayiId }, select: { id: true } });
+  if (!bayi) return bulunamadiHatasi(res, "Bayi bulunamadı.");
+  if (!req.files || req.files.length === 0) return dogrulamaHatasi(res, "Yüklenecek dosya bulunamadı.");
+
+  const eklenen = [];
+  for (const dosya of req.files) {
+    const sonuc = await prisma.bayiDosya.create({
+      data: { bayi_id: bayiId, dosya_adi: dosya.filename, orijinal_ad: dosya.originalname, dosya_tipi: dosya.mimetype, boyut: BigInt(dosya.size) },
+    });
+    eklenen.push({ id: sonuc.id, dosya_adi: dosya.filename, orijinal_ad: dosya.originalname });
+  }
+  res.status(201).json({ basarili: true, mesaj: `${eklenen.length} dosya yüklendi.`, veri: eklenen });
+}));
+
+/* ---- Bayi Dosya İndir ---- */
+router.get("/bayi/:bayiId/dosyalar/:dosyaId/indir", yetkiKontrol, hataYakala(async (req, res) => {
+  const dosya = await prisma.bayiDosya.findUnique({ where: { id: Number(req.params.dosyaId) }, select: { dosya_adi: true, orijinal_ad: true } });
+  if (!dosya) return bulunamadiHatasi(res, "Dosya bulunamadı.");
+  const dosyaYolu = path.join(UPLOAD_DIR, dosya.dosya_adi);
+  if (!fs.existsSync(dosyaYolu)) return bulunamadiHatasi(res, "Dosya sunucuda bulunamadı.");
+  res.download(dosyaYolu, dosya.orijinal_ad);
+}));
+
+/* ---- Bayi Dosya Sil ---- */
+router.delete("/bayi/:bayiId/dosyalar/:dosyaId", yetkiKontrol, hataYakala(async (req, res) => {
+  const dosya = await prisma.bayiDosya.findUnique({ where: { id: Number(req.params.dosyaId) }, select: { dosya_adi: true } });
+  if (!dosya) return bulunamadiHatasi(res, "Dosya bulunamadı.");
+  const dosyaYolu = path.join(UPLOAD_DIR, dosya.dosya_adi);
+  if (fs.existsSync(dosyaYolu)) fs.unlinkSync(dosyaYolu);
+  await prisma.bayiDosya.delete({ where: { id: Number(req.params.dosyaId) } });
+  res.json({ basarili: true, mesaj: "Dosya silindi." });
+}));
+
 router.use((hata, req, res, next) => {
   if (hata instanceof multer.MulterError) {
     if (hata.code === "LIMIT_FILE_SIZE") return res.status(400).json({ basarili: false, mesaj: "Dosya boyutu 10 MB'ı aşamaz." });
