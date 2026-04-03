@@ -11,7 +11,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMusteriler } from "../baglam/MusteriContext";
 import { useAktiviteLog } from "../baglam/AktiviteLogContext";
-import { apiGet } from "../yardimcilar/api";
+import { apiGet, apiPut } from "../yardimcilar/api";
 import KopyalaButonu from "../bilesenler/KopyalaButonu";
 
 /* ---- Sekme Tanımları ---- */
@@ -160,6 +160,273 @@ function MusteriAgacDugumu({ musteri, tumMusteriler, seviye = 0, odakliId, setOd
 }
 
 /* ============================================= */
+/*  Müşteri Paket Hiyerarşisi Düğümü             */
+/* ============================================= */
+
+function MusteriPaketDugumu({ musteri, lisanslar, genislemis, setGenislemis, onUzat }) {
+  const musteriLisanslari = lisanslar.filter((l) => String(l.musteri_id) === String(musteri.id));
+  const acik = genislemis.has(musteri.id);
+  
+  const tarihGoster = (iso) => {
+    if (!iso) return "-";
+    const d = new Date(iso);
+    return d.toLocaleDateString("tr-TR");
+  };
+
+  const kalanGun = (bitisTarihi) => {
+    if (!bitisTarihi) return null;
+    const fark = Math.ceil((new Date(bitisTarihi) - new Date()) / (1000 * 60 * 60 * 24));
+    return fark;
+  };
+
+  const tipRenk = (tur) => {
+    if (tur === "gercek") return "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400";
+    if (tur === "tuzel") return "bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400";
+    return "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400";
+  };
+
+  return (
+    <div className="border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden bg-white dark:bg-white/[0.02] mb-3">
+      {/* Müşteri Başlığı */}
+      <div
+        onClick={() => setGenislemis((prev) => {
+          const yeni = new Set(prev);
+          if (yeni.has(musteri.id)) yeni.delete(musteri.id);
+          else yeni.add(musteri.id);
+          return yeni;
+        })}
+        className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+      >
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${tipRenk(musteri.tur)}`}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            {musteri.tur === "tuzel" ? (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            )}
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-gray-900 dark:text-white">{musteriAdiGetir(musteri)}</p>
+          <p className="text-xs text-gray-500 dark:text-slate-400">{musteri.eposta || "E-posta yok"}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+            musteri.durum === "aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-500"
+          }`}>
+            {musteri.durum === "aktif" ? "Aktif" : "Pasif"}
+          </span>
+          <span className="text-xs bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 px-2.5 py-1 rounded-full font-medium">
+            {musteriLisanslari.length} Paket
+          </span>
+          <svg xmlns="http://www.w3.org/2000/svg" className={`w-5 h-5 text-gray-400 transition-transform ${acik ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Paketler */}
+      {acik && (
+        <div className="border-t border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-white/[0.01]">
+          {musteriLisanslari.length > 0 ? (
+            <div className="divide-y divide-gray-100 dark:divide-white/5">
+              {musteriLisanslari.map((lisans) => {
+                const kalan = kalanGun(lisans.bitis_tarihi);
+                const suresiGecmis = kalan !== null && kalan < 0;
+                const sureAz = kalan !== null && kalan >= 0 && kalan <= 30;
+                return (
+                  <div key={lisans.id} className={`flex items-center gap-4 p-4 pl-16 ${suresiGecmis ? "bg-red-50/50 dark:bg-red-500/5" : ""}`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium text-gray-900 dark:text-white">{lisans.urun_adi || "Ürün"}</span>
+                        <span className="text-gray-400 dark:text-slate-500">•</span>
+                        <span className="text-gray-600 dark:text-slate-400">{lisans.paket_adi || "Paket"}</span>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-slate-400">
+                        <span>{tarihGoster(lisans.baslangic_tarihi)} → {tarihGoster(lisans.bitis_tarihi)}</span>
+                        {lisans.domain && <span className="text-blue-600 dark:text-blue-400">{lisans.domain}</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-sm font-medium ${
+                        suresiGecmis ? "text-red-600 dark:text-red-400" : sureAz ? "text-amber-600 dark:text-amber-400" : "text-gray-600 dark:text-slate-400"
+                      }`}>
+                        {kalan !== null ? (kalan < 0 ? `${Math.abs(kalan)} gün geçti` : `${kalan} gün kaldı`) : "-"}
+                      </span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {Number(lisans.fiyat || 0).toLocaleString("tr-TR")} ₺
+                      </span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onUzat(lisans); }}
+                        className="px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
+                      >
+                        Uzat
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="p-4 pl-16 text-sm text-gray-400 dark:text-slate-500">Bu müşterinin paketi bulunmamaktadır.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================= */
+/*  Bayi Müşteri Hiyerarşisi Düğümü              */
+/* ============================================= */
+
+function BayiMusteriDugumu({ bayi, musteriler, tumLisanslar, genislemis, setGenislemis, onUzat }) {
+  const acik = genislemis.has(`bayi-${bayi.id}`);
+  const bayiMusterileri = musteriler || [];
+
+  const tarihGoster = (iso) => {
+    if (!iso) return "-";
+    const d = new Date(iso);
+    return d.toLocaleDateString("tr-TR");
+  };
+
+  const kalanGun = (bitisTarihi) => {
+    if (!bitisTarihi) return null;
+    const fark = Math.ceil((new Date(bitisTarihi) - new Date()) / (1000 * 60 * 60 * 24));
+    return fark;
+  };
+
+  return (
+    <div className="border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden bg-white dark:bg-white/[0.02] mb-3">
+      {/* Bayi Başlığı */}
+      <div
+        onClick={() => setGenislemis((prev) => {
+          const yeni = new Set(prev);
+          const key = `bayi-${bayi.id}`;
+          if (yeni.has(key)) yeni.delete(key);
+          else yeni.add(key);
+          return yeni;
+        })}
+        className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-500/5 dark:to-violet-500/5"
+      >
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-purple-100 dark:bg-purple-500/20">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-gray-900 dark:text-white">{bayi.firma_adi || bayi.ad || "Bayi"}</p>
+          <p className="text-xs text-gray-500 dark:text-slate-400">{bayi.sehir || "Şehir belirtilmemiş"}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+            bayi.durum === "aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-500"
+          }`}>
+            {bayi.durum === "aktif" ? "Aktif" : "Pasif"}
+          </span>
+          <span className="text-xs bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400 px-2.5 py-1 rounded-full font-medium">
+            {bayiMusterileri.length} Müşteri
+          </span>
+          <svg xmlns="http://www.w3.org/2000/svg" className={`w-5 h-5 text-gray-400 transition-transform ${acik ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Müşteriler ve Paketleri */}
+      {acik && (
+        <div className="border-t border-gray-200 dark:border-white/10 bg-gray-50/30 dark:bg-white/[0.01]">
+          {bayiMusterileri.length > 0 ? (
+            <div className="divide-y divide-gray-100 dark:divide-white/5">
+              {bayiMusterileri.map((musteri) => {
+                const musteriLisanslari = tumLisanslar.filter((l) => String(l.musteri_id) === String(musteri.id));
+                const musteriAcik = genislemis.has(`bayi-musteri-${musteri.id}`);
+                return (
+                  <div key={musteri.id}>
+                    {/* Müşteri Satırı */}
+                    <div
+                      onClick={() => setGenislemis((prev) => {
+                        const yeni = new Set(prev);
+                        const key = `bayi-musteri-${musteri.id}`;
+                        if (yeni.has(key)) yeni.delete(key);
+                        else yeni.add(key);
+                        return yeni;
+                      })}
+                      className="flex items-center gap-3 p-3 pl-8 cursor-pointer hover:bg-white dark:hover:bg-white/5"
+                    >
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-blue-100 dark:bg-blue-500/20">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{musteri.ad_soyad || musteri.sirket_adi || "Müşteri"}</p>
+                        <p className="text-xs text-gray-400 dark:text-slate-500">{musteri.eposta || "-"}</p>
+                      </div>
+                      <span className="text-xs bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full">
+                        {musteriLisanslari.length} Paket
+                      </span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className={`w-4 h-4 text-gray-400 transition-transform ${musteriAcik ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+
+                    {/* Müşterinin Paketleri */}
+                    {musteriAcik && musteriLisanslari.length > 0 && (
+                      <div className="bg-gray-100/50 dark:bg-black/20 border-t border-gray-100 dark:border-white/5">
+                        {musteriLisanslari.map((lisans) => {
+                          const kalan = kalanGun(lisans.bitis_tarihi);
+                          const suresiGecmis = kalan !== null && kalan < 0;
+                          const sureAz = kalan !== null && kalan >= 0 && kalan <= 30;
+                          return (
+                            <div key={lisans.id} className={`flex items-center gap-4 p-3 pl-20 border-b border-gray-100 dark:border-white/5 last:border-b-0 ${suresiGecmis ? "bg-red-50/50 dark:bg-red-500/5" : ""}`}>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-gray-800 dark:text-slate-200">{lisans.urun_adi || "Ürün"}</span>
+                                  <span className="text-gray-300 dark:text-slate-600">•</span>
+                                  <span className="text-sm text-gray-500 dark:text-slate-400">{lisans.paket_adi || "Paket"}</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+                                  <span>{tarihGoster(lisans.bitis_tarihi)}</span>
+                                  {lisans.domain && <span className="text-blue-500">{lisans.domain}</span>}
+                                </div>
+                              </div>
+                              <span className={`text-xs font-medium ${
+                                suresiGecmis ? "text-red-600 dark:text-red-400" : sureAz ? "text-amber-600 dark:text-amber-400" : "text-gray-500"
+                              }`}>
+                                {kalan !== null ? (kalan < 0 ? `${Math.abs(kalan)} gün geçti` : `${kalan} gün`) : "-"}
+                              </span>
+                              <span className="text-sm font-semibold text-gray-800 dark:text-white">
+                                {Number(lisans.fiyat || 0).toLocaleString("tr-TR")} ₺
+                              </span>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); onUzat(lisans); }}
+                                className="px-2.5 py-1 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
+                              >
+                                Uzat
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {musteriAcik && musteriLisanslari.length === 0 && (
+                      <p className="pl-20 py-2 text-xs text-gray-400 dark:text-slate-500">Paket bulunmamaktadır.</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="p-4 pl-8 text-sm text-gray-400 dark:text-slate-500">Bu bayinin müşterisi bulunmamaktadır.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================= */
 /*  Ana Bileşen                                   */
 /* ============================================= */
 
@@ -219,13 +486,44 @@ export default function MusterilerPage() {
   const [aktifGorunum, setAktifGorunum] = useState("tablo");
   const [odakliId, setOdakliId] = useState(null);
 
+  /* Hiyerarşi modu: musteriPaketleri veya bayiMusterileri */
+  const [hiyerarsiMod, setHiyerarsiMod] = useState("musteriPaketleri");
+  const [tumLisanslar, setTumLisanslar] = useState([]);
+  const [lisanslarYukleniyor, setLisanslarYukleniyor] = useState(false);
+  const [uzatModal, setUzatModal] = useState(null);
+  const [genislemisler, setGenislemisler] = useState(new Set());
+
   /* Bayi listesi (Düzenle modalında kullanılır) */
   const [bayiListesi, setBayiListesi] = useState([]);
+  const [bayiMusterileri, setBayiMusterileri] = useState({});
+
   useEffect(() => {
     apiGet("/bayiler").then((yanit) => {
-      if (yanit?.veri) setBayiListesi(yanit.veri);
+      if (yanit?.veri) {
+        setBayiListesi(yanit.veri);
+        /* Her bayinin müşterilerini yükle */
+        yanit.veri.forEach((bayi) => {
+          apiGet(`/bayiler/${bayi.id}/musteriler`).then((res) => {
+            if (res?.veri) {
+              setBayiMusterileri((prev) => ({ ...prev, [bayi.id]: res.veri }));
+            }
+          }).catch(() => {});
+        });
+      }
     }).catch(() => {});
   }, []);
+
+  /* Tüm lisansları yükle (hiyerarşi görünümü için) */
+  useEffect(() => {
+    if (aktifGorunum === "hiyerarsi") {
+      setLisanslarYukleniyor(true);
+      apiGet("/lisanslar").then((res) => {
+        if (res?.basarili && res.veri) {
+          setTumLisanslar(res.veri);
+        }
+      }).catch(() => {}).finally(() => setLisanslarYukleniyor(false));
+    }
+  }, [aktifGorunum]);
 
   /* Etiket dropdown ref'i */
   const etiketDropdownRef = useRef(null);
@@ -1213,20 +1511,99 @@ export default function MusterilerPage() {
           {/* Hiyerarşi Ağacı Görünümü */}
           {aktifGorunum === "hiyerarsi" && (
             <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Müşteri Hiyerarşisi</h3>
-                {odakliId !== null && (
-                  <button onClick={() => setOdakliId(null)}
-                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 cursor-pointer font-medium">Odağı Kaldır</button>
-                )}
+              {/* Hiyerarşi Mod Toggle */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-lg border border-gray-200 dark:border-white/10">
+                    <button 
+                      onClick={() => setHiyerarsiMod("musteriPaketleri")}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer flex items-center gap-2 ${
+                        hiyerarsiMod === "musteriPaketleri" 
+                          ? "bg-white dark:bg-white/10 text-blue-600 dark:text-blue-400 shadow-sm" 
+                          : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300"
+                      }`}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      Müşteri Paketleri
+                    </button>
+                    <button 
+                      onClick={() => setHiyerarsiMod("bayiMusterileri")}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer flex items-center gap-2 ${
+                        hiyerarsiMod === "bayiMusterileri" 
+                          ? "bg-white dark:bg-white/10 text-purple-600 dark:text-purple-400 shadow-sm" 
+                          : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300"
+                      }`}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      Bayi Müşterileri
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {genislemisler.size > 0 && (
+                    <button onClick={() => setGenislemisler(new Set())}
+                      className="text-xs text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 cursor-pointer font-medium">
+                      Tümünü Kapat
+                    </button>
+                  )}
+                  {lisanslarYukleniyor && (
+                    <span className="text-xs text-gray-400 dark:text-slate-500 flex items-center gap-1">
+                      <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Yükleniyor...
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="space-y-1">
-                {kokMusteriler.length > 0 ? kokMusteriler.map((m) => (
-                  <MusteriAgacDugumu key={m.id} musteri={m} tumMusteriler={musteriler} odakliId={odakliId} setOdakliId={setOdakliId} />
-                )) : (
-                  <p className="text-center text-gray-400 dark:text-slate-500 py-8">Henüz müşteri kaydı bulunmamaktadır.</p>
-                )}
-              </div>
+
+              {/* Müşteri Paketleri Görünümü */}
+              {hiyerarsiMod === "musteriPaketleri" && (
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mb-4">Müşterilere tıklayarak paketlerini görüntüleyebilirsiniz.</p>
+                  <div className="space-y-0">
+                    {musteriler.length > 0 ? musteriler.filter(m => m.durum === "aktif").map((m) => (
+                      <MusteriPaketDugumu 
+                        key={m.id} 
+                        musteri={m} 
+                        lisanslar={tumLisanslar} 
+                        genislemis={genislemisler} 
+                        setGenislemis={setGenislemisler}
+                        onUzat={(lisans) => setUzatModal(lisans)}
+                      />
+                    )) : (
+                      <p className="text-center text-gray-400 dark:text-slate-500 py-8">Henüz müşteri kaydı bulunmamaktadır.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Bayi Müşterileri Görünümü */}
+              {hiyerarsiMod === "bayiMusterileri" && (
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mb-4">Bayilere tıklayarak müşterilerini ve paketlerini görüntüleyebilirsiniz.</p>
+                  <div className="space-y-0">
+                    {bayiListesi.length > 0 ? bayiListesi.filter(b => b.durum === "aktif").map((bayi) => (
+                      <BayiMusteriDugumu 
+                        key={bayi.id} 
+                        bayi={bayi} 
+                        musteriler={bayiMusterileri[bayi.id] || []}
+                        tumLisanslar={tumLisanslar}
+                        genislemis={genislemisler} 
+                        setGenislemis={setGenislemisler}
+                        onUzat={(lisans) => setUzatModal(lisans)}
+                      />
+                    )) : (
+                      <p className="text-center text-gray-400 dark:text-slate-500 py-8">Henüz bayi kaydı bulunmamaktadır.</p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
       </div>
@@ -1536,6 +1913,246 @@ export default function MusterilerPage() {
           </div>
         </div>
       )}
+
+      {/* ---- Paket Uzatma Modalı ---- */}
+      {uzatModal && <UzatModalBilesen lisans={uzatModal} onKapat={() => setUzatModal(null)} onBasarili={(guncellenen) => {
+        setTumLisanslar((prev) => prev.map((l) => l.id === guncellenen.id ? { ...l, ...guncellenen } : l));
+        setUzatModal(null);
+      }} />}
+    </div>
+  );
+}
+
+/* ============================================= */
+/*  Paket Uzatma Modalı                          */
+/* ============================================= */
+
+function UzatModalBilesen({ lisans, onKapat, onBasarili }) {
+  const [uzatmaGun, setUzatmaGun] = useState(365);
+  const [ucretAlindi, setUcretAlindi] = useState(false);
+  const [yeniFiyat, setYeniFiyat] = useState(lisans.fiyat || 0);
+  const [faturaNo, setFaturaNo] = useState("");
+  const [faturaTarihi, setFaturaTarihi] = useState(new Date().toISOString().slice(0, 10));
+  const [notlar, setNotlar] = useState("");
+  const [yukleniyor, setYukleniyor] = useState(false);
+  const [hata, setHata] = useState(null);
+
+  const mevcutBitis = lisans.bitis_tarihi ? new Date(lisans.bitis_tarihi) : new Date();
+  const yeniBitis = new Date(mevcutBitis);
+  yeniBitis.setDate(yeniBitis.getDate() + Number(uzatmaGun));
+  const yeniBitisStr = yeniBitis.toISOString().slice(0, 10);
+
+  const tarihGoster = (iso) => {
+    if (!iso) return "-";
+    const d = new Date(iso);
+    return d.toLocaleDateString("tr-TR");
+  };
+
+  const uzatmaYap = async () => {
+    setYukleniyor(true);
+    setHata(null);
+    try {
+      const res = await apiPut(`/lisanslar/${lisans.id}`, {
+        bitis_tarihi: yeniBitisStr,
+        fiyat: Number(yeniFiyat),
+        fatura_no: faturaNo || null,
+        fatura_tarihi: faturaTarihi || null,
+        odeme_durumu: ucretAlindi ? "odendi" : "odenmedi",
+        notlar: notlar || lisans.notlar,
+      });
+      if (res.basarili) {
+        onBasarili({
+          id: lisans.id,
+          bitis_tarihi: yeniBitisStr,
+          fiyat: Number(yeniFiyat),
+          fatura_no: faturaNo,
+          odeme_durumu: ucretAlindi ? "odendi" : "odenmedi",
+        });
+      } else {
+        setHata(res.mesaj || "Bir hata oluştu");
+      }
+    } catch (err) {
+      setHata("Bağlantı hatası");
+    } finally {
+      setYukleniyor(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onKapat}>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+        {/* Başlık */}
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-t-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white">Paket Uzatma</h3>
+              <p className="text-emerald-100 text-sm">{lisans.urun_adi} - {lisans.paket_adi}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* İçerik */}
+        <div className="p-6 space-y-5">
+          {/* Mevcut Durum */}
+          <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+            <div>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mb-1">Mevcut Bitiş</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">{tarihGoster(lisans.bitis_tarihi)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mb-1">Mevcut Fiyat</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">{Number(lisans.fiyat || 0).toLocaleString("tr-TR")} ₺</p>
+            </div>
+          </div>
+
+          {/* Uzatma Süresi */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-2">Uzatma Süresi</label>
+            <div className="grid grid-cols-4 gap-2">
+              {[30, 90, 180, 365].map((gun) => (
+                <button
+                  key={gun}
+                  type="button"
+                  onClick={() => setUzatmaGun(gun)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                    uzatmaGun === gun
+                      ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/25"
+                      : "bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-white/10"
+                  }`}
+                >
+                  {gun} Gün
+                </button>
+              ))}
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-xs text-gray-500 dark:text-slate-400">veya</span>
+              <input
+                type="number"
+                value={uzatmaGun}
+                onChange={(e) => setUzatmaGun(Math.max(1, Number(e.target.value)))}
+                className="w-24 px-3 py-1.5 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-sm text-gray-900 dark:text-white"
+                min="1"
+              />
+              <span className="text-xs text-gray-500 dark:text-slate-400">gün</span>
+            </div>
+          </div>
+
+          {/* Yeni Bitiş */}
+          <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-emerald-700 dark:text-emerald-400">Yeni Bitiş Tarihi:</span>
+              <span className="text-sm font-bold text-emerald-800 dark:text-emerald-300">{tarihGoster(yeniBitisStr)}</span>
+            </div>
+          </div>
+
+          {/* Fiyat ve Ücret */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Uzatma Ücreti (₺)</label>
+              <input
+                type="number"
+                value={yeniFiyat}
+                onChange={(e) => setYeniFiyat(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-sm text-gray-900 dark:text-white"
+                min="0"
+                step="0.01"
+              />
+            </div>
+            <div className="flex items-end pb-1">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={ucretAlindi}
+                  onChange={(e) => setUcretAlindi(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                />
+                <span className="text-sm text-gray-700 dark:text-slate-300">Ücret alındı</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Fatura Bilgileri */}
+          {ucretAlindi && (
+            <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20">
+              <div>
+                <label className="block text-xs font-medium text-blue-700 dark:text-blue-400 mb-1">Fatura No</label>
+                <input
+                  type="text"
+                  value={faturaNo}
+                  onChange={(e) => setFaturaNo(e.target.value)}
+                  placeholder="FAT-2024-001"
+                  className="w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 border border-blue-300 dark:border-blue-500/30 text-sm text-gray-900 dark:text-white placeholder-blue-300 dark:placeholder-blue-400/50"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-blue-700 dark:text-blue-400 mb-1">Fatura Tarihi</label>
+                <input
+                  type="date"
+                  value={faturaTarihi}
+                  onChange={(e) => setFaturaTarihi(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 border border-blue-300 dark:border-blue-500/30 text-sm text-gray-900 dark:text-white"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Notlar */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Notlar (Opsiyonel)</label>
+            <textarea
+              value={notlar}
+              onChange={(e) => setNotlar(e.target.value)}
+              rows={2}
+              placeholder="Uzatma ile ilgili notlar..."
+              className="w-full px-3 py-2 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 resize-none"
+            />
+          </div>
+
+          {/* Hata */}
+          {hata && (
+            <div className="p-3 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">
+              <p className="text-sm text-red-600 dark:text-red-400">{hata}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Butonlar */}
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-white/10 flex items-center justify-end gap-3">
+          <button
+            onClick={onKapat}
+            className="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors"
+          >
+            İptal
+          </button>
+          <button
+            onClick={uzatmaYap}
+            disabled={yukleniyor}
+            className="px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold cursor-pointer transition-colors flex items-center gap-2"
+          >
+            {yukleniyor ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                İşleniyor...
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Uzat
+              </>
+            )}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

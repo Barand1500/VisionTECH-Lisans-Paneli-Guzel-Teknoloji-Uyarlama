@@ -150,6 +150,9 @@ export default function BayilerPage() {
   const [dosyalar, setDosyalar] = useState([]);
   const [dosyaYukleniyor, setDosyaYukleniyor] = useState(false);
 
+  /* ---- Lisans Belgesi Modalı ---- */
+  const [lisansBelgesiModal, setLisansBelgesiModal] = useState(null);
+
   /* ---- Bayi Ürünleri/Lisansları Modalı ---- */
   const [urunlerModal, setUrunlerModal] = useState(null);
   const [bayiLisanslar, setBayiLisanslar] = useState([]);
@@ -1224,10 +1227,10 @@ export default function BayilerPage() {
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                         </button>
-                        <button onClick={() => setDosyaModal(bayi)} title="Dosyalar"
+                        <button onClick={() => setLisansBelgesiModal(bayi)} title="Lisans Belgesi"
                           className="w-8 h-8 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center cursor-pointer transition-colors">
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         </button>
                         <button onClick={() => { setNotModal(bayi); setYeniNot(""); setYeniNotOnemli(false); }} title="Notlar"
                           className="w-8 h-8 rounded-lg bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center cursor-pointer transition-colors">
@@ -1629,15 +1632,15 @@ export default function BayilerPage() {
             </div>
             {/* Ürün Listesi */}
             <div className="flex-1 overflow-y-auto px-6 py-4">
-              {bayiUrunlerYukleniyor ? (
+              {bayiLisanslarYukleniyor ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full" />
                 </div>
-              ) : bayiUrunler.length === 0 ? (
+              ) : bayiLisanslar.length === 0 ? (
                 <p className="text-center text-gray-400 dark:text-slate-500 py-8 text-sm">Bu bayiye tanımlı ürün bulunmuyor.</p>
               ) : (
                 <div className="space-y-3">
-                  {bayiUrunler.map((u) => (
+                  {bayiLisanslar.map((u) => (
                     <div key={u.id} className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.02] hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-teal-100 dark:bg-teal-500/10 flex items-center justify-center">
@@ -1645,19 +1648,23 @@ export default function BayilerPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white">{u.urun?.ad || u.urunAdi || "Ürün"}</p>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">{u.urun || "Ürün"}</p>
                           <p className="text-xs text-gray-500 dark:text-slate-400">
-                            {u.fiyat ? `₺${Number(u.fiyat).toLocaleString("tr-TR")}` : "Fiyat belirtilmemiş"}
-                            {u.komisyon ? ` • %${u.komisyon} komisyon` : ""}
+                            {u.paket && <span className="mr-2">📦 {u.paket}</span>}
+                            {u.domain && <span className="mr-2">🌐 {u.domain}</span>}
+                          </p>
+                          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+                            {u.bitisTarihi && `Bitiş: ${new Date(u.bitisTarihi).toLocaleDateString("tr-TR")}`}
+                            {u.fiyat > 0 && ` • ₺${Number(u.fiyat).toLocaleString("tr-TR")}`}
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          u.aktif ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                          u.durum === "aktif" ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                             : "bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-slate-400"
                         }`}>
-                          {u.aktif ? "Aktif" : "Pasif"}
+                          {u.durum === "aktif" ? "Aktif" : "Pasif"}
                         </span>
                       </div>
                     </div>
@@ -1668,6 +1675,95 @@ export default function BayilerPage() {
           </div>
         </div>
       )}
+
+      {/* ---- Lisans Belgesi Modalı ---- */}
+      {lisansBelgesiModal && (() => {
+        const b = lisansBelgesiModal;
+        const bugun = new Date().toLocaleDateString("tr-TR", { day: "2-digit", month: "long", year: "numeric" });
+        const belgeNo = `GT-B${String(b.id).padStart(4, "0")}-${new Date().getFullYear()}`;
+        
+        const tipEtiketBelge = (tur) => {
+          if (tur === "gercek") return "Gerçek Kişi";
+          if (tur === "tuzel") return "Tüzel Kişi";
+          return "Yabancı";
+        };
+
+        const yazdir = () => {
+          const pencere = window.open("", "_blank");
+          if (!pencere) return;
+          pencere.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Bayi Lisans Belgesi - ${b.ad}</title>
+            <style>body{font-family:Arial,sans-serif;padding:40px;max-width:700px;margin:0 auto;color:#1a1a1a}.header{text-align:center;border-bottom:3px solid #10b981;padding-bottom:20px;margin-bottom:30px}.header h1{color:#10b981;margin:0;font-size:24px}.header p{color:#666;margin:5px 0 0}.info{margin:20px 0}.info table{width:100%;border-collapse:collapse}.info td{padding:8px 12px;border:1px solid #e5e7eb;font-size:14px}.info td:first-child{background:#f9fafb;font-weight:600;width:40%}.footer{margin-top:40px;text-align:center;color:#666;font-size:12px;border-top:1px solid #e5e7eb;padding-top:20px}.badge{display:inline-block;padding:4px 16px;border-radius:20px;font-size:13px;font-weight:600}.aktif{background:#d1fae5;color:#065f46}.pasif{background:#fee2e2;color:#991b1b}</style></head><body>
+            <div class="header"><h1>GÜZEL TEKNOLOJİ</h1><p>Bayi Lisans Belgesi</p></div>
+            <div class="info"><table>
+              <tr><td>Belge No</td><td>${belgeNo}</td></tr>
+              <tr><td>Bayi Adı</td><td>${b.ad}</td></tr>
+              <tr><td>Bayi Tipi</td><td>${tipEtiketBelge(b.tur)}</td></tr>
+              ${b.yetkili ? `<tr><td>Yetkili Kişi</td><td>${b.yetkili}</td></tr>` : ""}
+              ${b.vergiNo ? `<tr><td>Vergi No</td><td>${b.vergiNo}</td></tr>` : ""}
+              ${b.tcKimlikNo ? `<tr><td>TC Kimlik No</td><td>${b.tcKimlikNo}</td></tr>` : ""}
+              <tr><td>E-posta</td><td>${b.eposta || "-"}</td></tr>
+              <tr><td>Telefon</td><td>${b.telefon || "-"}</td></tr>
+              <tr><td>Durum</td><td><span class="badge ${b.durum === "aktif" ? "aktif" : "pasif"}">${b.durum === "aktif" ? "Aktif" : "Pasif"}</span></td></tr>
+              <tr><td>Tarih</td><td>${bugun}</td></tr>
+            </table></div>
+            <div class="footer"><p>Bu belge Güzel Teknoloji Yönetim Paneli tarafından oluşturulmuştur.</p><p>&copy; ${new Date().getFullYear()} Güzel Teknoloji</p></div>
+            </body></html>`);
+          pencere.document.close();
+          pencere.print();
+        };
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setLisansBelgesiModal(null)}>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-xl mx-4 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Bayi Lisans Belgesi</h3>
+                <button onClick={() => setLisansBelgesiModal(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white cursor-pointer">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+              <div className="p-6">
+                <div className="border border-gray-200 dark:border-white/10 rounded-xl p-6 bg-gray-50 dark:bg-white/[0.02]">
+                  <div className="text-center mb-6 pb-4 border-b-2 border-emerald-600">
+                    <h4 className="text-xl font-bold text-emerald-600">GÜZEL TEKNOLOJİ</h4>
+                    <p className="text-sm text-gray-500 dark:text-slate-400">Bayi Lisans Belgesi</p>
+                  </div>
+                  <div className="space-y-3 text-sm">
+                    {[
+                      ["Belge No", <span key="belge" className="font-mono">{belgeNo}</span>],
+                      ["Bayi Adı", b.ad],
+                      ["Tip", <span key="tip" className={`px-2 py-0.5 rounded-full text-xs font-medium ${b.tur === "tuzel" ? "bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-400" : b.tur === "gercek" ? "bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400" : "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400"}`}>{tipEtiketBelge(b.tur)}</span>],
+                      b.yetkili && ["Yetkili", b.yetkili],
+                      b.eposta && ["E-posta", b.eposta],
+                      b.telefon && ["Telefon", b.telefon],
+                      ["Durum", <span key="durum" className={`px-2 py-0.5 rounded-full text-xs font-medium ${b.durum === "aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400"}`}>{b.durum === "aktif" ? "Aktif" : "Pasif"}</span>],
+                      ["Tarih", bugun],
+                    ].filter(Boolean).map(([label, val], i) => (
+                      <div key={i} className="flex justify-between py-2 border-b border-gray-100 dark:border-white/5">
+                        <span className="font-medium text-gray-600 dark:text-slate-400">{label}</span>
+                        <span className="text-gray-900 dark:text-white">{val}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-6 pt-4 border-t border-gray-200 dark:border-white/10 text-center">
+                    <p className="text-xs text-gray-400 dark:text-slate-500">Güzel Teknoloji Yönetim Paneli tarafından oluşturulmuştur.</p>
+                  </div>
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-white/10 flex justify-end gap-3">
+                <button onClick={() => setLisansBelgesiModal(null)}
+                  className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer">Kapat</button>
+                <button onClick={yazdir}
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold cursor-pointer inline-flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                  İndir / Yazdır
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

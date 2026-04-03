@@ -1141,20 +1141,32 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                 {/* Versiyon */}
                 <div>
                   <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Varsayılan Versiyon</label>
-                  <input 
-                    type="text" 
-                    value={form.versiyon} 
-                    onChange={(e) => guncelle("versiyon", versiyonFormatla(e.target.value))} 
-                    placeholder="Örn: 1.0.0" 
-                    className={INPUT_STIL} 
-                  />
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="text" 
+                      value={form.versiyon} 
+                      onChange={(e) => guncelle("versiyon", versiyonFormatla(e.target.value))} 
+                      placeholder="Örn: 1.0.0" 
+                      className={INPUT_STIL + " flex-1"} 
+                    />
+                    {mevcutSurumBilgisi && (
+                      <button
+                        type="button"
+                        onClick={() => guncelle("versiyon", mevcutSurumBilgisi.onerilen)}
+                        className="px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold transition-colors cursor-pointer shrink-0"
+                        title={`Önerilen versiyona ayarla: ${mevcutSurumBilgisi.onerilen}`}
+                      >
+                        +
+                      </button>
+                    )}
+                  </div>
                   {mevcutSurumBilgisi && (
                     <div className="mt-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
                       <p className="text-[10px] text-amber-700 dark:text-amber-400">
                         <span className="font-semibold">{mevcutSurumBilgisi.urun}</span> için mevcut sürüm: <span className="font-mono font-bold">{mevcutSurumBilgisi.surum}</span>
-                      </p>
-                      <p className="text-[10px] text-amber-600 dark:text-amber-300 mt-0.5">
-                        Önerilen: <span className="font-mono font-bold">{mevcutSurumBilgisi.onerilen}</span>
+                        <span className="mx-2">→</span>
+                        Önerilen: <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{mevcutSurumBilgisi.onerilen}</span>
+                        <span className="text-[9px] ml-2 opacity-70">(+ butonuna tıklayarak uygulayın)</span>
                       </p>
                     </div>
                   )}
