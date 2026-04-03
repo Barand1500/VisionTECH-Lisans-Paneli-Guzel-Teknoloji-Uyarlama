@@ -1,0 +1,601 @@
+// =============================================
+// Guzel Teknoloji - Prisma Schema
+// Mevcut MySQL veritabani yapisini yansitir
+// =============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================
+// 1. ROLLER
+// =============================================
+model Rol {
+  id               Int       @id @default(autoincrement())
+  ad               String    @unique @db.VarChar(100)
+  aciklama         String?   @default("") @db.VarChar(500)
+  izinler          Json
+  varsayilan       Int?      @default(0) @db.TinyInt
+  aktif            Int?      @default(1) @db.TinyInt
+  olusturma_tarihi DateTime? @default(now()) @db.DateTime(0)
+
+  kullanicilar Kullanici[]
+
+  @@map("roller")
+  @@index([aktif])
+}
+
+// =============================================
+// 2. SEKTORLER
+// =============================================
+model Sektor {
+  id               Int      @id @default(autoincrement())
+  ad               String   @unique @db.VarChar(200)
+  aktif            Int      @default(1) @db.TinyInt
+  olusturma_tarihi DateTime @default(now()) @db.DateTime(0)
+
+  musteriler Musteri[]
+  bayiler    Bayi[]
+
+  @@map("sektorler")
+  @@index([aktif])
+}
+
+// =============================================
+// 3. KULLANICILAR
+// =============================================
+model Kullanici {
+  id               Int       @id @default(autoincrement())
+  kullanici_adi    String    @unique @db.VarChar(100)
+  sifre_hash       String    @db.VarChar(255)
+  ad_soyad         String    @db.VarChar(255)
+  eposta           String    @unique @db.VarChar(255)
+  rol              String    @default("kullanici") @db.VarChar(100)
+  aktif            Int       @default(1) @db.TinyInt
+  olusturma_tarihi DateTime  @default(now()) @db.DateTime(0)
+  son_giris        DateTime? @db.DateTime(0)
+  silinme_tarihi   DateTime? @db.DateTime(0)
+
+  rolIliski         Rol             @relation(fields: [rol], references: [ad], onUpdate: Cascade, onDelete: Restrict)
+  notlar            Noti[]
+  aktiviteLoglar    AktiviteLog[]
+  yedekLoglar       YedeklemeLog[]
+  iletisimKayitlari IletisimKaydi[]
+
+  @@map("kullanicilar")
+  @@index([eposta])
+  @@index([rol])
+  @@index([aktif])
+  @@index([silinme_tarihi])
+}
+
+// =============================================
+// 4. MUSTERILER
+// =============================================
+model Musteri {
+  id                Int       @id @default(autoincrement())
+  tur               String    @default("gercek") @db.VarChar(50)
+  ad_soyad          String?   @db.VarChar(255)
+  sirket_adi        String?   @db.VarChar(255)
+  yetkili_kisi      String?   @db.VarChar(255)
+  eposta            String?   @db.VarChar(255)
+  tc_kimlik_no      String?   @db.VarChar(11)
+  vergi_no          String?   @db.VarChar(20)
+  vergi_dairesi     String?   @db.VarChar(100)
+  pasaport_no       String?   @db.VarChar(50)
+  sektor_id         Int?
+  etiketler         Json?
+  durum             String    @default("aktif") @db.VarChar(50)
+  ust_musteri_id    Int?
+  kayit_tarihi      DateTime  @default(now()) @db.DateTime(0)
+  guncelleme_tarihi DateTime? @db.DateTime(0)
+  silinme_tarihi    DateTime? @db.DateTime(0)
+
+  sektor        Sektor?  @relation(fields: [sektor_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  ustMusteri    Musteri? @relation("MusteriHierarsi", fields: [ust_musteri_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  altMusteriler Musteri[] @relation("MusteriHierarsi")
+
+  telefonlar        MusteriTelefon[]
+  adresler          MusteriAdres[]
+  dosyalar          MusteriDosya[]
+  lisanslar         Lisans[]
+  notlar            Noti[]
+  iletisimKayitlari IletisimKaydi[]
+  iletisimKisileri  IletisimKisi[]
+
+  @@map("musteriler")
+  @@index([tur])
+  @@index([durum])
+  @@index([eposta])
+  @@index([sektor_id])
+  @@index([ust_musteri_id])
+  @@index([kayit_tarihi])
+  @@index([silinme_tarihi])
+}
+
+// =============================================
+// 5. MUSTERI TELEFONLARI
+// =============================================
+model MusteriTelefon {
+  id         Int    @id @default(autoincrement())
+  musteri_id Int
+  telefon    String @db.VarChar(50)
+
+  musteri Musteri @relation(fields: [musteri_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("musteri_telefonlari")
+  @@index([musteri_id])
+}
+
+// =============================================
+// 6. MUSTERI ADRESLERI
+// =============================================
+model MusteriAdres {
+  id         Int    @id @default(autoincrement())
+  musteri_id Int
+  adres      String @db.Text
+
+  musteri Musteri @relation(fields: [musteri_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("musteri_adresleri")
+  @@index([musteri_id])
+}
+
+// =============================================
+// 7. MUSTERI DOSYALARI
+// =============================================
+model MusteriDosya {
+  id              Int      @id @default(autoincrement())
+  musteri_id      Int
+  dosya_adi       String   @db.VarChar(255)
+  orijinal_ad     String   @db.VarChar(255)
+  dosya_tipi      String   @db.VarChar(100)
+  boyut           BigInt   @default(0)
+  yuklenme_tarihi DateTime @default(now()) @db.DateTime(0)
+
+  musteri Musteri @relation(fields: [musteri_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("musteri_dosyalar")
+  @@index([musteri_id])
+  @@index([yuklenme_tarihi])
+}
+
+// =============================================
+// 8. BAYILER
+// =============================================
+model Bayi {
+  id                Int       @id @default(autoincrement())
+  ad                String    @db.VarChar(255)
+  yetkili           String?   @db.VarChar(255)
+  eposta            String?   @db.VarChar(255)
+  telefon           String?   @db.VarChar(50)
+  vergi_no          String?   @db.VarChar(20)
+  vergi_dairesi     String?   @db.VarChar(100)
+  sektor_id         Int?
+  sehir             String?   @db.VarChar(100)
+  durum             String    @default("aktif") @db.VarChar(50)
+  tur               String    @default("tuzel") @db.VarChar(50)
+  ust_bayi_id       Int?
+  tc_kimlik_no      String?   @db.VarChar(11)
+  pasaport_no       String?   @db.VarChar(50)
+  ad_soyad          String?   @db.VarChar(255)
+  sirket_adi        String?   @db.VarChar(255)
+  notlar            String?   @db.Text
+  etiketler         String?   @db.Text
+  kayit_tarihi      DateTime  @default(now()) @db.DateTime(0)
+  guncelleme_tarihi DateTime? @db.DateTime(0)
+  silinme_tarihi    DateTime? @db.DateTime(0)
+
+  sektor   Sektor? @relation(fields: [sektor_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  ustBayi  Bayi?   @relation("BayiHierarsi", fields: [ust_bayi_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  altBayiler Bayi[] @relation("BayiHierarsi")
+
+  dosyalar         BayiDosya[]
+  lisanslar        Lisans[]
+  bayiNotlar       Noti[]
+  iletisimKisileri IletisimKisi[]
+
+  @@map("bayiler")
+  @@index([durum])
+  @@index([tur])
+  @@index([sektor_id])
+  @@index([ust_bayi_id])
+  @@index([kayit_tarihi])
+  @@index([silinme_tarihi])
+}
+
+// =============================================
+// 9. BAYI DOSYALARI
+// =============================================
+model BayiDosya {
+  id              Int      @id @default(autoincrement())
+  bayi_id         Int
+  dosya_adi       String   @db.VarChar(255)
+  orijinal_ad     String   @db.VarChar(255)
+  dosya_tipi      String   @db.VarChar(100)
+  boyut           BigInt   @default(0)
+  yuklenme_tarihi DateTime @default(now()) @db.DateTime(0)
+
+  bayi Bayi @relation(fields: [bayi_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("bayi_dosyalar")
+  @@index([bayi_id])
+  @@index([yuklenme_tarihi])
+}
+
+// =============================================
+// 9.5 ILETISIM KISILERI
+// =============================================
+model IletisimKisi {
+  id                Int       @id @default(autoincrement())
+  musteri_id        Int?
+  bayi_id           Int?
+  ad_soyad          String    @db.VarChar(255)
+  unvan             String?   @db.VarChar(100)
+  departman         String?   @db.VarChar(100)
+  telefon           String?   @db.VarChar(50)
+  cep_telefon       String?   @db.VarChar(50)
+  eposta            String?   @db.VarChar(255)
+  notlar            String?   @db.Text
+  birincil          Int       @default(0) @db.TinyInt
+  aktif             Int       @default(1) @db.TinyInt
+  olusturma_tarihi  DateTime  @default(now()) @db.DateTime(0)
+  guncelleme_tarihi DateTime? @db.DateTime(0)
+
+  musteri Musteri? @relation(fields: [musteri_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  bayi    Bayi?    @relation(fields: [bayi_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("iletisim_kisileri")
+  @@index([musteri_id])
+  @@index([bayi_id])
+  @@index([birincil])
+  @@index([aktif])
+}
+
+// =============================================
+// 10. URUN GRUPLARI
+// =============================================
+model UrunGrubu {
+  id       Int     @id @default(autoincrement())
+  ad       String  @unique @db.VarChar(100)
+  aciklama String? @db.VarChar(255)
+  aktif    Int     @default(1) @db.TinyInt
+
+  urunler    Urun[]
+  urunTipler UrunTipi[]
+  sablonlar  UrunSablon[]
+
+  @@map("urun_gruplari")
+  @@index([aktif])
+}
+
+// =============================================
+// 10.1 URUN TIPLERI
+// =============================================
+model UrunTipi {
+  id      Int     @id @default(autoincrement())
+  grup_id Int?
+  ad      String  @db.VarChar(100)
+  aktif   Int     @default(1) @db.TinyInt
+
+  grup           UrunGrubu?    @relation(fields: [grup_id], references: [id], onUpdate: Cascade, onDelete: SetNull)
+  uygulamaTipler UygulamaTipi[]
+  sablonlar      UrunSablon[]
+
+  @@map("urun_tipleri")
+  @@index([aktif])
+  @@index([grup_id])
+}
+
+// =============================================
+// 10.2 UYGULAMA TIPLERI
+// =============================================
+model UygulamaTipi {
+  id           Int  @id @default(autoincrement())
+  urun_tipi_id Int?
+  ad           String @db.VarChar(100)
+  aktif        Int    @default(1) @db.TinyInt
+
+  urunTipi  UrunTipi? @relation(fields: [urun_tipi_id], references: [id], onUpdate: Cascade, onDelete: SetNull)
+  sablonlar  UrunSablon[]
+
+  @@map("uygulama_tipleri")
+  @@index([aktif])
+  @@index([urun_tipi_id])
+}
+
+// =============================================
+// 10.5 URUN SABLONLARI
+// =============================================
+model UrunSablon {
+  id                Int       @id @default(autoincrement())
+  ad                String    @db.VarChar(255)
+  aciklama          String?   @db.Text
+  grup_id           Int?
+  urun_tipi_id      Int?
+  uygulama_tipi_id  Int?
+  aktif             Int       @default(1) @db.TinyInt
+  olusturma_tarihi  DateTime  @default(now()) @db.DateTime(0)
+  guncelleme_tarihi DateTime? @db.DateTime(0)
+
+  grup          UrunGrubu?    @relation(fields: [grup_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  urunTipi      UrunTipi?     @relation(fields: [urun_tipi_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  uygulamaTipi  UygulamaTipi? @relation(fields: [uygulama_tipi_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  ozellikler    SablonOzellik[]
+  urunler       Urun[]
+
+  @@map("urun_sablonlari")
+  @@index([grup_id])
+  @@index([urun_tipi_id])
+  @@index([uygulama_tipi_id])
+  @@index([aktif])
+}
+
+// =============================================
+// 10.6 SABLON OZELLIKLERI
+// =============================================
+model SablonOzellik {
+  id            Int     @id @default(autoincrement())
+  sablon_id     Int
+  ozellik_tipi  String  @db.VarChar(100)
+  baslik        String? @db.VarChar(255)
+  deger         Json
+  sira          Int     @default(0)
+  aktif         Int     @default(1) @db.TinyInt
+
+  sablon UrunSablon @relation(fields: [sablon_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("sablon_ozellikleri")
+  @@index([sablon_id])
+  @@index([ozellik_tipi])
+  @@index([sira])
+}
+
+// =============================================
+// 11. URUNLER
+// =============================================
+model Urun {
+  id              Int      @id @default(autoincrement())
+  grup_id         Int?
+  sablon_id       Int?
+  ad              String   @db.VarChar(255)
+  urun_tipi       String?  @db.VarChar(50)
+  uygulama_tipi   String?  @db.VarChar(50)
+  varsayilan_gun  Int      @default(365)
+  ozel_proje      Int      @default(0) @db.TinyInt
+  aktif           Int      @default(1) @db.TinyInt
+  aciklama        String?  @db.Text
+  min_kullanici   Int      @default(1)
+  max_kullanici   Int?
+  demo_gun        Int      @default(30)
+  temel_fiyat     Decimal  @default(0) @db.Decimal(10, 2)
+  versiyon        String?  @db.VarChar(50)
+  versiyon_kontrol Int     @default(0) @db.TinyInt
+  logo_url        String?  @db.VarChar(500)
+  ozellikler      Json?
+
+  grup     UrunGrubu?  @relation(fields: [grup_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  sablon   UrunSablon? @relation(fields: [sablon_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  paketler Paket[]
+  lisanslar Lisans[]
+  surumler  Surum[]
+
+  @@map("urunler")
+  @@index([grup_id])
+  @@index([sablon_id])
+  @@index([aktif])
+  @@index([urun_tipi])
+}
+
+// =============================================
+// 12. PAKETLER
+// =============================================
+model Paket {
+  id               Int     @id @default(autoincrement())
+  urun_id          Int
+  ad               String  @db.VarChar(255)
+  tipi             String? @db.VarChar(50)
+  kullanim_gunu    Int     @default(365)
+  fiyat            Decimal @default(0) @db.Decimal(10, 2)
+  kullanici_sayisi Int     @default(1)
+  aktif            Int     @default(1) @db.TinyInt
+
+  urun     Urun     @relation(fields: [urun_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  lisanslar Lisans[]
+
+  @@map("paketler")
+  @@index([urun_id])
+  @@index([aktif])
+  @@index([tipi])
+}
+
+// =============================================
+// 12.5 LISANS TIPLERI
+// =============================================
+model LisansTipi {
+  id               Int      @id @default(autoincrement())
+  ad               String   @db.VarChar(100)
+  kod              String   @unique @db.VarChar(50)
+  renk             String   @default("blue") @db.VarChar(50)
+  gun              Int      @default(365)
+  sira             Int      @default(0)
+  aktif            Int      @default(1) @db.TinyInt
+  olusturma_tarihi DateTime @default(now()) @db.DateTime(0)
+
+  @@map("lisans_tipleri")
+  @@index([aktif])
+  @@index([sira])
+}
+
+// =============================================
+// 13. LISANSLAR
+// =============================================
+model Lisans {
+  id                Int       @id @default(autoincrement())
+  musteri_id        Int
+  urun_id           Int?
+  paket_id          Int?
+  bayi_id           Int?
+  lisans_anahtari   String?   @unique @db.VarChar(100)
+  lisans_tipi       String    @default("standart") @db.VarChar(100)
+  baslangic_tarihi  DateTime  @db.Date
+  bitis_tarihi      DateTime  @db.Date
+  kullanim_gunu     Int       @default(365)
+  durum             String    @default("aktif") @db.VarChar(50)
+  domain            String?   @db.VarChar(255)
+  fatura_no         String?   @db.VarChar(50)
+  fatura_tarihi     DateTime? @db.Date
+  fatura_geldi      Int       @default(0) @db.TinyInt
+  fiyat             Decimal   @default(0) @db.Decimal(10, 2)
+  indirim_orani     Decimal   @default(0) @db.Decimal(5, 2)
+  indirim_tutari    Decimal   @default(0) @db.Decimal(10, 2)
+  net_tutar         Decimal   @default(0) @db.Decimal(10, 2)
+  odeme_yontemi     String?   @db.VarChar(50)
+  odeme_durumu      String    @default("odenmedi") @db.VarChar(50)
+  odenen_tutar      Decimal   @default(0) @db.Decimal(10, 2)
+  kullanici_sayisi  Int       @default(1)
+  ek_kullanici      Int       @default(0)
+  mac_adresi        String?   @db.VarChar(255)
+  ip_adresi         String?   @db.VarChar(100)
+  moduller          Json?
+  otomatik_yenileme Int       @default(0) @db.TinyInt
+  bildirim_gun      Int       @default(30)
+  notlar            String?   @db.Text
+  olusturma_tarihi  DateTime  @default(now()) @db.DateTime(0)
+  guncelleme_tarihi DateTime? @db.DateTime(0)
+
+  musteri Musteri  @relation(fields: [musteri_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  urun    Urun?    @relation(fields: [urun_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  paket   Paket?   @relation(fields: [paket_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  bayi    Bayi?    @relation(fields: [bayi_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@map("lisanslar")
+  @@index([musteri_id])
+  @@index([urun_id])
+  @@index([paket_id])
+  @@index([bayi_id])
+  @@index([durum])
+  @@index([lisans_tipi])
+  @@index([odeme_durumu])
+  @@index([bitis_tarihi])
+  @@index([baslangic_tarihi])
+  @@index([olusturma_tarihi])
+}
+
+// =============================================
+// 14. SURUMLER
+// =============================================
+model Surum {
+  id            Int      @id @default(autoincrement())
+  urun_id       Int?
+  urun_adi      String   @db.VarChar(255)
+  surum         String   @db.VarChar(50)
+  tarih         DateTime @db.Date
+  duzenlenenler String?  @db.Text
+  eklenenler    String?  @db.Text
+  cikarilanlar  String?  @db.Text
+  dosya_adi     String?  @db.VarChar(255)
+  aktif         Int      @default(1) @db.TinyInt
+
+  urun Urun? @relation(fields: [urun_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@map("surumler")
+  @@index([urun_id])
+  @@index([tarih])
+  @@index([aktif])
+}
+
+// =============================================
+// 15. NOTLAR
+// =============================================
+model Noti {
+  id           Int      @id @default(autoincrement())
+  musteri_id   Int?
+  bayi_id      Int?
+  kullanici_id Int?
+  metin        String   @db.Text
+  onemli       Int      @default(0) @db.TinyInt
+  tarih        DateTime @default(now()) @db.DateTime(0)
+
+  musteri   Musteri?   @relation(fields: [musteri_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  bayi      Bayi?      @relation(fields: [bayi_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  kullanici Kullanici? @relation(fields: [kullanici_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@map("notlar")
+  @@index([musteri_id])
+  @@index([bayi_id])
+  @@index([kullanici_id])
+  @@index([tarih])
+  @@index([onemli])
+}
+
+// =============================================
+// 16. ILETISIM KAYITLARI
+// =============================================
+model IletisimKaydi {
+  id               Int      @id @default(autoincrement())
+  musteri_id       Int
+  kullanici_id     Int?
+  iletisim_turu    String   @default("telefon") @db.VarChar(50)
+  konu             String?  @db.VarChar(255)
+  aciklama         String?  @db.Text
+  iletisim_tarihi  DateTime @default(now()) @db.DateTime(0)
+  sonraki_iletisim DateTime? @db.DateTime(0)
+
+  musteri   Musteri    @relation(fields: [musteri_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  kullanici Kullanici? @relation(fields: [kullanici_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@map("iletisim_kayitlari")
+  @@index([musteri_id])
+  @@index([kullanici_id])
+  @@index([iletisim_tarihi])
+  @@index([iletisim_turu])
+}
+
+// =============================================
+// 17. AKTIVITE LOGLARI
+// =============================================
+model AktiviteLog {
+  id           Int      @id @default(autoincrement())
+  kullanici_id Int?
+  tip          String   @db.VarChar(50)
+  mesaj        String   @db.Text
+  tarih        DateTime @default(now()) @db.DateTime(0)
+
+  kullanici Kullanici? @relation(fields: [kullanici_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@map("aktivite_loglari")
+  @@index([kullanici_id])
+  @@index([tip])
+  @@index([tarih])
+}
+
+// =============================================
+// 18. YEDEKLEME LOGLARI
+// =============================================
+model YedeklemeLog {
+  id               Int      @id @default(autoincrement())
+  kullanici_id     Int?
+  kullanici_eposta String?  @db.VarChar(255)
+  islem_tipi       String   @db.VarChar(50)
+  dosya_adi        String?  @db.VarChar(500)
+  dosya_boyutu     BigInt?  @default(0)
+  tablo_sayisi     Int?     @default(0)
+  kayit_sayisi     Int?     @default(0)
+  durum            String   @default("basarili") @db.VarChar(50)
+  detay            String?  @db.Text
+  tarih            DateTime @default(now()) @db.DateTime(0)
+
+  kullanici Kullanici? @relation(fields: [kullanici_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@map("yedekleme_loglari")
+  @@index([tarih])
+  @@index([kullanici_id])
+  @@index([islem_tipi])
+  @@index([durum])
+}

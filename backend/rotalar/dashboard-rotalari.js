@@ -1,151 +1,121 @@
-/* ============================================= */
-/*  Dashboard Rotalari - Ozet Istatistikler       */
-/* ============================================= */
-
 const express = require("express");
 const router = express.Router();
-const havuz = require("../veritabani/baglanti");
+const { prisma, temizle } = require("../veritabani/prisma");
 const { hataYakala } = require("../yardimcilar/hata-yonetimi");
 
-/* ---- Genel Ozet Istatistikleri ---- */
-router.get("/ozet", hataYakala(async (req, res) => {
-  const [[musteriSayisi]] = await havuz.query("SELECT COUNT(*) as sayi FROM musteriler WHERE silinme_tarihi IS NULL");
-  const [[aktifBayiSayisi]] = await havuz.query("SELECT COUNT(*) as sayi FROM bayiler WHERE durum = 'aktif' AND silinme_tarihi IS NULL");
-  const [[aktifLisansSayisi]] = await havuz.query("SELECT COUNT(*) as sayi FROM lisanslar WHERE durum = 'aktif'");
+/* ---- Ozet Kartlar ---- */
+router.get("/ozet", hataYakala(async (_req, res) => {
+  const [musteriler] = await prisma.$queryRawUnsafe(`SELECT COUNT(*) as toplam FROM musteriler WHERE silinme_tarihi IS NULL`);
+  const [bayiler] = await prisma.$queryRawUnsafe(`SELECT COUNT(*) as toplam FROM bayiler WHERE silinme_tarihi IS NULL`);
+  const [aktifLisanslar] = await prisma.$queryRawUnsafe(`SELECT COUNT(*) as toplam FROM lisanslar WHERE durum = 'aktif'`);
+  const [urunler] = await prisma.$queryRawUnsafe(`SELECT COUNT(*) as toplam FROM urunler WHERE aktif = 1`);
 
-  /* Bu ay biten lisanslar */
-  const [[buAyBiten]] = await havuz.query(`
-    SELECT COUNT(*) as sayi FROM lisanslar
-    WHERE bitis_tarihi BETWEEN CURDATE() AND LAST_DAY(CURDATE())
+  const [aylikGelir] = await prisma.$queryRawUnsafe(`
+    SELECT COALESCE(SUM(net_tutar), 0) as toplam FROM lisanslar
+    WHERE MONTH(olusturma_tarihi) = MONTH(CURDATE()) AND YEAR(olusturma_tarihi) = YEAR(CURDATE())
+  `);
+
+  const [yaklasanLisans] = await prisma.$queryRawUnsafe(`
+    SELECT COUNT(*) as toplam FROM lisanslar
+    WHERE durum = 'aktif' AND bitis_tarihi BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
   `);
 
   res.json({
     basarili: true,
-    veri: {
-      toplamMusteri: musteriSayisi.sayi,
-      aktifBayi: aktifBayiSayisi.sayi,
-      aktifLisans: aktifLisansSayisi.sayi,
-      buAyBitenLisans: buAyBiten.sayi,
-    }
+    veri: temizle({
+      toplam_musteri: musteriler.toplam,
+      toplam_bayi: bayiler.toplam,
+      aktif_lisans: aktifLisanslar.toplam,
+      toplam_urun: urunler.toplam,
+      aylik_gelir: aylikGelir.toplam,
+      yaklasan_lisans: yaklasanLisans.toplam,
+    }),
   });
 }));
 
-/* ---- Musteri Dagilimi (tur bazli) ---- */
-router.get("/musteri-dagilimi", hataYakala(async (req, res) => {
-  const [rows] = await havuz.query(`
-    SELECT tur, COUNT(*) as deger FROM musteriler WHERE silinme_tarihi IS NULL GROUP BY tur
+/* ---- Musteri Dagilimi (Sektore gore) ---- */
+router.get("/musteri-dagilimi", hataYakala(async (_req, res) => {
+  const rows = await prisma.$queryRawUnsafe(`
+    SELECT COALESCE(s.ad, 'Belirtilmemis') as sektor, COUNT(*) as sayi
+    FROM musteriler m LEFT JOIN sektorler s ON m.sektor_id = s.id
+    WHERE m.silinme_tarihi IS NULL
+    GROUP BY s.ad ORDER BY sayi DESC LIMIT 10
   `);
-  const ETIKET = { gercek: "Gerçek", tuzel: "Tüzel", yabanci: "Yabancı" };
-  const veri = rows.map(r => ({ ad: ETIKET[r.tur] || r.tur, deger: r.deger }));
-  res.json({ basarili: true, veri });
+  res.json({ basarili: true, veri: temizle(rows) });
 }));
 
-/* ---- Aylik Lisans Satislari (son 12 ay) ---- */
-router.get("/aylik-lisanslar", hataYakala(async (req, res) => {
-  const [rows] = await havuz.query(`
-    SELECT DATE_FORMAT(olusturma_tarihi, '%Y-%m') as ay, COUNT(*) as satis
+/* ---- Aylik Lisanslar ---- */
+router.get("/aylik-lisanslar", hataYakala(async (_req, res) => {
+  const rows = await prisma.$queryRawUnsafe(`
+    SELECT DATE_FORMAT(olusturma_tarihi, '%Y-%m') as ay, COUNT(*) as sayi,
+           COALESCE(SUM(net_tutar), 0) as toplam_tutar
     FROM lisanslar
     WHERE olusturma_tarihi >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-    GROUP BY DATE_FORMAT(olusturma_tarihi, '%Y-%m')
-    ORDER BY ay ASC
+    GROUP BY ay ORDER BY ay ASC
   `);
-
-  const AY_ISIMLERI = ["Oca","Sub","Mar","Nis","May","Haz","Tem","Agu","Eyl","Eki","Kas","Ara"];
-  const veri = rows.map(r => {
-    const ayIndex = parseInt(r.ay.split("-")[1], 10) - 1;
-    return { ay: AY_ISIMLERI[ayIndex], satis: r.satis };
-  });
-
-  res.json({ basarili: true, veri });
+  res.json({ basarili: true, veri: temizle(rows) });
 }));
 
 /* ---- Son Eklenen Musteriler ---- */
-router.get("/son-musteriler", hataYakala(async (req, res) => {
-  const [rows] = await havuz.query(`
-    SELECT id, COALESCE(ad_soyad, sirket_adi) as ad, tur, kayit_tarihi as tarih
-    FROM musteriler ORDER BY id DESC LIMIT 5
+router.get("/son-musteriler", hataYakala(async (_req, res) => {
+  const rows = await prisma.$queryRawUnsafe(`
+    SELECT m.id, m.tur, m.ad_soyad, m.sirket_adi, m.eposta, m.durum, m.kayit_tarihi,
+           COALESCE(s.ad, '') as sektor_adi
+    FROM musteriler m LEFT JOIN sektorler s ON m.sektor_id = s.id
+    WHERE m.silinme_tarihi IS NULL
+    ORDER BY m.id DESC LIMIT 10
   `);
-  const ETIKET = { gercek: "Gerçek", tuzel: "Tüzel", yabanci: "Yabancı" };
-  const veri = rows.map(r => ({ ...r, tur: ETIKET[r.tur] || r.tur }));
-  res.json({ basarili: true, veri });
+  res.json({ basarili: true, veri: temizle(rows) });
 }));
 
-/* ---- Son Guncellenen Lisanslar ---- */
-router.get("/son-lisanslar", hataYakala(async (req, res) => {
-  const [rows] = await havuz.query(`
-    SELECT l.id, COALESCE(m.ad_soyad, m.sirket_adi) as musteri,
-      COALESCE(u.ad, 'Bilinmiyor') as paket,
-      DATE_FORMAT(l.olusturma_tarihi, '%Y-%m-%d') as tarih,
-      l.durum
+/* ---- Son Eklenen Lisanslar ---- */
+router.get("/son-lisanslar", hataYakala(async (_req, res) => {
+  const rows = await prisma.$queryRawUnsafe(`
+    SELECT l.id, l.lisans_anahtari, l.durum, l.baslangic_tarihi, l.bitis_tarihi, l.net_tutar,
+           l.olusturma_tarihi, m.ad_soyad as musteri_adi, m.sirket_adi, u.ad as urun_adi
     FROM lisanslar l
     LEFT JOIN musteriler m ON l.musteri_id = m.id
     LEFT JOIN urunler u ON l.urun_id = u.id
-    ORDER BY l.olusturma_tarihi DESC
-    LIMIT 5
+    ORDER BY l.id DESC LIMIT 10
   `);
-
-  const DURUM_ISLEM = { aktif: "Oluşturuldu", yaklasan: "Yaklaşıyor", "suresi-dolmus": "Süresi Dolmuş" };
-  const veri = rows.map(r => ({ ...r, islem: DURUM_ISLEM[r.durum] || r.durum }));
-  res.json({ basarili: true, veri });
+  res.json({ basarili: true, veri: temizle(rows) });
 }));
 
-/* ---- Yaklaşan Lisans Bitişleri (30 gün içinde) ---- */
-router.get("/yaklasan-lisanslar", hataYakala(async (req, res) => {
-  const [rows] = await havuz.query(`
-    SELECT l.id, COALESCE(m.ad_soyad, m.sirket_adi) as musteri,
-      COALESCE(u.ad, 'Bilinmiyor') as urun,
-      l.bitis_tarihi,
-      DATEDIFF(l.bitis_tarihi, CURDATE()) as kalan_gun
+/* ---- Yaklasan Lisanslar (30 gun) ---- */
+router.get("/yaklasan-lisanslar", hataYakala(async (_req, res) => {
+  const rows = await prisma.$queryRawUnsafe(`
+    SELECT l.id, l.lisans_anahtari, l.bitis_tarihi, l.durum,
+           DATEDIFF(l.bitis_tarihi, CURDATE()) as kalan_gun,
+           m.ad_soyad as musteri_adi, m.sirket_adi, u.ad as urun_adi
     FROM lisanslar l
     LEFT JOIN musteriler m ON l.musteri_id = m.id
     LEFT JOIN urunler u ON l.urun_id = u.id
-    WHERE l.durum = 'aktif' 
-      AND l.bitis_tarihi BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+    WHERE l.durum = 'aktif' AND l.bitis_tarihi BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
     ORDER BY l.bitis_tarihi ASC
-    LIMIT 10
   `);
-
-  res.json({ basarili: true, veri: rows });
+  res.json({ basarili: true, veri: temizle(rows) });
 }));
 
-/* ---- Aylık Müşteri Ekleme İstatistikleri (son 12 ay) ---- */
-router.get("/aylik-musteriler", hataYakala(async (req, res) => {
-  const [rows] = await havuz.query(`
+/* ---- Aylik Musteri Kazanimi ---- */
+router.get("/aylik-musteriler", hataYakala(async (_req, res) => {
+  const rows = await prisma.$queryRawUnsafe(`
     SELECT DATE_FORMAT(kayit_tarihi, '%Y-%m') as ay, COUNT(*) as sayi
     FROM musteriler
-    WHERE kayit_tarihi >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-      AND silinme_tarihi IS NULL
-    GROUP BY DATE_FORMAT(kayit_tarihi, '%Y-%m')
-    ORDER BY ay ASC
+    WHERE silinme_tarihi IS NULL AND kayit_tarihi >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+    GROUP BY ay ORDER BY ay ASC
   `);
-
-  const AY_ISIMLERI = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
-  const veri = rows.map(r => {
-    const ayIndex = parseInt(r.ay.split("-")[1], 10) - 1;
-    return { ay: AY_ISIMLERI[ayIndex], sayi: r.sayi };
-  });
-
-  res.json({ basarili: true, veri });
+  res.json({ basarili: true, veri: temizle(rows) });
 }));
 
-/* ---- Aylık Bayi Ekleme İstatistikleri (son 12 ay) ---- */
-router.get("/aylik-bayiler", hataYakala(async (req, res) => {
-  const [rows] = await havuz.query(`
+/* ---- Aylik Bayi Kazanimi ---- */
+router.get("/aylik-bayiler", hataYakala(async (_req, res) => {
+  const rows = await prisma.$queryRawUnsafe(`
     SELECT DATE_FORMAT(kayit_tarihi, '%Y-%m') as ay, COUNT(*) as sayi
     FROM bayiler
-    WHERE kayit_tarihi >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-      AND silinme_tarihi IS NULL
-    GROUP BY DATE_FORMAT(kayit_tarihi, '%Y-%m')
-    ORDER BY ay ASC
+    WHERE silinme_tarihi IS NULL AND kayit_tarihi >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+    GROUP BY ay ORDER BY ay ASC
   `);
-
-  const AY_ISIMLERI = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
-  const veri = rows.map(r => {
-    const ayIndex = parseInt(r.ay.split("-")[1], 10) - 1;
-    return { ay: AY_ISIMLERI[ayIndex], sayi: r.sayi };
-  });
-
-  res.json({ basarili: true, veri });
+  res.json({ basarili: true, veri: temizle(rows) });
 }));
 
 module.exports = router;

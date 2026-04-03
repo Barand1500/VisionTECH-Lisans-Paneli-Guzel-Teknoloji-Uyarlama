@@ -1,23 +1,28 @@
-/* ============================================= */
-/*  Sektör Rotaları - Sektör CRUD                 */
-/* ============================================= */
-
 const express = require("express");
 const router = express.Router();
-const havuz = require("../veritabani/baglanti");
+const { prisma, temizle } = require("../veritabani/prisma");
 const { hataYakala, dogrulamaHatasi, bulunamadiHatasi } = require("../yardimcilar/hata-yonetimi");
 const { yetkiKontrol } = require("../yardimcilar/yetki-middleware");
 
 /* ---- Tüm Sektörleri Listele (müşteri/bayi sayıları ile) ---- */
 router.get("/", yetkiKontrol, hataYakala(async (req, res) => {
-  const [satirlar] = await havuz.query(`
-    SELECT s.id, s.ad, s.aktif, s.olusturma_tarihi,
-      (SELECT COUNT(*) FROM musteriler WHERE sektor_id = s.id AND silinme_tarihi IS NULL) AS musteri_sayisi,
-      (SELECT COUNT(*) FROM bayiler WHERE sektor_id = s.id AND silinme_tarihi IS NULL) AS bayi_sayisi
-    FROM sektorler s
-    ORDER BY s.ad ASC
-  `);
-  res.json({ basarili: true, veri: satirlar });
+  const sektorler = await prisma.sektor.findMany({
+    include: {
+      _count: {
+        select: {
+          musteriler: { where: { silinme_tarihi: null } },
+          bayiler: { where: { silinme_tarihi: null } },
+        },
+      },
+    },
+    orderBy: { ad: "asc" },
+  });
+  const sonuc = sektorler.map(({ _count, ...s }) => ({
+    ...s,
+    musteri_sayisi: _count.musteriler,
+    bayi_sayisi: _count.bayiler,
+  }));
+  res.json({ basarili: true, veri: temizle(sonuc) });
 }));
 
 /* ---- Yeni Sektör Ekle ---- */
@@ -25,47 +30,44 @@ router.post("/", yetkiKontrol, hataYakala(async (req, res) => {
   const { ad } = req.body;
   if (!ad || !ad.trim()) return dogrulamaHatasi(res, "Sektör adı zorunludur.");
 
-  const [mevcut] = await havuz.query("SELECT id FROM sektorler WHERE ad = ?", [ad.trim()]);
-  if (mevcut.length > 0) return dogrulamaHatasi(res, "Bu isimde bir sektör zaten mevcut.");
+  const mevcut = await prisma.sektor.findUnique({ where: { ad: ad.trim() } });
+  if (mevcut) return dogrulamaHatasi(res, "Bu isimde bir sektör zaten mevcut.");
 
-  const [sonuc] = await havuz.query("INSERT INTO sektorler (ad) VALUES (?)", [ad.trim()]);
-  res.status(201).json({ basarili: true, mesaj: "Sektör eklendi.", id: sonuc.insertId });
+  const sonuc = await prisma.sektor.create({ data: { ad: ad.trim() } });
+  res.status(201).json({ basarili: true, mesaj: "Sektör eklendi.", id: sonuc.id });
 }));
 
 /* ---- Sektör Güncelle ---- */
 router.put("/:id", yetkiKontrol, hataYakala(async (req, res) => {
   const { ad, aktif } = req.body;
-  const { id } = req.params;
+  const id = Number(req.params.id);
 
-  const [mevcut] = await havuz.query("SELECT id FROM sektorler WHERE id = ?", [id]);
-  if (mevcut.length === 0) return bulunamadiHatasi(res, "Sektör bulunamadı.");
+  const mevcut = await prisma.sektor.findUnique({ where: { id } });
+  if (!mevcut) return bulunamadiHatasi(res, "Sektör bulunamadı.");
 
   if (ad !== undefined) {
     if (!ad.trim()) return dogrulamaHatasi(res, "Sektör adı boş olamaz.");
-    const [ayniAd] = await havuz.query("SELECT id FROM sektorler WHERE ad = ? AND id != ?", [ad.trim(), id]);
-    if (ayniAd.length > 0) return dogrulamaHatasi(res, "Bu isimde bir sektör zaten mevcut.");
+    const ayniAd = await prisma.sektor.findFirst({ where: { ad: ad.trim(), id: { not: id } } });
+    if (ayniAd) return dogrulamaHatasi(res, "Bu isimde bir sektör zaten mevcut.");
   }
 
-  const alanlar = [];
-  const degerler = [];
+  const data = {};
+  if (ad !== undefined) data.ad = ad.trim();
+  if (aktif !== undefined) data.aktif = aktif ? 1 : 0;
 
-  if (ad !== undefined) { alanlar.push("ad = ?"); degerler.push(ad.trim()); }
-  if (aktif !== undefined) { alanlar.push("aktif = ?"); degerler.push(aktif ? 1 : 0); }
+  if (Object.keys(data).length === 0) return dogrulamaHatasi(res, "Güncellenecek alan belirtilmedi.");
 
-  if (alanlar.length === 0) return dogrulamaHatasi(res, "Güncellenecek alan belirtilmedi.");
-
-  degerler.push(id);
-  await havuz.query(`UPDATE sektorler SET ${alanlar.join(", ")} WHERE id = ?`, degerler);
+  await prisma.sektor.update({ where: { id }, data });
   res.json({ basarili: true, mesaj: "Sektör güncellendi." });
 }));
 
 /* ---- Sektör Sil ---- */
 router.delete("/:id", yetkiKontrol, hataYakala(async (req, res) => {
-  const { id } = req.params;
-  const [mevcut] = await havuz.query("SELECT id FROM sektorler WHERE id = ?", [id]);
-  if (mevcut.length === 0) return bulunamadiHatasi(res, "Sektör bulunamadı.");
+  const id = Number(req.params.id);
+  const mevcut = await prisma.sektor.findUnique({ where: { id } });
+  if (!mevcut) return bulunamadiHatasi(res, "Sektör bulunamadı.");
 
-  await havuz.query("DELETE FROM sektorler WHERE id = ?", [id]);
+  await prisma.sektor.delete({ where: { id } });
   res.json({ basarili: true, mesaj: "Sektör silindi." });
 }));
 

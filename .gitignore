@@ -28,3 +28,4 @@ backend/.env
 *.db-shm
 *.db-wal
 backend/uploads/
+backend/node_modules/

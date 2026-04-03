@@ -9,6 +9,7 @@ import { useState, useRef, useEffect, useCallback, memo, useMemo } from "react";
 import KopyalaButonu from "../bilesenler/KopyalaButonu";
 import SilmeOnayModal from "../bilesenler/SilmeOnayModal";
 import { apiGet, apiPost, apiPut, apiDelete } from "../yardimcilar/api";
+import UrunSablonlariSekmesi from "../bilesenler/UrunSablonlariSekmesi";
 
 /* ============================================= */
 /*  Sabitler                                      */
@@ -31,6 +32,10 @@ const SEKMELER = [
   {
     id: "urunler", etiket: "Ürünler",
     ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>,
+  },
+  {
+    id: "sablonlar", etiket: "Şablonlar",
+    ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" /></svg>,
   },
   {
     id: "tipYonetimi", etiket: "Tip Yönetimi",
@@ -131,6 +136,7 @@ export default function YonetimPage() {
 
       {/* ---- Sekme Icerigi ---- */}
       {aktifSekme === "urunler" && <UrunlerSekmesi />}
+      {aktifSekme === "sablonlar" && <UrunSablonlariSekmesi />}
       {aktifSekme === "tipYonetimi" && <TipYonetimiSekmesi />}
       {aktifSekme === "surumler" && <SurumlerSekmesi />}
       {aktifSekme === "kullanicilar" && <KullanicilarSekmesi />}

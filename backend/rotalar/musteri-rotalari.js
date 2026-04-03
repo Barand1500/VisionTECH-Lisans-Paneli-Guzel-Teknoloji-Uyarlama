@@ -1,114 +1,137 @@
-/* ============================================= */
-/*  Musteri Rotalari - CRUD Islemleri             */
-/* ============================================= */
-
 const express = require("express");
 const router = express.Router();
-const havuz = require("../veritabani/baglanti");
+const { prisma, temizle } = require("../veritabani/prisma");
 const { hataYakala, dogrulamaHatasi, bulunamadiHatasi } = require("../yardimcilar/hata-yonetimi");
 
 /* ---- Tum Musterileri Listele ---- */
 router.get("/", hataYakala(async (req, res) => {
-  const [musteriler] = await havuz.query(`
-    SELECT m.*,
-      s.ad AS sektor_adi,
-      (SELECT GROUP_CONCAT(telefon SEPARATOR '|||') FROM musteri_telefonlari WHERE musteri_id = m.id) as telefonlar,
-      (SELECT GROUP_CONCAT(adres SEPARATOR '|||') FROM musteri_adresleri WHERE musteri_id = m.id) as adresler
-    FROM musteriler m
-    LEFT JOIN sektorler s ON s.id = m.sektor_id
-    WHERE m.silinme_tarihi IS NULL
-    ORDER BY m.id DESC
-  `);
+  const veriler = await prisma.musteri.findMany({
+    where: { silinme_tarihi: null },
+    include: {
+      sektor: { select: { ad: true } },
+      telefonlar: { select: { telefon: true } },
+      adresler: { select: { adres: true } },
+    },
+    orderBy: { id: "desc" },
+  });
 
-  const sonuc = musteriler.map((m) => ({
+  const sonuc = veriler.map(({ sektor, telefonlar, adresler, ...m }) => ({
     ...m,
-    telefonlar: m.telefonlar ? m.telefonlar.split("|||") : [],
-    adresler: m.adresler ? m.adresler.split("|||") : [],
+    sektor_adi: sektor?.ad || null,
+    telefonlar: telefonlar.map(t => t.telefon),
+    adresler: adresler.map(a => a.adres),
   }));
 
-  res.json({ basarili: true, veri: sonuc });
+  res.json({ basarili: true, veri: temizle(sonuc) });
 }));
 
 /* ---- Tek Musteri Getir ---- */
 router.get("/:id", hataYakala(async (req, res) => {
   const id = Number(req.params.id);
-  const [satirlar] = await havuz.query(
-    "SELECT m.*, s.ad AS sektor_adi FROM musteriler m LEFT JOIN sektorler s ON s.id = m.sektor_id WHERE m.id = ? AND m.silinme_tarihi IS NULL",
-    [id]
-  );
-  if (satirlar.length === 0) return bulunamadiHatasi(res, "Musteri bulunamadi.");
+  const veri = await prisma.musteri.findFirst({
+    where: { id, silinme_tarihi: null },
+    include: {
+      sektor: { select: { ad: true } },
+      telefonlar: { select: { telefon: true } },
+      adresler: { select: { adres: true } },
+    },
+  });
+  if (!veri) return bulunamadiHatasi(res, "Musteri bulunamadi.");
 
-  const musteri = satirlar[0];
-  const [telSatirlari] = await havuz.query("SELECT telefon FROM musteri_telefonlari WHERE musteri_id = ?", [id]);
-  const [adrSatirlari] = await havuz.query("SELECT adres FROM musteri_adresleri WHERE musteri_id = ?", [id]);
-  musteri.telefonlar = telSatirlari.map(t => t.telefon);
-  musteri.adresler = adrSatirlari.map(a => a.adres);
+  const { sektor, telefonlar, adresler, ...musteri } = veri;
+  musteri.sektor_adi = sektor?.ad || null;
+  musteri.telefonlar = telefonlar.map(t => t.telefon);
+  musteri.adresler = adresler.map(a => a.adres);
 
-  res.json({ basarili: true, veri: musteri });
+  res.json({ basarili: true, veri: temizle(musteri) });
 }));
 
 /* ---- Musteri Ekle ---- */
 router.post("/", hataYakala(async (req, res) => {
-  const { tur, ad_soyad, sirket_adi, yetkili_kisi, eposta, tc_kimlik_no, vergi_no, vergi_dairesi, pasaport_no, sektor_id, durum, ust_musteri_id, bayi_id, telefonlar, adresler, etiketler } = req.body;
+  const { tur, ad_soyad, sirket_adi, yetkili_kisi, eposta, tc_kimlik_no, vergi_no, vergi_dairesi, pasaport_no, sektor_id, durum, ust_musteri_id, telefonlar, adresler, etiketler } = req.body;
 
   if (!tur) return dogrulamaHatasi(res, "Musteri turu zorunludur.");
   if (tur === "gercek" && !ad_soyad) return dogrulamaHatasi(res, "Gercek kisi icin ad soyad zorunludur.");
   if (tur === "tuzel" && !sirket_adi) return dogrulamaHatasi(res, "Tuzel kisi icin sirket adi zorunludur.");
 
-  const [sonuc] = await havuz.query(
-    `INSERT INTO musteriler (tur, ad_soyad, sirket_adi, yetkili_kisi, eposta, tc_kimlik_no, vergi_no, vergi_dairesi, pasaport_no, sektor_id, etiketler, durum, ust_musteri_id, bayi_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [tur, ad_soyad || null, sirket_adi || null, yetkili_kisi || null, eposta || null, tc_kimlik_no || null, vergi_no || null, vergi_dairesi || null, pasaport_no || null, sektor_id || null, etiketler ? JSON.stringify(etiketler) : null, durum || "aktif", ust_musteri_id || null, bayi_id || null]
-  );
+  const sonuc = await prisma.musteri.create({
+    data: {
+      tur,
+      ad_soyad: ad_soyad || null,
+      sirket_adi: sirket_adi || null,
+      yetkili_kisi: yetkili_kisi || null,
+      eposta: eposta || null,
+      tc_kimlik_no: tc_kimlik_no || null,
+      vergi_no: vergi_no || null,
+      vergi_dairesi: vergi_dairesi || null,
+      pasaport_no: pasaport_no || null,
+      sektor_id: sektor_id || null,
+      etiketler: etiketler || undefined,
+      durum: durum || "aktif",
+      ust_musteri_id: ust_musteri_id || null,
+      telefonlar: Array.isArray(telefonlar) && telefonlar.filter(Boolean).length > 0
+        ? { create: telefonlar.filter(Boolean).map(t => ({ telefon: t })) }
+        : undefined,
+      adresler: Array.isArray(adresler) && adresler.filter(Boolean).length > 0
+        ? { create: adresler.filter(Boolean).map(a => ({ adres: a })) }
+        : undefined,
+    },
+  });
 
-  const musteriId = sonuc.insertId;
-
-  if (Array.isArray(telefonlar)) {
-    for (const t of telefonlar) if (t) await havuz.query("INSERT INTO musteri_telefonlari (musteri_id, telefon) VALUES (?, ?)", [musteriId, t]);
-  }
-  if (Array.isArray(adresler)) {
-    for (const a of adresler) if (a) await havuz.query("INSERT INTO musteri_adresleri (musteri_id, adres) VALUES (?, ?)", [musteriId, a]);
-  }
-
-  res.status(201).json({ basarili: true, mesaj: "Musteri basariyla eklendi.", id: musteriId });
+  res.status(201).json({ basarili: true, mesaj: "Musteri basariyla eklendi.", id: sonuc.id });
 }));
 
 /* ---- Musteri Guncelle ---- */
 router.put("/:id", hataYakala(async (req, res) => {
   const id = Number(req.params.id);
-  const [mevcut] = await havuz.query("SELECT id FROM musteriler WHERE id = ?", [id]);
-  if (mevcut.length === 0) return bulunamadiHatasi(res, "Musteri bulunamadi.");
+  const mevcut = await prisma.musteri.findUnique({ where: { id }, select: { id: true } });
+  if (!mevcut) return bulunamadiHatasi(res, "Musteri bulunamadi.");
 
-  const { tur, ad_soyad, sirket_adi, yetkili_kisi, eposta, tc_kimlik_no, vergi_no, vergi_dairesi, pasaport_no, sektor_id, etiketler, durum, ust_musteri_id, bayi_id, telefonlar, adresler } = req.body;
+  const { tur, ad_soyad, sirket_adi, yetkili_kisi, eposta, tc_kimlik_no, vergi_no, vergi_dairesi, pasaport_no, sektor_id, etiketler, durum, ust_musteri_id, telefonlar, adresler } = req.body;
 
-  await havuz.query(
-    `UPDATE musteriler SET
-      tur = COALESCE(?, tur), ad_soyad = ?, sirket_adi = ?, yetkili_kisi = ?, eposta = ?,
-      tc_kimlik_no = ?, vergi_no = ?, vergi_dairesi = ?, pasaport_no = ?, sektor_id = ?,
-      etiketler = ?, durum = COALESCE(?, durum), ust_musteri_id = ?, bayi_id = ?, guncelleme_tarihi = NOW()
-    WHERE id = ?`,
-    [tur || null, ad_soyad || null, sirket_adi || null, yetkili_kisi || null, eposta || null, tc_kimlik_no || null, vergi_no || null, vergi_dairesi || null, pasaport_no || null, sektor_id !== undefined ? (sektor_id || null) : null, etiketler ? JSON.stringify(etiketler) : null, durum || null, ust_musteri_id || null, bayi_id || null, id]
-  );
+  await prisma.musteri.update({
+    where: { id },
+    data: {
+      tur: tur || undefined,
+      ad_soyad: ad_soyad || null,
+      sirket_adi: sirket_adi || null,
+      yetkili_kisi: yetkili_kisi || null,
+      eposta: eposta || null,
+      tc_kimlik_no: tc_kimlik_no || null,
+      vergi_no: vergi_no || null,
+      vergi_dairesi: vergi_dairesi || null,
+      pasaport_no: pasaport_no || null,
+      sektor_id: sektor_id !== undefined ? (sektor_id || null) : undefined,
+      etiketler: etiketler !== undefined ? etiketler : undefined,
+      durum: durum || undefined,
+      ust_musteri_id: ust_musteri_id || null,
+      guncelleme_tarihi: new Date(),
+    },
+  });
 
   if (Array.isArray(telefonlar)) {
-    await havuz.query("DELETE FROM musteri_telefonlari WHERE musteri_id = ?", [id]);
-    for (const t of telefonlar) if (t) await havuz.query("INSERT INTO musteri_telefonlari (musteri_id, telefon) VALUES (?, ?)", [id, t]);
+    await prisma.musteriTelefon.deleteMany({ where: { musteri_id: id } });
+    for (const t of telefonlar) {
+      if (t) await prisma.musteriTelefon.create({ data: { musteri_id: id, telefon: t } });
+    }
   }
   if (Array.isArray(adresler)) {
-    await havuz.query("DELETE FROM musteri_adresleri WHERE musteri_id = ?", [id]);
-    for (const a of adresler) if (a) await havuz.query("INSERT INTO musteri_adresleri (musteri_id, adres) VALUES (?, ?)", [id, a]);
+    await prisma.musteriAdres.deleteMany({ where: { musteri_id: id } });
+    for (const a of adresler) {
+      if (a) await prisma.musteriAdres.create({ data: { musteri_id: id, adres: a } });
+    }
   }
 
   res.json({ basarili: true, mesaj: "Musteri basariyla guncellendi." });
 }));
 
-/* ---- Musteri Sil ---- */
+/* ---- Musteri Sil (soft delete) ---- */
 router.delete("/:id", hataYakala(async (req, res) => {
   const id = Number(req.params.id);
-  const [mevcut] = await havuz.query("SELECT id FROM musteriler WHERE id = ? AND silinme_tarihi IS NULL", [id]);
-  if (mevcut.length === 0) return bulunamadiHatasi(res, "Musteri bulunamadi.");
+  const mevcut = await prisma.musteri.findFirst({ where: { id, silinme_tarihi: null } });
+  if (!mevcut) return bulunamadiHatasi(res, "Musteri bulunamadi.");
 
-  await havuz.query("UPDATE musteriler SET silinme_tarihi = NOW(), durum = 'pasif' WHERE id = ?", [id]);
+  await prisma.musteri.update({ where: { id }, data: { silinme_tarihi: new Date(), durum: "pasif" } });
   res.json({ basarili: true, mesaj: "Musteri basariyla silindi." });
 }));
 

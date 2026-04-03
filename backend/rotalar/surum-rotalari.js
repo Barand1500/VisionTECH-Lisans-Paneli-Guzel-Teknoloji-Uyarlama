@@ -1,23 +1,19 @@
-/* ============================================= */
-/*  Surum Rotalari - CRUD Islemleri               */
-/* ============================================= */
-
 const express = require("express");
 const router = express.Router();
-const havuz = require("../veritabani/baglanti");
+const { prisma, temizle } = require("../veritabani/prisma");
 const { hataYakala, dogrulamaHatasi, bulunamadiHatasi } = require("../yardimcilar/hata-yonetimi");
 
 /* ---- Tum Surumleri Listele ---- */
 router.get("/", hataYakala(async (req, res) => {
-  const [surumler] = await havuz.query("SELECT * FROM surumler ORDER BY tarih DESC, id DESC");
-  res.json({ basarili: true, veri: surumler });
+  const surumler = await prisma.surum.findMany({ orderBy: [{ tarih: "desc" }, { id: "desc" }] });
+  res.json({ basarili: true, veri: temizle(surumler) });
 }));
 
 /* ---- Tek Surum Getir ---- */
 router.get("/:id", hataYakala(async (req, res) => {
-  const [satirlar] = await havuz.query("SELECT * FROM surumler WHERE id = ?", [Number(req.params.id)]);
-  if (satirlar.length === 0) return bulunamadiHatasi(res, "Surum bulunamadi.");
-  res.json({ basarili: true, veri: satirlar[0] });
+  const kayit = await prisma.surum.findUnique({ where: { id: Number(req.params.id) } });
+  if (!kayit) return bulunamadiHatasi(res, "Surum bulunamadi.");
+  res.json({ basarili: true, veri: temizle(kayit) });
 }));
 
 /* ---- Surum Ekle ---- */
@@ -26,44 +22,56 @@ router.post("/", hataYakala(async (req, res) => {
   if (!urun_adi || !surum) return dogrulamaHatasi(res, "Urun adi ve surum numarasi zorunludur.");
 
   /* Mevcut aktif surumu pasif yap */
-  await havuz.query("UPDATE surumler SET aktif = 0 WHERE urun_adi = ? AND aktif = 1", [urun_adi]);
+  await prisma.surum.updateMany({ where: { urun_adi, aktif: 1 }, data: { aktif: 0 } });
 
-  const [sonuc] = await havuz.query(
-    `INSERT INTO surumler (urun_id, urun_adi, surum, tarih, duzenlenenler, eklenenler, cikarilanlar, dosya_adi, aktif)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`,
-    [urun_id || null, urun_adi, surum, tarih || new Date().toISOString().slice(0, 10), duzenlenenler || null, eklenenler || null, cikarilanlar || null, dosya_adi || null]
-  );
-
-  res.status(201).json({ basarili: true, mesaj: "Surum basariyla eklendi.", id: sonuc.insertId });
+  const sonuc = await prisma.surum.create({
+    data: {
+      urun_id: urun_id || null,
+      urun_adi,
+      surum,
+      tarih: tarih ? new Date(tarih) : new Date(),
+      duzenlenenler: duzenlenenler || null,
+      eklenenler: eklenenler || null,
+      cikarilanlar: cikarilanlar || null,
+      dosya_adi: dosya_adi || null,
+      aktif: 1,
+    },
+  });
+  res.status(201).json({ basarili: true, mesaj: "Surum basariyla eklendi.", id: sonuc.id });
 }));
 
 /* ---- Surum Guncelle ---- */
 router.put("/:id", hataYakala(async (req, res) => {
   const id = Number(req.params.id);
-  const [mevcut] = await havuz.query("SELECT id FROM surumler WHERE id = ?", [id]);
-  if (mevcut.length === 0) return bulunamadiHatasi(res, "Surum bulunamadi.");
+  const mevcut = await prisma.surum.findUnique({ where: { id } });
+  if (!mevcut) return bulunamadiHatasi(res, "Surum bulunamadi.");
 
   const { urun_id, urun_adi, surum, tarih, duzenlenenler, eklenenler, cikarilanlar, dosya_adi, aktif } = req.body;
 
-  await havuz.query(
-    `UPDATE surumler SET
-      urun_id = ?, urun_adi = COALESCE(?, urun_adi), surum = COALESCE(?, surum),
-      tarih = COALESCE(?, tarih), duzenlenenler = ?, eklenenler = ?,
-      cikarilanlar = ?, dosya_adi = ?, aktif = ?
-    WHERE id = ?`,
-    [urun_id || null, urun_adi || null, surum || null, tarih || null, duzenlenenler || null, eklenenler || null, cikarilanlar || null, dosya_adi || null, aktif !== undefined ? (aktif ? 1 : 0) : 1, id]
-  );
-
+  await prisma.surum.update({
+    where: { id },
+    data: {
+      urun_id: urun_id || null,
+      urun_adi: urun_adi || undefined,
+      surum: surum || undefined,
+      tarih: tarih ? new Date(tarih) : undefined,
+      duzenlenenler: duzenlenenler || null,
+      eklenenler: eklenenler || null,
+      cikarilanlar: cikarilanlar || null,
+      dosya_adi: dosya_adi || null,
+      aktif: aktif !== undefined ? (aktif ? 1 : 0) : 1,
+    },
+  });
   res.json({ basarili: true, mesaj: "Surum basariyla guncellendi." });
 }));
 
 /* ---- Surum Sil ---- */
 router.delete("/:id", hataYakala(async (req, res) => {
   const id = Number(req.params.id);
-  const [mevcut] = await havuz.query("SELECT id FROM surumler WHERE id = ?", [id]);
-  if (mevcut.length === 0) return bulunamadiHatasi(res, "Surum bulunamadi.");
+  const mevcut = await prisma.surum.findUnique({ where: { id } });
+  if (!mevcut) return bulunamadiHatasi(res, "Surum bulunamadi.");
 
-  await havuz.query("DELETE FROM surumler WHERE id = ?", [id]);
+  await prisma.surum.delete({ where: { id } });
   res.json({ basarili: true, mesaj: "Surum basariyla silindi." });
 }));
 

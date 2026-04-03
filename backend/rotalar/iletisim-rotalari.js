@@ -1,19 +1,11 @@
-/* ============================================= */
-/*  İletişim Rotaları - E-posta Gönderme          */
-/* ============================================= */
-
 const express = require("express");
 const router = express.Router();
 const nodemailer = require("nodemailer");
 const { hataYakala, dogrulamaHatasi } = require("../yardimcilar/hata-yonetimi");
 
-/* ---- SMTP Transporter ---- */
 const transporter = nodemailer.createTransport({
   service: "gmail",
-  auth: {
-    user: process.env.SMTP_KULLANICI || "",
-    pass: process.env.SMTP_SIFRE || "",
-  },
+  auth: { user: process.env.SMTP_KULLANICI || "", pass: process.env.SMTP_SIFRE || "" },
 });
 
 /* ---- Şifremi Unuttum / Patrona Bildirim ---- */
@@ -23,15 +15,11 @@ router.post("/sifremi-unuttum", hataYakala(async (req, res) => {
 
   const hedefEposta = process.env.PATRON_EPOSTA || "21baran51@gmail.com";
 
-  /* SMTP ayarları yoksa DB'ye log at ve başarılı dön */
   if (!process.env.SMTP_KULLANICI || !process.env.SMTP_SIFRE) {
     console.log(`[Mail Bildirimi] Gönderen: ${gonderen || "Bilinmeyen"}`);
     console.log(`[Mail Bildirimi] Mesaj: ${mesaj}`);
-    console.log(`[Mail Bildirimi] SMTP ayarları yapılandırılmadığı için mail gönderilemedi. .env dosyasına SMTP_KULLANICI ve SMTP_SIFRE ekleyin.`);
-    return res.json({
-      basarili: true,
-      mesaj: "Bildiriminiz kaydedildi. SMTP ayarları yapılandırıldığında e-posta olarak da gönderilecektir.",
-    });
+    console.log(`[Mail Bildirimi] SMTP ayarları yapılandırılmadığı için mail gönderilemedi.`);
+    return res.json({ basarili: true, mesaj: "Bildiriminiz kaydedildi. SMTP ayarları yapılandırıldığında e-posta olarak da gönderilecektir." });
   }
 
   await transporter.sendMail({
@@ -54,7 +42,7 @@ router.post("/sifremi-unuttum", hataYakala(async (req, res) => {
   res.json({ basarili: true, mesaj: "E-posta başarıyla gönderildi." });
 }));
 
-/* ---- Patron E-postasını Getir (frontend gösterimi için) ---- */
+/* ---- Patron E-postasını Getir ---- */
 router.get("/patron-eposta", (req, res) => {
   res.json({ eposta: process.env.PATRON_EPOSTA || "21baran51@gmail.com" });
 });

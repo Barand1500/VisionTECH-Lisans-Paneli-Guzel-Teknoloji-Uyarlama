@@ -8,8 +8,8 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 
-/* ---- Veritabani Kurulumu ---- */
-const { tablolariOlustur, ornekVerileriEkle } = require("./veritabani/sema");
+/* ---- Veritabani (Prisma) ---- */
+const { prisma } = require("./veritabani/prisma");
 
 /* ---- Express Uygulamasi ---- */
 const uygulama = express();
@@ -35,6 +35,7 @@ uygulama.use("/api/roller", require("./rotalar/rol-rotalari"));
 uygulama.use("/api/raporlar", require("./rotalar/rapor-rotalari"));
 uygulama.use("/api/yedekleme", require("./rotalar/yedekleme-rotalari"));
 uygulama.use("/api/sektorler", require("./rotalar/sektor-rotalari"));
+uygulama.use("/api/sablonlar", require("./rotalar/sablon-rotalari"));
 uygulama.use("/api/musteriler", require("./rotalar/dosya-rotalari"));
 uygulama.use("/api/iletisim", require("./rotalar/iletisim-rotalari"));
 uygulama.use("/api/kisiler", require("./rotalar/iletisim-kisileri-rotalari"));
@@ -43,13 +44,9 @@ uygulama.use("/api/cop-kutusu", require("./rotalar/cop-kutusu-rotalari"));
 /* ---- Statik dosya servisi (uploads) ---- */
 uygulama.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-/* ---- Kok Rota ---- */
-uygulama.get("/", (req, res) => {
-  res.json({
-    basarili: true,
-    mesaj: "Guzel Teknoloji API Sunucusu calisiyor. Frontend icin http://localhost:5173 adresini kullanin.",
-  });
-});
+/* ---- Frontend Statik Dosyalari (Production) ---- */
+const distYolu = path.join(__dirname, "..", "Frontend");
+uygulama.use(express.static(distYolu));
 
 /* ---- Saglik Kontrolu ---- */
 uygulama.get("/api/durum", (req, res) => {
@@ -60,9 +57,15 @@ uygulama.get("/api/durum", (req, res) => {
   });
 });
 
-/* ---- 404 Yakalayici ---- */
-uygulama.use((req, res) => {
-  res.status(404).json({ basarili: false, mesaj: "Rota bulunamadi." });
+/* ---- SPA Fallback (React Router icin) ---- */
+uygulama.get("/{*path}", (req, res) => {
+  const indexDosya = path.join(__dirname, "..", "Frontend", "index.html");
+  const fs = require("fs");
+  if (fs.existsSync(indexDosya)) {
+    res.sendFile(indexDosya);
+  } else {
+    res.status(404).json({ basarili: false, mesaj: "Rota bulunamadi." });
+  }
 });
 
 /* ---- Genel Hata Yakalayici ---- */
@@ -74,11 +77,11 @@ uygulama.use((hata, req, res, _next) => {
   });
 });
 
-/* ---- Sunucuyu Baslat (async — MySQL tablolar olusturulduktan sonra) ---- */
+/* ---- Sunucuyu Baslat (Prisma baglantisi ile) ---- */
 (async () => {
   try {
-    await tablolariOlustur();
-    await ornekVerileriEkle();
+    await prisma.$connect();
+    console.log("Prisma veritabani baglantisi basarili.");
     uygulama.listen(PORT, () => {
       console.log(`\n========================================`);
       console.log(`  Guzel Teknoloji API Sunucusu`);
