@@ -6,6 +6,7 @@
 /* ============================================= */
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useMusteriler } from "../baglam/MusteriContext";
 import { apiGet } from "../yardimcilar/api";
@@ -211,10 +212,10 @@ export default function GlobalArama({ acik, kapat }) {
 
   let globalIdx = -1;
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh]" onClick={kapat}>
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[15vh]" onClick={kapat}>
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-white dark:bg-slate-950 animate-fadeIn" />
+      <div className="absolute inset-0 bg-white/60 dark:bg-slate-950/70 backdrop-blur-xl animate-fadeIn" />
 
       {/* Panel */}
       <div
@@ -323,7 +324,8 @@ export default function GlobalArama({ acik, kapat }) {
         .animate-fadeIn { animation: fadeIn 0.15s ease-out; }
         .animate-slideDown { animation: slideDown 0.2s ease-out; }
       `}</style>
-    </div>
+    </div>,
+    document.body
   );
 }
 
