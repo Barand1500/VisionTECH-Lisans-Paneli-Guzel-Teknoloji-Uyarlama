@@ -214,7 +214,7 @@ export default function GlobalArama({ acik, kapat }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh]" onClick={kapat}>
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-white/80 dark:bg-slate-950/85 backdrop-blur-md animate-fadeIn" />
+      <div className="absolute inset-0 bg-white dark:bg-slate-950 animate-fadeIn" />
 
       {/* Panel */}
       <div
