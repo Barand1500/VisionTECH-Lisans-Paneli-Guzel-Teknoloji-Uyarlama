@@ -25,7 +25,7 @@ router.get("/tipler", hataYakala(async (_req, res) => {
 router.post("/tipler", hataYakala(async (req, res) => {
   const { ad, grup_id, aktif } = req.body;
   if (!ad) return dogrulamaHatasi(res, "Tip adi zorunludur.");
-  const sonuc = await prisma.urunTipi.create({ data: { ad, grup_id: grup_id || null, aktif: aktif !== undefined ? aktif : 1 } });
+  const sonuc = await prisma.urunTipi.create({ data: { ad, grup_id: grup_id || null, aktif: aktif !== undefined ? (aktif ? 1 : 0) : 1 } });
   res.status(201).json({ basarili: true, mesaj: "Urun tipi eklendi.", id: sonuc.id });
 }));
 
@@ -37,7 +37,7 @@ router.put("/tipler/:id", hataYakala(async (req, res) => {
     data: {
       ad: ad || undefined,
       grup_id: grup_id !== undefined ? (grup_id || null) : undefined,
-      aktif: aktif !== undefined ? aktif : undefined,
+      aktif: aktif !== undefined ? (aktif ? 1 : 0) : undefined,
     },
   });
   res.json({ basarili: true, mesaj: "Urun tipi guncellendi." });
@@ -65,7 +65,7 @@ router.get("/uygulama-tipler", hataYakala(async (_req, res) => {
 router.post("/uygulama-tipler", hataYakala(async (req, res) => {
   const { ad, urun_tipi_id, aktif } = req.body;
   if (!ad) return dogrulamaHatasi(res, "Uygulama tipi adi zorunludur.");
-  const sonuc = await prisma.uygulamaTipi.create({ data: { ad, urun_tipi_id: urun_tipi_id || null, aktif: aktif !== undefined ? aktif : 1 } });
+  const sonuc = await prisma.uygulamaTipi.create({ data: { ad, urun_tipi_id: urun_tipi_id || null, aktif: aktif !== undefined ? (aktif ? 1 : 0) : 1 } });
   res.status(201).json({ basarili: true, mesaj: "Uygulama tipi eklendi.", id: sonuc.id });
 }));
 
@@ -76,7 +76,7 @@ router.post("/uygulama-tipler/toplu", hataYakala(async (req, res) => {
   const sonuclar = [];
   for (const tip of tipler) {
     if (!tip.ad) continue;
-    const s = await prisma.uygulamaTipi.create({ data: { ad: tip.ad, urun_tipi_id: tip.urun_tipi_id || null, aktif: tip.aktif !== undefined ? tip.aktif : 1 } });
+    const s = await prisma.uygulamaTipi.create({ data: { ad: tip.ad, urun_tipi_id: tip.urun_tipi_id || null, aktif: tip.aktif !== undefined ? (tip.aktif ? 1 : 0) : 1 } });
     sonuclar.push(s);
   }
   res.status(201).json({ basarili: true, mesaj: `${sonuclar.length} uygulama tipi eklendi.` });
@@ -90,7 +90,7 @@ router.put("/uygulama-tipler/:id", hataYakala(async (req, res) => {
     data: {
       ad: ad || undefined,
       urun_tipi_id: urun_tipi_id !== undefined ? (urun_tipi_id || null) : undefined,
-      aktif: aktif !== undefined ? aktif : undefined,
+      aktif: aktif !== undefined ? (aktif ? 1 : 0) : undefined,
     },
   });
   res.json({ basarili: true, mesaj: "Uygulama tipi guncellendi." });
@@ -118,7 +118,7 @@ router.get("/gruplar", hataYakala(async (_req, res) => {
 router.post("/gruplar", hataYakala(async (req, res) => {
   const { ad, aciklama, aktif } = req.body;
   if (!ad) return dogrulamaHatasi(res, "Grup adi zorunludur.");
-  const sonuc = await prisma.urunGrubu.create({ data: { ad, aciklama: aciklama || null, aktif: aktif !== undefined ? aktif : 1 } });
+  const sonuc = await prisma.urunGrubu.create({ data: { ad, aciklama: aciklama || null, aktif: aktif !== undefined ? (aktif ? 1 : 0) : 1 } });
   res.status(201).json({ basarili: true, mesaj: "Grup eklendi.", id: sonuc.id });
 }));
 
@@ -130,7 +130,7 @@ router.put("/gruplar/:id", hataYakala(async (req, res) => {
     data: {
       ad: ad || undefined,
       aciklama: aciklama !== undefined ? (aciklama || null) : undefined,
-      aktif: aktif !== undefined ? aktif : undefined,
+      aktif: aktif !== undefined ? (aktif ? 1 : 0) : undefined,
     },
   });
   res.json({ basarili: true, mesaj: "Grup guncellendi." });
@@ -198,7 +198,7 @@ router.post("/", hataYakala(async (req, res) => {
     data: {
       ad, grup_id: grup_id || null, urun_tipi: urun_tipi || null, uygulama_tipi: uygulama_tipi || null,
       varsayilan_gun: guvenliSayi(varsayilan_gun, 365), ozel_proje: ozel_proje ? 1 : 0,
-      aktif: aktif !== undefined ? aktif : 1, aciklama: aciklama || null,
+      aktif: aktif !== undefined ? (aktif ? 1 : 0) : 1, aciklama: aciklama || null,
       min_kullanici: guvenliSayi(min_kullanici, 1), max_kullanici: max_kullanici ? Number(max_kullanici) : null,
       demo_gun: guvenliSayi(demo_gun, 30), temel_fiyat: guvenliSayi(temel_fiyat, 0),
       versiyon: versiyon || null, logo_url: logo_url || null,
@@ -221,7 +221,7 @@ router.put("/:id", hataYakala(async (req, res) => {
   if (uygulama_tipi !== undefined) data.uygulama_tipi = uygulama_tipi || null;
   if (varsayilan_gun !== undefined) data.varsayilan_gun = guvenliSayi(varsayilan_gun, 365);
   if (ozel_proje !== undefined) data.ozel_proje = ozel_proje ? 1 : 0;
-  if (aktif !== undefined) data.aktif = aktif;
+  if (aktif !== undefined) data.aktif = aktif ? 1 : 0;
   if (aciklama !== undefined) data.aciklama = aciklama || null;
   if (min_kullanici !== undefined) data.min_kullanici = guvenliSayi(min_kullanici, 1);
   if (max_kullanici !== undefined) data.max_kullanici = max_kullanici ? Number(max_kullanici) : null;
@@ -273,7 +273,7 @@ router.post("/paketler", hataYakala(async (req, res) => {
       kullanim_gunu: guvenliSayi(kullanim_gunu, 365),
       fiyat: guvenliSayi(fiyat, 0),
       kullanici_sayisi: guvenliSayi(kullanici_sayisi, 1),
-      aktif: aktif !== undefined ? aktif : 1,
+      aktif: aktif !== undefined ? (aktif ? 1 : 0) : 1,
     },
   });
   res.status(201).json({ basarili: true, mesaj: "Paket basariyla eklendi.", id: sonuc.id });
@@ -288,7 +288,7 @@ router.put("/paketler/:id", hataYakala(async (req, res) => {
   if (kullanim_gunu !== undefined) data.kullanim_gunu = guvenliSayi(kullanim_gunu, 365);
   if (fiyat !== undefined) data.fiyat = guvenliSayi(fiyat, 0);
   if (kullanici_sayisi !== undefined) data.kullanici_sayisi = guvenliSayi(kullanici_sayisi, 1);
-  if (aktif !== undefined) data.aktif = aktif;
+  if (aktif !== undefined) data.aktif = aktif ? 1 : 0;
 
   await prisma.paket.update({ where: { id }, data });
   res.json({ basarili: true, mesaj: "Paket basariyla guncellendi." });

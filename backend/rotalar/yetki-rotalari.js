@@ -111,7 +111,7 @@ router.put("/kullanicilar/:id", yetkiKontrol, sadaceAdmin, hataYakala(async (req
   if (ad_soyad) data.ad_soyad = ad_soyad;
   if (eposta) data.eposta = eposta;
   if (rol) data.rol = rol;
-  if (aktif !== undefined) data.aktif = aktif;
+  if (aktif !== undefined) data.aktif = aktif ? 1 : 0;
   if (sifre) data.sifre_hash = await bcrypt.hash(sifre, 10);
 
   await prisma.kullanici.update({ where: { id }, data });
