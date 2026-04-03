@@ -551,10 +551,16 @@ export default function MusterilerPage() {
             </button>
           </div>
 
-          <div className="p-6 space-y-5">
+          <div className="p-6 space-y-6">
             {/* ---- Bayi ---- */}
-            <div className="rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 p-4">
-              <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">Bayi</p>
+            <div className="rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Bayi
+              </h3>
+              <p className="text-sm text-gray-400 dark:text-slate-500 mb-4">Bu müşteriyi bir bayiye bağlamak istiyorsanız aşağıdan arayın.</p>
               <div className="relative" ref={bayiRef}>
                 {form.bayi ? (
                   <div className={INPUT_STIL + " flex items-center justify-between"}>
@@ -572,15 +578,15 @@ export default function MusterilerPage() {
                       onChange={(e) => { guncelle("bayiArama", e.target.value); setBayiAcik(true); }}
                       onFocus={() => setBayiAcik(true)} className={INPUT_STIL} />
                     {bayiAcik && form.bayiArama.length > 0 && (
-                      <div className="absolute z-20 left-0 right-0 mt-1 rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 shadow-xl max-h-40 overflow-y-auto">
+                      <div className="absolute z-20 left-0 right-0 mt-1 rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 shadow-xl max-h-56 overflow-y-auto">
                         {filtreliBayiler.length > 0 ? filtreliBayiler.map((b) => (
                           <button key={b.id} type="button" onClick={() => { guncelle("bayi", String(b.id)); guncelle("bayiAdi", b.ad); guncelle("bayiArama", ""); setBayiAcik(false); }}
-                            className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 cursor-pointer">
+                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer">
                             {b.ad}
                           </button>
                         )) : (
-                          <div className="p-3">
-                            <p className="text-xs text-gray-400 dark:text-slate-500">Eşleşen bayi bulunamadı.</p>
+                          <div className="p-4">
+                            <p className="text-sm text-gray-400 dark:text-slate-500">Eşleşen bayi bulunamadı.</p>
                           </div>
                         )}
                       </div>
@@ -590,178 +596,171 @@ export default function MusterilerPage() {
               </div>
             </div>
 
-            {/* ---- Tip Sekmeleri ---- */}
-            <div className="flex gap-1.5 bg-gray-100 dark:bg-white/5 p-1 rounded-lg border border-gray-200 dark:border-white/10">
+            {/* ---- Sekme (Tab) Çubuğu: Gerçek / Tüzel / Yabancı ---- */}
+            <div className="flex gap-2 bg-gray-100 dark:bg-white/5 p-1.5 rounded-xl border border-gray-200 dark:border-white/10">
               {SEKMELER.map((s) => (
                 <button key={s.id} type="button" onClick={() => { setAktifSekme(s.id); setHatalar({}); }}
-                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer ${
                     aktifSekme === s.id
                       ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25"
-                      : "text-gray-500 dark:text-slate-400 hover:bg-white dark:hover:bg-white/5"
+                      : "text-gray-500 dark:text-slate-400 hover:bg-white dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"
                   }`}>
-                  {s.ikon}{s.etiket}
+                  {s.ikon}
+                  {s.etiket}
                 </button>
               ))}
             </div>
 
-            {/* ---- Temel Bilgiler ---- */}
-            <div className="rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 p-4">
-              <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">Temel Bilgiler</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* ---- Fatura Bilgileri ---- */}
+            <div className="rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Fatura Bilgileri
+                </h3>
+                <div className="flex items-center gap-3">
+                  <span className={`text-sm font-medium ${form.durum ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500 dark:text-slate-400"}`}>
+                    {form.durum ? "Aktif" : "Pasif"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => guncelle("durum", !form.durum)}
+                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-200 cursor-pointer ${
+                      form.durum ? "bg-emerald-500" : "bg-gray-300 dark:bg-white/20"
+                    }`}
+                  >
+                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-200 ${
+                      form.durum ? "translate-x-6" : "translate-x-1"
+                    }`} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* ======== GERÇEK MÜŞTERİ ALANLARI ======== */}
                 {aktifSekme === "gercek" && (
                   <>
                     <div>
-                      <label className={LABEL_STIL}>TC Kimlik No <span className="text-red-500">*</span></label>
-                      <input type="text" value={form.tcKimlikNo} onChange={(e) => guncelle("tcKimlikNo", e.target.value.replace(/\D/g, "").slice(0, 11))}
-                        className={hatalar.tcKimlikNo ? HATA_INPUT : INPUT_STIL} maxLength={11} placeholder="11 haneli" />
-                      {hatalar.tcKimlikNo && <p className="text-red-500 text-xs mt-0.5">{hatalar.tcKimlikNo}</p>}
-                    </div>
-                    <div>
                       <label className={LABEL_STIL}>Ad Soyad <span className="text-red-500">*</span></label>
                       <input type="text" value={form.adSoyad} onChange={(e) => guncelle("adSoyad", e.target.value)}
-                        className={hatalar.adSoyad ? HATA_INPUT : INPUT_STIL} placeholder="Ad Soyad" />
-                      {hatalar.adSoyad && <p className="text-red-500 text-xs mt-0.5">{hatalar.adSoyad}</p>}
+                        className={hatalar.adSoyad ? HATA_INPUT : INPUT_STIL} placeholder="Ad ve soyadını giriniz" />
+                      {hatalar.adSoyad && <p className="text-red-500 text-xs mt-1">{hatalar.adSoyad}</p>}
                     </div>
                     <div>
-                      <label className={LABEL_STIL}>Yetkili Kişi</label>
-                      <input type="text" value={form.yetkiliKisi} onChange={(e) => guncelle("yetkiliKisi", e.target.value)} className={INPUT_STIL} placeholder="Yetkili" />
-                    </div>
-                    <div>
-                      <label className={LABEL_STIL}>Şirket Adı</label>
-                      <input type="text" value={form.sirketAdi} onChange={(e) => guncelle("sirketAdi", e.target.value)} className={INPUT_STIL} placeholder="Şirket (opsiyonel)" />
+                      <label className={LABEL_STIL}>TC Kimlik No <span className="text-red-500">*</span></label>
+                      <input type="text" value={form.tcKimlikNo} onChange={(e) => guncelle("tcKimlikNo", e.target.value.replace(/\D/g, "").slice(0, 11))}
+                        className={hatalar.tcKimlikNo ? HATA_INPUT : INPUT_STIL} maxLength={11} placeholder="11 haneli TC kimlik numarası" />
+                      <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{form.tcKimlikNo.length}/11 hane</p>
+                      {hatalar.tcKimlikNo && <p className="text-red-500 text-xs mt-0.5">{hatalar.tcKimlikNo}</p>}
                     </div>
                   </>
                 )}
+
+                {/* ======== TÜZEL MÜŞTERİ ALANLARI ======== */}
                 {aktifSekme === "tuzel" && (
                   <>
-                    <div>
-                      <label className={LABEL_STIL}>Vergi Numarası <span className="text-red-500">*</span></label>
-                      <input type="text" value={form.vergiNo} onChange={(e) => guncelle("vergiNo", e.target.value.replace(/\D/g, "").slice(0, 10))}
-                        className={hatalar.vergiNo ? HATA_INPUT : INPUT_STIL} maxLength={10} placeholder="10 haneli" />
-                      {hatalar.vergiNo && <p className="text-red-500 text-xs mt-0.5">{hatalar.vergiNo}</p>}
+                    <div className="md:col-span-2">
+                      <label className={LABEL_STIL}>Şirket Ünvanı <span className="text-red-500">*</span></label>
+                      <input type="text" value={form.sirketAdi} onChange={(e) => guncelle("sirketAdi", e.target.value)}
+                        className={hatalar.sirketAdi ? HATA_INPUT : INPUT_STIL} placeholder="Şirket ünvanını giriniz" />
+                      {hatalar.sirketAdi && <p className="text-red-500 text-xs mt-1">{hatalar.sirketAdi}</p>}
                     </div>
                     <div>
                       <label className={LABEL_STIL}>Vergi Dairesi <span className="text-red-500">*</span></label>
                       <input type="text" value={form.vergiDairesi} onChange={(e) => guncelle("vergiDairesi", e.target.value)}
-                        className={hatalar.vergiDairesi ? HATA_INPUT : INPUT_STIL} placeholder="Vergi Dairesi" />
-                      {hatalar.vergiDairesi && <p className="text-red-500 text-xs mt-0.5">{hatalar.vergiDairesi}</p>}
+                        className={hatalar.vergiDairesi ? HATA_INPUT : INPUT_STIL} placeholder="Vergi dairesi adı" />
+                      {hatalar.vergiDairesi && <p className="text-red-500 text-xs mt-1">{hatalar.vergiDairesi}</p>}
                     </div>
                     <div>
-                      <label className={LABEL_STIL}>Şirket Adı</label>
-                      <input type="text" value={form.sirketAdi} onChange={(e) => guncelle("sirketAdi", e.target.value)} className={INPUT_STIL} placeholder="Şirket adı" />
-                    </div>
-                    <div>
-                      <label className={LABEL_STIL}>Yetkili Kişi</label>
-                      <input type="text" value={form.yetkiliKisi} onChange={(e) => guncelle("yetkiliKisi", e.target.value)} className={INPUT_STIL} placeholder="Yetkili" />
+                      <label className={LABEL_STIL}>Vergi Numarası <span className="text-red-500">*</span></label>
+                      <input type="text" value={form.vergiNo} onChange={(e) => guncelle("vergiNo", e.target.value.replace(/\D/g, "").slice(0, 10))}
+                        className={hatalar.vergiNo ? HATA_INPUT : INPUT_STIL} maxLength={10} placeholder="10 haneli vergi numarası" />
+                      <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{form.vergiNo.length}/10 hane</p>
+                      {hatalar.vergiNo && <p className="text-red-500 text-xs mt-0.5">{hatalar.vergiNo}</p>}
                     </div>
                   </>
                 )}
+
+                {/* ======== YABANCI MÜŞTERİ ALANLARI ======== */}
                 {aktifSekme === "yabanci" && (
                   <>
                     <div>
+                      <label className={LABEL_STIL}>Ad Soyad <span className="text-red-500">*</span></label>
+                      <input type="text" value={form.adSoyad} onChange={(e) => guncelle("adSoyad", e.target.value)}
+                        className={hatalar.adSoyad ? HATA_INPUT : INPUT_STIL} placeholder="Ad ve soyadını giriniz" />
+                      {hatalar.adSoyad && <p className="text-red-500 text-xs mt-1">{hatalar.adSoyad}</p>}
+                    </div>
+                    <div>
                       <label className={LABEL_STIL}>Pasaport No <span className="text-red-500">*</span></label>
                       <input type="text" value={form.pasaportNo} onChange={(e) => guncelle("pasaportNo", e.target.value)}
-                        className={hatalar.pasaportNo ? HATA_INPUT : INPUT_STIL} placeholder="Pasaport No" />
-                      {hatalar.pasaportNo && <p className="text-red-500 text-xs mt-0.5">{hatalar.pasaportNo}</p>}
-                    </div>
-                    <div>
-                      <label className={LABEL_STIL}>Yetkili Kişi <span className="text-red-500">*</span></label>
-                      <input type="text" value={form.yetkiliKisi} onChange={(e) => guncelle("yetkiliKisi", e.target.value)}
-                        className={hatalar.yetkiliKisi ? HATA_INPUT : INPUT_STIL} placeholder="Yetkili" />
-                      {hatalar.yetkiliKisi && <p className="text-red-500 text-xs mt-0.5">{hatalar.yetkiliKisi}</p>}
-                    </div>
-                    <div>
-                      <label className={LABEL_STIL}>Ad Soyad</label>
-                      <input type="text" value={form.adSoyad} onChange={(e) => guncelle("adSoyad", e.target.value)} className={INPUT_STIL} placeholder="Opsiyonel" />
-                    </div>
-                    <div>
-                      <label className={LABEL_STIL}>Şirket Adı</label>
-                      <input type="text" value={form.sirketAdi} onChange={(e) => guncelle("sirketAdi", e.target.value)} className={INPUT_STIL} placeholder="Opsiyonel" />
+                        className={hatalar.pasaportNo ? HATA_INPUT : INPUT_STIL} placeholder="Pasaport numarası" />
+                      {hatalar.pasaportNo && <p className="text-red-500 text-xs mt-1">{hatalar.pasaportNo}</p>}
                     </div>
                   </>
                 )}
+
+                {/* ======== ORTAK ALANLAR ======== */}
                 <div>
-                  <label className={LABEL_STIL}>E-posta <span className="text-red-500">*</span></label>
+                  <label className={LABEL_STIL}>E-Posta <span className="text-red-500">*</span></label>
                   <input type="email" value={form.eposta} onChange={(e) => guncelle("eposta", e.target.value)}
                     className={hatalar.eposta ? HATA_INPUT : INPUT_STIL} placeholder="ornek@sirket.com" />
-                  {hatalar.eposta && <p className="text-red-500 text-xs mt-0.5">{hatalar.eposta}</p>}
+                  {hatalar.eposta && <p className="text-red-500 text-xs mt-1">{hatalar.eposta}</p>}
                 </div>
-              </div>
-            </div>
-
-            {/* ---- İletişim ---- */}
-            <div className="rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 p-4">
-              <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">İletişim</p>
-              {/* Telefonlar */}
-              <div className="mb-3">
-                <label className={LABEL_STIL}>Telefonlar <span className="text-red-500">*</span></label>
-                {hatalar.telefonlar && <p className="text-red-500 text-xs mb-1">{hatalar.telefonlar}</p>}
-                {form.telefonlar.map((tel, idx) => (
-                  <div key={idx} className="flex items-center gap-2 mb-2">
-                    <input type="text" placeholder="(5XX) XXX XX XX" value={tel}
-                      onChange={(e) => listeGuncelle("telefonlar", idx, telefonFormatla(e.target.value))} className={INPUT_STIL} />
-                    {form.telefonlar.length > 1 && (
-                      <button type="button" onClick={() => listeSil("telefonlar", idx)}
-                        className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 cursor-pointer shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <button type="button" onClick={() => listeEkle("telefonlar")}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 cursor-pointer font-medium inline-flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                  Telefon Ekle
-                </button>
-              </div>
-              {/* Adresler */}
-              <div>
-                <label className={LABEL_STIL}>Adresler <span className="text-red-500">*</span></label>
-                {hatalar.adresler && <p className="text-red-500 text-xs mb-1">{hatalar.adresler}</p>}
-                {form.adresler.map((adres, idx) => (
-                  <div key={idx} className="flex items-start gap-2 mb-2">
-                    <textarea placeholder="Adres" value={adres} onChange={(e) => listeGuncelle("adresler", idx, e.target.value)}
-                      rows={2} className={INPUT_STIL + " resize-none"} />
-                    {form.adresler.length > 1 && (
-                      <button type="button" onClick={() => listeSil("adresler", idx)}
-                        className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 cursor-pointer shrink-0 mt-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <button type="button" onClick={() => listeEkle("adresler")}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 cursor-pointer font-medium inline-flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                  Adres Ekle
-                </button>
-              </div>
-            </div>
-
-            {/* ---- Durum Toggle ---- */}
-            <div className="rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 p-4">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Müşteri Durumu</p>
-                <div className="flex items-center gap-3">
-                  <button type="button" onClick={() => guncelle("durum", !form.durum)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 cursor-pointer ${form.durum ? "bg-emerald-500" : "bg-gray-300 dark:bg-white/20"}`}>
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-200 ${form.durum ? "translate-x-6" : "translate-x-1"}`} />
+                <div>
+                  <label className={LABEL_STIL}>Telefon <span className="text-red-500">*</span></label>
+                  {hatalar.telefonlar && <p className="text-red-500 text-xs mb-1">{hatalar.telefonlar}</p>}
+                  {form.telefonlar.map((tel, idx) => (
+                    <div key={idx} className="flex items-center gap-2 mb-2">
+                      <input type="text" placeholder="(5XX) XXX XX XX" value={tel}
+                        onChange={(e) => listeGuncelle("telefonlar", idx, telefonFormatla(e.target.value))} className={INPUT_STIL} />
+                      {form.telefonlar.length > 1 && (
+                        <button type="button" onClick={() => listeSil("telefonlar", idx)}
+                          className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 cursor-pointer shrink-0">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => listeEkle("telefonlar")}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 cursor-pointer font-medium inline-flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                    Telefon Ekle
                   </button>
-                  <span className={`text-sm font-medium ${form.durum ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500 dark:text-slate-400"}`}>
-                    {form.durum ? "Aktif" : "Pasif"}
-                  </span>
+                </div>
+                <div className="md:col-span-2">
+                  <label className={LABEL_STIL}>Adres <span className="text-red-500">*</span></label>
+                  {hatalar.adresler && <p className="text-red-500 text-xs mb-1">{hatalar.adresler}</p>}
+                  {form.adresler.map((adres, idx) => (
+                    <div key={idx} className="flex items-start gap-2 mb-2">
+                      <textarea placeholder="Adres bilgisi" value={adres} onChange={(e) => listeGuncelle("adresler", idx, e.target.value)}
+                        rows={2} className={INPUT_STIL + " resize-none"} />
+                      {form.adresler.length > 1 && (
+                        <button type="button" onClick={() => listeSil("adresler", idx)}
+                          className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 cursor-pointer shrink-0 mt-1">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => listeEkle("adresler")}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 cursor-pointer font-medium inline-flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                    Adres Ekle
+                  </button>
                 </div>
               </div>
             </div>
 
             {/* ---- Hata Özeti ---- */}
             {Object.keys(hatalar).length > 0 && (
-              <div className="rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 p-3">
-                <p className="text-xs text-red-600 dark:text-red-400 font-medium">Lütfen zorunlu alanları doldurun.</p>
+              <div className="rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 p-4">
+                <p className="text-sm text-red-600 dark:text-red-400 font-medium">Lütfen zorunlu alanları doldurun.</p>
               </div>
             )}
           </div>

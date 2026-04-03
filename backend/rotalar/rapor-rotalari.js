@@ -14,6 +14,7 @@ router.get("/satislar", hataYakala(async (req, res) => {
   const rows = await prisma.$queryRawUnsafe(`
     SELECT l.id, l.lisans_anahtari, l.lisans_tipi, l.durum, l.fiyat, l.indirim_orani,
            l.indirim_tutari, l.net_tutar, l.odeme_durumu, l.odeme_yontemi, l.olusturma_tarihi,
+           l.domain, l.kullanici_sayisi,
            m.ad_soyad as musteri_adi, m.sirket_adi, m.tur as musteri_turu,
            u.ad as urun_adi, p.ad as paket_adi, b.ad as bayi_adi
     FROM lisanslar l
@@ -24,23 +25,47 @@ router.get("/satislar", hataYakala(async (req, res) => {
     WHERE 1=1 ${where}
     ORDER BY l.olusturma_tarihi DESC
   `, ...params);
-  res.json({ basarili: true, veri: temizle(rows) });
+  /* Alan adlarını frontend'in beklediği formata dönüştür */
+  const mapped = temizle(rows).map((r) => ({
+    id: r.id,
+    musteri: r.musteri_adi || r.sirket_adi || "-",
+    urun: r.urun_adi || "-",
+    paket: r.paket_adi || "-",
+    domain: r.domain || "",
+    kullanici: r.kullanici_sayisi ? String(r.kullanici_sayisi) : "",
+    tutar: Number(r.net_tutar || 0),
+    tarih: r.olusturma_tarihi ? new Date(r.olusturma_tarihi).toLocaleDateString("tr-TR") : "-",
+    durum: r.odeme_durumu === 'odendi' ? 'Tamamlandı' : r.durum === 'iptal' ? 'İptal' : 'Bekliyor',
+    odemeDurumu: r.odeme_durumu,
+  }));
+  res.json({ basarili: true, veri: mapped });
 }));
 
 /* ---- Aktif Paketler ---- */
 router.get("/aktif-paketler", hataYakala(async (_req, res) => {
   const rows = await prisma.$queryRawUnsafe(`
-    SELECT u.ad as urun_adi, p.ad as paket_adi, p.fiyat,
-           COUNT(l.id) as lisans_sayisi,
-           COALESCE(SUM(l.net_tutar), 0) as toplam_tutar
-    FROM paketler p
-    LEFT JOIN urunler u ON p.urun_id = u.id
-    LEFT JOIN lisanslar l ON l.paket_id = p.id AND l.durum = 'aktif'
-    WHERE p.aktif = 1
-    GROUP BY p.id, u.ad, p.ad, p.fiyat
-    ORDER BY lisans_sayisi DESC
+    SELECT l.id, l.baslangic_tarihi, l.bitis_tarihi, l.kullanici_sayisi, l.domain,
+           DATEDIFF(l.bitis_tarihi, CURDATE()) as kalan_gun,
+           m.ad_soyad as musteri_adi, m.sirket_adi,
+           u.ad as urun_adi, p.ad as paket_adi
+    FROM lisanslar l
+    LEFT JOIN musteriler m ON l.musteri_id = m.id
+    LEFT JOIN urunler u ON l.urun_id = u.id
+    LEFT JOIN paketler p ON l.paket_id = p.id
+    WHERE l.durum = 'aktif' AND (l.bitis_tarihi IS NULL OR l.bitis_tarihi >= CURDATE())
+    ORDER BY l.bitis_tarihi ASC
   `);
-  res.json({ basarili: true, veri: temizle(rows) });
+  const mapped = temizle(rows).map((r) => ({
+    id: r.id,
+    musteri: r.musteri_adi || r.sirket_adi || "-",
+    urun: r.urun_adi || "-",
+    paketAdi: r.paket_adi || "-",
+    baslangic: r.baslangic_tarihi ? new Date(r.baslangic_tarihi).toLocaleDateString("tr-TR") : "-",
+    bitis: r.bitis_tarihi ? new Date(r.bitis_tarihi).toLocaleDateString("tr-TR") : "-",
+    kalanGun: r.kalan_gun != null ? Number(r.kalan_gun) : 0,
+    kullaniciSayisi: r.kullanici_sayisi ? Number(r.kullanici_sayisi) : 0,
+  }));
+  res.json({ basarili: true, veri: mapped });
 }));
 
 /* ---- Aktif Cihazlar ---- */
@@ -56,7 +81,18 @@ router.get("/aktif-cihazlar", hataYakala(async (_req, res) => {
       LEFT JOIN urunler u ON ac.urun_id = u.id
       ORDER BY ac.son_aktivite DESC
     `);
-    res.json({ basarili: true, veri: temizle(rows) });
+    const mapped = temizle(rows).map((r) => ({
+      id: r.id,
+      musteri: r.musteri_adi || r.sirket_adi || '-',
+      bilgisayarAdi: r.bilgisayar_adi || '-',
+      ipAdresi: r.ip_adresi || '-',
+      islemciNo: r.islemci_no || '-',
+      surum: r.surum || '-',
+      aktivasyonZamani: r.aktivasyon_zamani ? new Date(r.aktivasyon_zamani).toLocaleDateString('tr-TR') : '-',
+      sonBaglanti: r.son_aktivite ? new Date(r.son_aktivite).toLocaleDateString('tr-TR') : '-',
+      durum: r.durum || 'Çevrimiçi',
+    }));
+    res.json({ basarili: true, veri: mapped });
   } catch (_) {
     res.json({ basarili: true, veri: [] });
   }
@@ -68,15 +104,25 @@ router.get("/suresi-yaklasanlar", hataYakala(async (req, res) => {
   const rows = await prisma.$queryRawUnsafe(`
     SELECT l.id, l.lisans_anahtari, l.bitis_tarihi, l.durum, l.net_tutar,
            DATEDIFF(l.bitis_tarihi, CURDATE()) as kalan_gun,
-           m.ad_soyad as musteri_adi, m.sirket_adi, u.ad as urun_adi, b.ad as bayi_adi
+           m.ad_soyad as musteri_adi, m.sirket_adi, u.ad as urun_adi,
+           p.ad as paket_adi, b.ad as bayi_adi
     FROM lisanslar l
     LEFT JOIN musteriler m ON l.musteri_id = m.id
     LEFT JOIN urunler u ON l.urun_id = u.id
+    LEFT JOIN paketler p ON l.paket_id = p.id
     LEFT JOIN bayiler b ON l.bayi_id = b.id
     WHERE l.durum = 'aktif' AND l.bitis_tarihi BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? DAY)
     ORDER BY l.bitis_tarihi ASC
   `, gun);
-  res.json({ basarili: true, veri: temizle(rows) });
+  const mapped = temizle(rows).map((r) => ({
+    id: r.id,
+    musteri: r.musteri_adi || r.sirket_adi || '-',
+    urun: r.urun_adi || '-',
+    paket: r.paket_adi || '-',
+    bitis: r.bitis_tarihi ? new Date(r.bitis_tarihi).toLocaleDateString('tr-TR') : '-',
+    kalanGun: r.kalan_gun != null ? Number(r.kalan_gun) : 0,
+  }));
+  res.json({ basarili: true, veri: mapped });
 }));
 
 /* ---- Suresi Bitenler ---- */
@@ -84,15 +130,25 @@ router.get("/suresi-bitenler", hataYakala(async (_req, res) => {
   const rows = await prisma.$queryRawUnsafe(`
     SELECT l.id, l.lisans_anahtari, l.bitis_tarihi, l.durum, l.net_tutar,
            DATEDIFF(CURDATE(), l.bitis_tarihi) as gecen_gun,
-           m.ad_soyad as musteri_adi, m.sirket_adi, u.ad as urun_adi, b.ad as bayi_adi
+           m.ad_soyad as musteri_adi, m.sirket_adi, u.ad as urun_adi,
+           p.ad as paket_adi, b.ad as bayi_adi
     FROM lisanslar l
     LEFT JOIN musteriler m ON l.musteri_id = m.id
     LEFT JOIN urunler u ON l.urun_id = u.id
+    LEFT JOIN paketler p ON l.paket_id = p.id
     LEFT JOIN bayiler b ON l.bayi_id = b.id
     WHERE l.durum = 'suresi-dolmus'
     ORDER BY l.bitis_tarihi DESC
   `);
-  res.json({ basarili: true, veri: temizle(rows) });
+  const mapped = temizle(rows).map((r) => ({
+    id: r.id,
+    musteri: r.musteri_adi || r.sirket_adi || '-',
+    urun: r.urun_adi || '-',
+    paket: r.paket_adi || '-',
+    bitis: r.bitis_tarihi ? new Date(r.bitis_tarihi).toLocaleDateString('tr-TR') : '-',
+    gecenGun: r.gecen_gun != null ? Number(r.gecen_gun) : 0,
+  }));
+  res.json({ basarili: true, veri: mapped });
 }));
 
 /* ---- Tahsilat Raporu ---- */
@@ -114,7 +170,17 @@ router.get("/tahsilatlar", hataYakala(async (req, res) => {
     WHERE 1=1 ${where}
     ORDER BY l.olusturma_tarihi DESC
   `, ...params);
-  res.json({ basarili: true, veri: temizle(rows) });
+  const yontemMap = { nakit: 'Nakit', havale: 'Havale', eft: 'EFT', 'kredi-karti': 'Kredi Kartı', cek: 'Çek', senet: 'Senet' };
+  const mapped = temizle(rows).map((r) => ({
+    id: r.id,
+    musteri: r.musteri_adi || r.sirket_adi || '-',
+    faturaNo: r.fatura_no || '-',
+    tutar: Number(r.net_tutar || 0),
+    odemeTarihi: r.fatura_tarihi ? new Date(r.fatura_tarihi).toLocaleDateString('tr-TR') : '-',
+    yontem: yontemMap[r.odeme_yontemi] || r.odeme_yontemi || 'Diğer',
+    durum: r.odeme_durumu === 'odendi' ? 'Ödendi' : r.odeme_durumu === 'kismi' ? 'Kısmi' : 'Bekliyor',
+  }));
+  res.json({ basarili: true, veri: mapped });
 }));
 
 /* ---- Ozet Istatistikler ---- */

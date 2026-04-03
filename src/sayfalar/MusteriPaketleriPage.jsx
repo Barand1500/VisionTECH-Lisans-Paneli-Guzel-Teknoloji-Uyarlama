@@ -983,12 +983,6 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
                 </div>
               </div>
 
-              {/* Domain */}
-              <div>
-                <label className={LABEL_STIL}>Domain / Server Adresi</label>
-                <input type="text" value={form.domain} onChange={(e) => guncelle("domain", e.target.value)} className={INPUT_STIL} placeholder="http://musteriadi.sirket.com:9090/" />
-              </div>
-
               {/* Kullanıcı Sayıları */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -1084,7 +1078,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
                           return (
                             <div key={oz.id}>
                               <label className={LABEL_STIL}>{oz.baslik || "Sicil No / Domain"}</label>
-                              <input type="text" value={deger.deger || ""} onChange={(e) => sablonGuncelle("deger", e.target.value)} className={INPUT_STIL} placeholder={deger.alan_tipi === "domain" ? "ornek.com" : "Sicil numarası"} />
+                              <input type="text" value={deger.deger || ""} onChange={(e) => { sablonGuncelle("deger", e.target.value); guncelle("domain", e.target.value); }} className={INPUT_STIL} placeholder={deger.alan_tipi === "domain" ? "ornek.com" : "Sicil numarası"} />
                             </div>
                           );
 

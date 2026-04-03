@@ -182,8 +182,8 @@ function SatislarSekmesi() {
   const toplamSayfa = Math.ceil(filtrelenmis.length / sayfaBasi);
   const sayfaVeriler = filtrelenmis.slice((sayfa - 1) * sayfaBasi, sayfa * sayfaBasi);
 
-  const toplamCiro = veri.filter((s) => s.durum === "aktif").reduce((t, s) => t + Number(s.tutar || 0), 0);
-  const bekleyenTutar = veri.filter((s) => s.durum !== "aktif").reduce((t, s) => t + Number(s.tutar || 0), 0);
+  const toplamCiro = veri.filter((s) => s.durum === "Tamamlandı").reduce((t, s) => t + Number(s.tutar || 0), 0);
+  const bekleyenTutar = veri.filter((s) => s.durum === "Bekliyor").reduce((t, s) => t + Number(s.tutar || 0), 0);
 
   return (
     <div>
@@ -195,7 +195,7 @@ function SatislarSekmesi() {
           ikon={<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
         <OzetKart baslik="Bekleyen Tutar" deger={`₺${bekleyenTutar.toLocaleString("tr-TR")}`} renk="amber"
           ikon={<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
-        <OzetKart baslik="Tamamlanan" deger={veri.filter((s) => s.durum === "aktif").length} renk="violet"
+        <OzetKart baslik="Tamamlanan" deger={veri.filter((s) => s.durum === "Tamamlandı").length} renk="violet"
           ikon={<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>} />
       </div>
 
