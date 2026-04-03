@@ -253,11 +253,29 @@ function UrunlerSekmesi() {
         versiyon: veri.versiyon || null,
         sablon_id: veri.sablonId || null,
       };
+      let urunId = veri.id;
       if (veri.id) {
         await apiPut(`/urunler/${veri.id}`, gonder);
       } else {
-        await apiPost("/urunler", gonder);
+        const res = await apiPost("/urunler", gonder);
+        urunId = res.id;
       }
+      
+      /* Eğer versiyon girildiyse otomatik sürüm oluştur */
+      if (veri.versiyon && urunId) {
+        try {
+          await apiPost("/surumler", {
+            urun_id: urunId,
+            urun_adi: veri.adi,
+            surum: veri.versiyon,
+            tarih: new Date().toISOString(),
+            eklenenler: veri.id ? "Versiyon güncellendi" : "İlk sürüm oluşturuldu",
+          });
+        } catch (surumHata) {
+          console.warn("Otomatik sürüm oluşturulamadı:", surumHata);
+        }
+      }
+      
       await verileriYukle();
       setModal(null);
     } catch (e) {
@@ -943,7 +961,58 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
     sablonId: duzenle ? (modal.sablonId || null) : null,
   });
   const [aktifSekme, setAktifSekme] = useState("temel"); // "temel" | "gelismis"
+  const [mevcutSurumler, setMevcutSurumler] = useState([]);
+  const [mevcutSurumBilgisi, setMevcutSurumBilgisi] = useState(null);
   const ref = useRef(null);
+
+  /* Mevcut sürümleri yükle */
+  useEffect(() => {
+    apiGet("/surumler").then((res) => {
+      setMevcutSurumler(res.veri || []);
+    }).catch(() => {});
+  }, []);
+
+  /* Ürün tipi + uygulama tipi değişince mevcut sürümü kontrol et */
+  useEffect(() => {
+    if (form.urunTipi && form.uygulamaTipi && form.uygulamaTipi !== "-") {
+      const benzerUrunler = mevcutSurumler.filter(s => {
+        const urunAdiLower = (s.urun_adi || "").toLowerCase();
+        const tipler = `${form.urunTipi} ${form.uygulamaTipi}`.toLowerCase();
+        return urunAdiLower.includes(form.urunTipi.toLowerCase()) || urunAdiLower.includes(form.uygulamaTipi.toLowerCase());
+      });
+      if (benzerUrunler.length > 0) {
+        const enSonSurum = benzerUrunler.sort((a, b) => (b.surum || "").localeCompare(a.surum || ""))[0];
+        const sonVersiyon = enSonSurum.surum || "1.0.0";
+        /* Bir üst versiyon hesapla */
+        const parcalar = sonVersiyon.split(".").map(Number);
+        const yeniMajor = parcalar[0] || 1;
+        const yeniMinor = parcalar[1] || 0;
+        const yeniPatch = (parcalar[2] || 0) + 1;
+        const onerilenVersiyon = `${yeniMajor}.${yeniMinor}.${yeniPatch}`;
+        setMevcutSurumBilgisi({ urun: enSonSurum.urun_adi, surum: sonVersiyon, onerilen: onerilenVersiyon });
+        /* Eğer versiyon boşsa önerilen versiyonu koy */
+        if (!form.versiyon && !duzenle) {
+          setForm(o => ({ ...o, versiyon: onerilenVersiyon }));
+        }
+      } else {
+        setMevcutSurumBilgisi(null);
+      }
+    } else {
+      setMevcutSurumBilgisi(null);
+    }
+  }, [form.urunTipi, form.uygulamaTipi, mevcutSurumler]);
+
+  /* Versiyon formatlama (otomatik nokta ekleme) */
+  const versiyonFormatla = (deger) => {
+    /* Sadece rakamları al */
+    const rakamlar = deger.replace(/[^\d]/g, "").slice(0, 6);
+    if (!rakamlar) return "";
+    /* X.Y.Z formatına çevir */
+    if (rakamlar.length === 1) return rakamlar;
+    if (rakamlar.length === 2) return `${rakamlar[0]}.${rakamlar[1]}`;
+    if (rakamlar.length >= 3) return `${rakamlar[0]}.${rakamlar[1]}.${rakamlar.slice(2)}`;
+    return rakamlar;
+  };
 
   const sallanma = () => {
     if (ref.current) {
@@ -1072,7 +1141,23 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                 {/* Versiyon */}
                 <div>
                   <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Varsayılan Versiyon</label>
-                  <input type="text" value={form.versiyon} onChange={(e) => guncelle("versiyon", e.target.value)} placeholder="Örn: 1.0.0" className={INPUT_STIL} />
+                  <input 
+                    type="text" 
+                    value={form.versiyon} 
+                    onChange={(e) => guncelle("versiyon", versiyonFormatla(e.target.value))} 
+                    placeholder="Örn: 1.0.0" 
+                    className={INPUT_STIL} 
+                  />
+                  {mevcutSurumBilgisi && (
+                    <div className="mt-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+                      <p className="text-[10px] text-amber-700 dark:text-amber-400">
+                        <span className="font-semibold">{mevcutSurumBilgisi.urun}</span> için mevcut sürüm: <span className="font-mono font-bold">{mevcutSurumBilgisi.surum}</span>
+                      </p>
+                      <p className="text-[10px] text-amber-600 dark:text-amber-300 mt-0.5">
+                        Önerilen: <span className="font-mono font-bold">{mevcutSurumBilgisi.onerilen}</span>
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Şablon Seçimi */}
@@ -1110,6 +1195,24 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
               </>
             ) : (
               <>
+                {/* Şablon Uyarısı */}
+                {form.sablonId && (
+                  <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+                    <div className="flex items-start gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Şablon Seçildi</p>
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                          Şablon seçildiğinde aşağıdaki değerler şablondan otomatik olarak uygulanacaktır. 
+                          Burada girdiğiniz değerler geçersiz sayılacaktır.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Kullanıcı Limitleri */}
                 <div className="p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
                   <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-3 flex items-center gap-2">

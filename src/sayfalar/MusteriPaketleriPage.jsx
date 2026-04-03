@@ -245,14 +245,15 @@ export default function MusteriPaketleriPage() {
   /* Ek kullanıcı güncelle */
   const ekKullaniciGuncelle = async () => {
     if (!ekKullaniciModal) return;
+    const yeniEkKullaniciSayisi = (Number(ekKullaniciModal.ekKullanici) || 0) + Number(ekKullaniciDuzenle.yeniEk);
     try {
       await apiPut(`/lisanslar/${ekKullaniciModal.id}`, {
-        ek_kullanici: ekKullaniciDuzenle.yeniEk
+        ek_kullanici: yeniEkKullaniciSayisi
       });
       /* Listeyi güncelle */
       setPaketler((o) => o.map((p) =>
         p.id === ekKullaniciModal.id
-          ? { ...p, ekKullanici: ekKullaniciDuzenle.yeniEk }
+          ? { ...p, ekKullanici: yeniEkKullaniciSayisi }
           : p
       ));
       setEkKullaniciModal(null);
@@ -659,10 +660,10 @@ export default function MusteriPaketleriPage() {
 
             {/* Ek Kullanıcı Düzenleme */}
             <div className="space-y-3">
-              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300">Yeni Ek Kullanıcı Sayısı</label>
+              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300">Kaç Ek Kullanıcı Eklensin?</label>
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setEkKullaniciDuzenle(o => ({ ...o, yeniEk: Math.max(0, o.yeniEk - 1), kaydetmeUygun: true }))}
+                  onClick={() => setEkKullaniciDuzenle(o => ({ ...o, yeniEk: Math.max(0, o.yeniEk - 1), kaydetmeUygun: o.yeniEk > 1 }))}
                   className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center cursor-pointer transition-colors">
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-600 dark:text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" /></svg>
@@ -670,7 +671,7 @@ export default function MusteriPaketleriPage() {
                 <input
                   type="number"
                   value={ekKullaniciDuzenle.yeniEk}
-                  onChange={(e) => setEkKullaniciDuzenle({ yeniEk: Math.max(0, Number(e.target.value)), kaydetmeUygun: true })}
+                  onChange={(e) => setEkKullaniciDuzenle({ yeniEk: Math.max(0, Number(e.target.value)), kaydetmeUygun: Number(e.target.value) > 0 })}
                   className="flex-1 px-4 py-2.5 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-center text-lg font-semibold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   min={0}
                 />
@@ -683,11 +684,23 @@ export default function MusteriPaketleriPage() {
               </div>
               
               {/* Yeni Toplam */}
-              {ekKullaniciDuzenle.kaydetmeUygun && (
-                <div className="bg-blue-50 dark:bg-blue-500/10 rounded-lg p-3 border border-blue-200 dark:border-blue-500/20">
+              {ekKullaniciDuzenle.yeniEk > 0 && (
+                <div className="bg-blue-50 dark:bg-blue-500/10 rounded-lg p-3 border border-blue-200 dark:border-blue-500/20 space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-blue-600 dark:text-blue-400">Yeni Toplam Kullanıcı:</span>
-                    <span className="font-bold text-blue-700 dark:text-blue-300">{(Number(ekKullaniciModal.kullanici) || 1) + Number(ekKullaniciDuzenle.yeniEk)}</span>
+                    <span className="text-gray-600 dark:text-slate-400">Mevcut Ek Kullanıcı:</span>
+                    <span className="font-medium text-gray-900 dark:text-white">{Number(ekKullaniciModal.ekKullanici) || 0}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-emerald-600 dark:text-emerald-400">Eklenecek:</span>
+                    <span className="font-medium text-emerald-600 dark:text-emerald-400">+{ekKullaniciDuzenle.yeniEk}</span>
+                  </div>
+                  <div className="flex justify-between text-sm pt-2 border-t border-blue-200 dark:border-blue-500/30">
+                    <span className="text-blue-600 dark:text-blue-400">Yeni Ek Kullanıcı:</span>
+                    <span className="font-bold text-blue-700 dark:text-blue-300">{(Number(ekKullaniciModal.ekKullanici) || 0) + Number(ekKullaniciDuzenle.yeniEk)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-blue-600 dark:text-blue-400 font-semibold">Yeni Toplam Kullanıcı:</span>
+                    <span className="font-bold text-blue-700 dark:text-blue-300">{(Number(ekKullaniciModal.kullanici) || 1) + (Number(ekKullaniciModal.ekKullanici) || 0) + Number(ekKullaniciDuzenle.yeniEk)}</span>
                   </div>
                 </div>
               )}
@@ -1426,7 +1439,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
                 <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-3">Fiyat Bilgileri</h4>
                 
                 {/* Fiyat Breakdown */}
-                {(fiyatBreakdown.temelFiyat > 0 || fiyatBreakdown.paketFiyat > 0 || fiyatBreakdown.ekKullaniciFiyat > 0) && (
+                {(fiyatBreakdown.temelFiyat > 0 || fiyatBreakdown.paketFiyat > 0 || fiyatBreakdown.ekKullaniciFiyat > 0 || Number(form.indirimOrani) > 0 || Number(form.indirimTutari) > 0) && (
                   <div className="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20">
                     <div className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-2 flex items-center gap-1.5">
                       <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1456,6 +1469,18 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
                         <span className="font-semibold text-blue-700 dark:text-blue-300">Toplam:</span>
                         <span className="font-bold text-blue-700 dark:text-blue-300">₺{fiyatBreakdown.toplam.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
                       </div>
+                      {(Number(form.indirimOrani) > 0 || Number(form.indirimTutari) > 0) && (
+                        <>
+                          <div className="flex justify-between text-red-600 dark:text-red-400">
+                            <span>İndirim {Number(form.indirimOrani) > 0 ? `(%${form.indirimOrani})` : ""}:</span>
+                            <span className="font-medium">-₺{Number(form.indirimTutari).toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
+                          </div>
+                          <div className="flex justify-between pt-1.5 border-t border-blue-200 dark:border-blue-500/30">
+                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">Net Tutar:</span>
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400">₺{Number(form.netTutar).toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}

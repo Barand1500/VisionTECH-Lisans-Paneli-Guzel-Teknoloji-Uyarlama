@@ -150,10 +150,42 @@ export default function BayilerPage() {
   const [dosyalar, setDosyalar] = useState([]);
   const [dosyaYukleniyor, setDosyaYukleniyor] = useState(false);
 
-  /* ---- Bayi Ürünleri Modalı ---- */
+  /* ---- Bayi Ürünleri/Lisansları Modalı ---- */
   const [urunlerModal, setUrunlerModal] = useState(null);
-  const [bayiUrunler, setBayiUrunler] = useState([]);
-  const [bayiUrunlerYukleniyor, setBayiUrunlerYukleniyor] = useState(false);
+  const [bayiLisanslar, setBayiLisanslar] = useState([]);
+  const [bayiLisanslarYukleniyor, setBayiLisanslarYukleniyor] = useState(false);
+  const [bayiPaketEkleAcik, setBayiPaketEkleAcik] = useState(false);
+  const [bayiEkKullaniciModal, setBayiEkKullaniciModal] = useState(null);
+  const [bayiEkKullaniciDuzenle, setBayiEkKullaniciDuzenle] = useState({ yeniEk: 0, kaydetmeUygun: false });
+  const [bayiFaturaModal, setBayiFaturaModal] = useState(null);
+  const [bayiLisansKeyModal, setBayiLisansKeyModal] = useState(null);
+  const [bayiCihazlarModal, setBayiCihazlarModal] = useState(null);
+  const [bayiSilOnay, setBayiSilOnay] = useState(null);
+  const [dbUrunlerBayi, setDbUrunlerBayi] = useState([]);
+  const [dbPaketlerBayi, setDbPaketlerBayi] = useState([]);
+  
+  /* Bayi Lisans Form */
+  const [bayiLisansForm, setBayiLisansForm] = useState({
+    urunId: "",
+    paketId: "",
+    lisansTipi: "standart",
+    baslangicTarihi: new Date().toISOString().slice(0, 10),
+    kullanimGunu: 365,
+    bitisTarihi: "",
+    domain: "",
+    kullaniciSayisi: 1,
+    ekKullanici: 0,
+    fiyat: 0,
+    indirimOrani: 0,
+    indirimTutari: 0,
+    netTutar: 0,
+    odemeYontemi: "",
+    odemeDurumu: "odenmedi",
+    faturaNo: "",
+    faturaTarihi: "",
+    faturaGeldi: false,
+    notlar: "",
+  });
 
   /* ---- Detay Modal Dosyalar ---- */
   const [detayDosyalar, setDetayDosyalar] = useState([]);
@@ -257,16 +289,46 @@ export default function BayilerPage() {
     }
   }, [dosyaModal]);
 
-  /* Ürünler modalı açıldığında bayi ürünlerini yükle */
+  /* Ürünler modalı açıldığında bayi lisanslarını ve ürün/paket listelerini yükle */
   useEffect(() => {
     if (urunlerModal) {
-      setBayiUrunlerYukleniyor(true);
-      apiGet(`/bayiler/${urunlerModal.id}/urunler`)
-        .then((res) => setBayiUrunler(res.veri || []))
-        .catch(() => setBayiUrunler([]))
-        .finally(() => setBayiUrunlerYukleniyor(false));
+      setBayiLisanslarYukleniyor(true);
+      setBayiPaketEkleAcik(false);
+      /* Bayi lisanslarını yükle */
+      apiGet(`/lisanslar?bayi_id=${urunlerModal.id}`)
+        .then((res) => {
+          const lisanslar = (res.veri || []).map((l) => ({
+            id: l.id,
+            urun: l.urun_adi || "-",
+            urunId: l.urun_id,
+            paket: l.paket_adi || "-",
+            paketId: l.paket_id,
+            domain: l.domain || "",
+            baslangicTarihi: l.baslangic_tarihi ? l.baslangic_tarihi.slice(0, 10) : "",
+            bitisTarihi: l.bitis_tarihi ? l.bitis_tarihi.slice(0, 10) : "",
+            kullanici: l.kullanici_sayisi || 1,
+            ekKullanici: l.ek_kullanici || 0,
+            fiyat: l.fiyat || 0,
+            netTutar: l.net_tutar || 0,
+            durum: l.durum || "aktif",
+            lisansAnahtari: l.lisans_anahtari || "",
+            faturaNo: l.fatura_no || "",
+            faturaTarihi: l.fatura_tarihi ? l.fatura_tarihi.slice(0, 10) : "",
+            faturaGeldi: !!l.fatura_geldi,
+            odemeDurumu: l.odeme_durumu || "odenmedi",
+            musteriId: l.musteri_id,
+            musteriAdi: l.musteri_adi || "",
+          }));
+          setBayiLisanslar(lisanslar);
+        })
+        .catch(() => setBayiLisanslar([]))
+        .finally(() => setBayiLisanslarYukleniyor(false));
+      /* Ürün ve paket listelerini yükle */
+      apiGet("/urunler").then((r) => setDbUrunlerBayi(r.veri || [])).catch(() => {});
+      apiGet("/paket-tipleri").then((r) => setDbPaketlerBayi(r.veri || [])).catch(() => {});
     } else {
-      setBayiUrunler([]);
+      setBayiLisanslar([]);
+      setBayiPaketEkleAcik(false);
     }
   }, [urunlerModal]);
 
