@@ -5,7 +5,7 @@
 /*  ve gelişmiş yeni paket ekleme modalı         */
 /* ============================================= */
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useMusteriler } from "../baglam/MusteriContext";
 import { apiGet, apiPost } from "../yardimcilar/api";
@@ -192,8 +192,23 @@ export default function MusteriPaketleriPage() {
   }, [id]);
 
   /* Sütun sırası (sürüklenebilir) */
-  const [sutunSirasi, setSutunSirasi] = useState(["urun", "paket", "domain", "baslangic", "bitis", "gun", "kalan", "kullanici", "fiyat"]);
+  const [sutunSirasiTemel, setSutunSirasiTemel] = useState(["urun", "paket", "domain", "baslangic", "bitis", "gun", "kalan", "kullanici", "fiyat"]);
   const [suruklenenSutun, setSuruklenenSutun] = useState(null);
+
+  /* Domain sütununu sadece en az bir pakette domain varsa göster */
+  const domainVarMi = useMemo(() => paketler.some((p) => p.domain && p.domain.trim() !== ""), [paketler]);
+  const sutunSirasi = useMemo(() => {
+    if (domainVarMi) return sutunSirasiTemel;
+    return sutunSirasiTemel.filter((s) => s !== "domain");
+  }, [sutunSirasiTemel, domainVarMi]);
+
+  /* Sütun sırasını güncelle (domain filtreli) */
+  const setSutunSirasi = (guncelleyici) => {
+    setSutunSirasiTemel((o) => {
+      const yeni = typeof guncelleyici === "function" ? guncelleyici(o) : guncelleyici;
+      return yeni;
+    });
+  };
 
   /* Tablo çizgi stili: "yok" | "yatay" | "dikey" | "tam" */
   const [cizgiStil, setCizgiStil] = useState("yok");
@@ -713,8 +728,11 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
       if (alan === "lisansTipi") {
         const tip = lisansTipleri.find((t) => t.id === deger);
         if (tip) {
-          yeni.kullanimGunu = tip.gun;
-          yeni.bitisTarihi = tarihEkle(o.baslangicTarihi, tip.gun);
+          /* Eğer paket seçiliyse, paket gün değeri korunur */
+          if (!o.paketId) {
+            yeni.kullanimGunu = tip.gun;
+            yeni.bitisTarihi = tarihEkle(o.baslangicTarihi, tip.gun);
+          }
         }
       }
       
@@ -722,10 +740,20 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
         const paket = paketler.find((p) => p.id === Number(deger));
         if (paket) {
           yeni.fiyat = Number(paket.fiyati) || 0;
+          /* Paket gün değeri öncelikli - lisans tipi günü override eder */
           yeni.kullanimGunu = paket.kullanimGunu || 365;
           yeni.kullaniciSayisi = paket.kullaniciSayisi || 1;
           yeni.bitisTarihi = tarihEkle(o.baslangicTarihi, paket.kullanimGunu || 365);
           yeni.netTutar = Number(paket.fiyati) || 0;
+        }
+      }
+      
+      /* Paket kaldırılırsa lisans tipi günü uygula */
+      if (alan === "paketId" && !deger) {
+        const tip = lisansTipleri.find((t) => t.id === o.lisansTipi);
+        if (tip) {
+          yeni.kullanimGunu = tip.gun;
+          yeni.bitisTarihi = tarihEkle(o.baslangicTarihi, tip.gun);
         }
       }
       
@@ -983,17 +1011,19 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
                 </div>
               </div>
 
-              {/* Kullanıcı Sayıları */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={LABEL_STIL}>Temel Kullanıcı Sayısı</label>
-                  <input type="number" value={form.kullaniciSayisi} onChange={(e) => guncelle("kullaniciSayisi", Number(e.target.value))} className={INPUT_STIL} min={1} />
+              {/* Kullanıcı Sayıları - Şablonda kullanici_sayisi yoksa statik alanlar gösterilir */}
+              {(!sablon || !sablon.ozellikler?.some((oz) => oz.ozellik_tipi === "kullanici_sayisi")) && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={LABEL_STIL}>Temel Kullanıcı Sayısı</label>
+                    <input type="number" value={form.kullaniciSayisi} onChange={(e) => guncelle("kullaniciSayisi", Number(e.target.value))} className={INPUT_STIL} min={1} />
+                  </div>
+                  <div>
+                    <label className={LABEL_STIL}>Ek Kullanıcı</label>
+                    <input type="number" value={form.ekKullanici} onChange={(e) => guncelle("ekKullanici", Number(e.target.value))} className={INPUT_STIL} min={0} />
+                  </div>
                 </div>
-                <div>
-                  <label className={LABEL_STIL}>Ek Kullanıcı</label>
-                  <input type="number" value={form.ekKullanici} onChange={(e) => guncelle("ekKullanici", Number(e.target.value))} className={INPUT_STIL} min={0} />
-                </div>
-              </div>
+              )}
 
               {/* Ek Seçenekler */}
               <div className="grid grid-cols-2 gap-3">

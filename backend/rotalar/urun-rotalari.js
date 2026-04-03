@@ -150,13 +150,16 @@ router.get("/", hataYakala(async (_req, res) => {
     where: { silinme_tarihi: null },
     include: {
       grup: { select: { ad: true } },
+      sablon: { select: { id: true, ad: true } },
       _count: { select: { paketler: true, lisanslar: true } },
     },
     orderBy: { id: "desc" },
   });
-  const sonuc = veriler.map(({ grup, _count, ...u }) => ({
+  const sonuc = veriler.map(({ grup, sablon, _count, ...u }) => ({
     ...u,
     grup_adi: grup?.ad || null,
+    sablon_id: sablon?.id || null,
+    sablon_adi: sablon?.ad || null,
     paket_sayisi: _count.paketler,
     lisans_sayisi: _count.lisanslar,
   }));
@@ -191,12 +194,13 @@ router.get("/:id/sablon", hataYakala(async (req, res) => {
 }));
 
 router.post("/", hataYakala(async (req, res) => {
-  const { ad, grup_id, urun_tipi, uygulama_tipi, varsayilan_gun, ozel_proje, aktif, aciklama, min_kullanici, max_kullanici, demo_gun, temel_fiyat, versiyon, logo_url, ozellikler } = req.body;
+  const { ad, grup_id, sablon_id, urun_tipi, uygulama_tipi, varsayilan_gun, ozel_proje, aktif, aciklama, min_kullanici, max_kullanici, demo_gun, temel_fiyat, versiyon, logo_url, ozellikler } = req.body;
   if (!ad) return dogrulamaHatasi(res, "Urun adi zorunludur.");
 
   const sonuc = await prisma.urun.create({
     data: {
-      ad, grup_id: grup_id || null, urun_tipi: urun_tipi || null, uygulama_tipi: uygulama_tipi || null,
+      ad, grup_id: grup_id || null, sablon_id: sablon_id ? Number(sablon_id) : null,
+      urun_tipi: urun_tipi || null, uygulama_tipi: uygulama_tipi || null,
       varsayilan_gun: guvenliSayi(varsayilan_gun, 365), ozel_proje: ozel_proje ? 1 : 0,
       aktif: aktif !== undefined ? (aktif ? 1 : 0) : 1, aciklama: aciklama || null,
       min_kullanici: guvenliSayi(min_kullanici, 1), max_kullanici: max_kullanici ? Number(max_kullanici) : null,
@@ -213,10 +217,11 @@ router.put("/:id", hataYakala(async (req, res) => {
   const mevcut = await prisma.urun.findUnique({ where: { id }, select: { id: true } });
   if (!mevcut) return bulunamadiHatasi(res, "Urun bulunamadi.");
 
-  const { ad, grup_id, urun_tipi, uygulama_tipi, varsayilan_gun, ozel_proje, aktif, aciklama, min_kullanici, max_kullanici, demo_gun, temel_fiyat, versiyon, logo_url, ozellikler } = req.body;
+  const { ad, grup_id, sablon_id, urun_tipi, uygulama_tipi, varsayilan_gun, ozel_proje, aktif, aciklama, min_kullanici, max_kullanici, demo_gun, temel_fiyat, versiyon, logo_url, ozellikler } = req.body;
   const data = {};
   if (ad) data.ad = ad;
   if (grup_id !== undefined) data.grup_id = grup_id || null;
+  if (sablon_id !== undefined) data.sablon_id = sablon_id ? Number(sablon_id) : null;
   if (urun_tipi !== undefined) data.urun_tipi = urun_tipi || null;
   if (uygulama_tipi !== undefined) data.uygulama_tipi = uygulama_tipi || null;
   if (varsayilan_gun !== undefined) data.varsayilan_gun = guvenliSayi(varsayilan_gun, 365);

@@ -131,6 +131,7 @@ function UrunlerSekmesi() {
   const [urunGruplari, setUrunGruplari] = useState([]);
   const [urunTipleri, setUrunTipleri] = useState([]);
   const [uygulamaTipleri, setUygulamaTipleri] = useState([]);
+  const [sablonlar, setSablonlar] = useState([]); // Şablon listesi
   const [filtreGrup, setFiltreGrup] = useState("");
   const [filtreTip, setFiltreTip] = useState("");
   const [filtreUygulamaTip, setFiltreUygulamaTip] = useState("");
@@ -145,16 +146,18 @@ function UrunlerSekmesi() {
 
   const verileriYukle = async () => {
     try {
-      const [uRes, pRes, gRes, tRes, utRes] = await Promise.all([
+      const [uRes, pRes, gRes, tRes, utRes, sRes] = await Promise.all([
         apiGet("/urunler"),
         apiGet("/urunler/paketler/tumu"),
         apiGet("/urunler/gruplar"),
         apiGet("/urunler/tipler"),
         apiGet("/urunler/uygulama-tipler"),
+        apiGet("/sablonlar"),
       ]);
       setUrunGruplari(gRes.veri || []);
       setUrunTipleri(tRes.veri || []);
       setUygulamaTipleri(utRes.veri || []);
+      setSablonlar((sRes.veri || []).filter((s) => s.aktif)); // Sadece aktif şablonlar
       setUrunler(uRes.veri.map((u) => ({
         id: u.id,
         grubu: u.grup_adi || "",
@@ -172,6 +175,8 @@ function UrunlerSekmesi() {
         demoGun: u.demo_gun || 30,
         temelFiyat: u.temel_fiyat || 0,
         versiyon: u.versiyon || "",
+        sablonId: u.sablon_id || null,
+        sablonAdi: u.sablon_adi || "",
       })));
       setPaketler(pRes.veri.map((p) => ({
         id: p.id,
@@ -246,6 +251,7 @@ function UrunlerSekmesi() {
         demo_gun: veri.demoGun || 30,
         temel_fiyat: veri.temelFiyat || 0,
         versiyon: veri.versiyon || null,
+        sablon_id: veri.sablonId || null,
       };
       if (veri.id) {
         await apiPut(`/urunler/${veri.id}`, gonder);
@@ -471,7 +477,7 @@ function UrunlerSekmesi() {
       </div>
 
       {/* ---- Ürün Oluştur/Düzenle Modalı ---- */}
-      {modal && <UrunModal modal={modal} kapat={() => setModal(null)} kaydet={urunKaydet} urunGruplari={urunGruplari} urunTipleri={urunTipleri} uygulamaTipleri={uygulamaTipleri} />}
+      {modal && <UrunModal modal={modal} kapat={() => setModal(null)} kaydet={urunKaydet} urunGruplari={urunGruplari} urunTipleri={urunTipleri} uygulamaTipleri={uygulamaTipleri} sablonlar={sablonlar} />}
 
       {/* ---- Paketler Modalı ---- */}
       {paketModal && <PaketlerModal urun={paketModal} kapat={() => setPaketModal(null)} paketler={paketler} setPaketler={setPaketler} tumUrunler={urunler} paketleriYenile={verileriYukle} urunGruplari={urunGruplari} />}
@@ -851,7 +857,7 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
 /*  Ürün Oluştur / Düzenle Modalı                */
 /* ============================================= */
 
-function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTipleri }) {
+function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTipleri, sablonlar }) {
   const duzenle = modal !== "yeni";
   const [form, setForm] = useState({
     id: duzenle ? modal.id : null,
@@ -870,6 +876,7 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
     demoGun: duzenle ? (modal.demoGun || 30) : 30,
     temelFiyat: duzenle ? (modal.temelFiyat || 0) : 0,
     versiyon: duzenle ? (modal.versiyon || "") : "",
+    sablonId: duzenle ? (modal.sablonId || null) : null,
   });
   const [aktifSekme, setAktifSekme] = useState("temel"); // "temel" | "gelismis"
   const ref = useRef(null);
@@ -1002,6 +1009,25 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                 <div>
                   <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Varsayılan Versiyon</label>
                   <input type="text" value={form.versiyon} onChange={(e) => guncelle("versiyon", e.target.value)} placeholder="Örn: 1.0.0" className={INPUT_STIL} />
+                </div>
+
+                {/* Şablon Seçimi */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                    Lisans Şablonu
+                    <span className="text-[10px] text-gray-400 dark:text-slate-500 ml-1">(Form alanlarını belirler)</span>
+                  </label>
+                  <select 
+                    value={form.sablonId || ""} 
+                    onChange={(e) => guncelle("sablonId", e.target.value ? Number(e.target.value) : null)} 
+                    className={INPUT_STIL}
+                  >
+                    <option value="">Şablon Yok</option>
+                    {(sablonlar || []).map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
+                  </select>
+                  <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">
+                    Şablon seçilirse paket ekleme formunda dinamik alanlar görünür
+                  </p>
                 </div>
 
                 {/* Özel Proje & Durum */}

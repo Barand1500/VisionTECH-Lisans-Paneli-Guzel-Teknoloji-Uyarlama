@@ -12,12 +12,14 @@ function rastgeleLisansAnahtari() {
 router.get("/", hataYakala(async (_req, res) => {
   const rows = await prisma.$queryRawUnsafe(`
     SELECT l.*, m.ad_soyad AS musteri_adi, m.sirket_adi, m.tur AS musteri_turu,
-           u.ad AS urun_adi, p.ad AS paket_adi, b.ad AS bayi_adi
+           u.ad AS urun_adi, u.sablon_id, p.ad AS paket_adi, b.ad AS bayi_adi,
+           lt.ad AS lisans_tipi_adi, lt.renk AS lisans_tipi_renk, lt.gun AS lisans_tipi_gun
     FROM lisanslar l
     LEFT JOIN musteriler m ON l.musteri_id = m.id
     LEFT JOIN urunler u ON l.urun_id = u.id
     LEFT JOIN paketler p ON l.paket_id = p.id
     LEFT JOIN bayiler b ON l.bayi_id = b.id
+    LEFT JOIN lisans_tipleri lt ON l.lisans_tipi = lt.kod
     WHERE l.silinme_tarihi IS NULL
     ORDER BY l.id DESC
   `);
@@ -28,11 +30,13 @@ router.get("/", hataYakala(async (_req, res) => {
 router.get("/musteri/:musteriId", hataYakala(async (req, res) => {
   const musteriId = Number(req.params.musteriId);
   const rows = await prisma.$queryRawUnsafe(`
-    SELECT l.*, u.ad AS urun_adi, p.ad AS paket_adi, b.ad AS bayi_adi
+    SELECT l.*, u.ad AS urun_adi, u.sablon_id, p.ad AS paket_adi, b.ad AS bayi_adi,
+           lt.ad AS lisans_tipi_adi, lt.renk AS lisans_tipi_renk, lt.gun AS lisans_tipi_gun
     FROM lisanslar l
     LEFT JOIN urunler u ON l.urun_id = u.id
     LEFT JOIN paketler p ON l.paket_id = p.id
     LEFT JOIN bayiler b ON l.bayi_id = b.id
+    LEFT JOIN lisans_tipleri lt ON l.lisans_tipi = lt.kod
     WHERE l.musteri_id = ?
     AND l.silinme_tarihi IS NULL
     ORDER BY l.id DESC
@@ -65,7 +69,7 @@ router.post("/", hataYakala(async (req, res) => {
     kullanim_gunu, durum, domain, fatura_no, fatura_tarihi, fatura_geldi,
     fiyat, indirim_orani, indirim_tutari, net_tutar,
     odeme_yontemi, odeme_durumu, odenen_tutar, kullanici_sayisi, ek_kullanici,
-    mac_adresi, ip_adresi, moduller, otomatik_yenileme, bildirim_gun, notlar
+    mac_adresi, ip_adresi, moduller, sablon_verileri, otomatik_yenileme, bildirim_gun, notlar
   } = req.body;
 
   if (!musteri_id) return dogrulamaHatasi(res, "Musteri zorunludur.");
@@ -75,6 +79,12 @@ router.post("/", hataYakala(async (req, res) => {
   const indOran = Number(indirim_orani) || 0;
   const indTutar = Number(indirim_tutari) || 0;
   const hesaplananNet = net_tutar !== undefined ? Number(net_tutar) : brut - (brut * indOran / 100) - indTutar;
+
+  /* Şablon verilerini moduller alanına birleştir */
+  let birlesikModuller = moduller || {};
+  if (sablon_verileri && typeof sablon_verileri === "object") {
+    birlesikModuller = { ...birlesikModuller, sablon_verileri };
+  }
 
   const sonuc = await prisma.lisans.create({
     data: {
@@ -103,19 +113,19 @@ router.post("/", hataYakala(async (req, res) => {
       ek_kullanici: Number(ek_kullanici) || 0,
       mac_adresi: mac_adresi || null,
       ip_adresi: ip_adresi || null,
-      moduller: moduller || undefined,
+      moduller: Object.keys(birlesikModuller).length > 0 ? birlesikModuller : undefined,
       otomatik_yenileme: otomatik_yenileme ? 1 : 0,
       bildirim_gun: Number(bildirim_gun) || 30,
       notlar: notlar || null,
     },
   });
-  res.status(201).json({ basarili: true, mesaj: "Lisans basariyla eklendi.", id: sonuc.id });
+  res.status(201).json({ basarili: true, mesaj: "Lisans basariyla eklendi.", id: sonuc.id, lisans_anahtari: sonuc.lisans_anahtari });
 }));
 
 /* ---- Lisans Guncelle ---- */
 router.put("/:id", hataYakala(async (req, res) => {
   const id = Number(req.params.id);
-  const mevcut = await prisma.lisans.findUnique({ where: { id }, select: { id: true } });
+  const mevcut = await prisma.lisans.findUnique({ where: { id }, select: { id: true, moduller: true } });
   if (!mevcut) return bulunamadiHatasi(res, "Lisans bulunamadi.");
 
   const {
@@ -123,7 +133,7 @@ router.put("/:id", hataYakala(async (req, res) => {
     kullanim_gunu, durum, domain, fatura_no, fatura_tarihi, fatura_geldi,
     fiyat, indirim_orani, indirim_tutari, net_tutar,
     odeme_yontemi, odeme_durumu, odenen_tutar, kullanici_sayisi, ek_kullanici,
-    mac_adresi, ip_adresi, moduller, otomatik_yenileme, bildirim_gun, notlar
+    mac_adresi, ip_adresi, moduller, sablon_verileri, otomatik_yenileme, bildirim_gun, notlar
   } = req.body;
 
   const data = { guncelleme_tarihi: new Date() };
@@ -147,10 +157,19 @@ router.put("/:id", hataYakala(async (req, res) => {
   if (ek_kullanici !== undefined) data.ek_kullanici = Number(ek_kullanici) || 0;
   if (mac_adresi !== undefined) data.mac_adresi = mac_adresi || null;
   if (ip_adresi !== undefined) data.ip_adresi = ip_adresi || null;
-  if (moduller !== undefined) data.moduller = moduller;
   if (otomatik_yenileme !== undefined) data.otomatik_yenileme = otomatik_yenileme ? 1 : 0;
   if (bildirim_gun !== undefined) data.bildirim_gun = Number(bildirim_gun) || 30;
   if (notlar !== undefined) data.notlar = notlar || null;
+
+  /* Şablon verilerini moduller alanına birleştir */
+  if (moduller !== undefined || sablon_verileri !== undefined) {
+    let birlesikModuller = mevcut.moduller || {};
+    if (moduller !== undefined) birlesikModuller = { ...birlesikModuller, ...moduller };
+    if (sablon_verileri !== undefined && typeof sablon_verileri === "object") {
+      birlesikModuller = { ...birlesikModuller, sablon_verileri };
+    }
+    data.moduller = Object.keys(birlesikModuller).length > 0 ? birlesikModuller : null;
+  }
 
   /* Fiyat hesapla */
   if (fiyat !== undefined || indirim_orani !== undefined || indirim_tutari !== undefined || net_tutar !== undefined) {
