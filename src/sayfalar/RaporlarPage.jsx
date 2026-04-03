@@ -182,8 +182,8 @@ function SatislarSekmesi() {
   const toplamSayfa = Math.ceil(filtrelenmis.length / sayfaBasi);
   const sayfaVeriler = filtrelenmis.slice((sayfa - 1) * sayfaBasi, sayfa * sayfaBasi);
 
-  const toplamCiro = veri.filter((s) => s.durum === "aktif").reduce((t, s) => t + Number(s.tutar), 0);
-  const bekleyenTutar = veri.filter((s) => s.durum !== "aktif").reduce((t, s) => t + Number(s.tutar), 0);
+  const toplamCiro = veri.filter((s) => s.durum === "aktif").reduce((t, s) => t + Number(s.tutar || 0), 0);
+  const bekleyenTutar = veri.filter((s) => s.durum !== "aktif").reduce((t, s) => t + Number(s.tutar || 0), 0);
 
   return (
     <div>
@@ -245,7 +245,7 @@ function SatislarSekmesi() {
                   <td className="px-3 py-3 text-gray-600 dark:text-slate-400 text-xs">{s.paket}</td>
                   <td className="px-3 py-3 text-xs max-w-[180px]"><span className="inline-flex items-center group truncate">{s.domain ? <span className="text-blue-600 dark:text-blue-400 truncate">{s.domain}</span> : <span className="text-gray-400 dark:text-slate-600">—</span>}<KopyalaButonu metin={s.domain} /></span></td>
                   <td className="px-3 py-3 text-gray-600 dark:text-slate-400 text-xs">{s.kullanici || "—"}</td>
-                  <td className="px-3 py-3 font-semibold text-gray-900 dark:text-white text-xs">₺{s.tutar.toLocaleString("tr-TR")}</td>
+                  <td className="px-3 py-3 font-semibold text-gray-900 dark:text-white text-xs">₺{(s.tutar || 0).toLocaleString("tr-TR")}</td>
                   <td className="px-3 py-3 text-gray-600 dark:text-slate-400 text-xs">{s.tarih}</td>
                   <td className="px-3 py-3">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -756,7 +756,7 @@ function TahsilatlarSekmesi() {
                       <KopyalaButonu metin={t.faturaNo} />
                     </span>
                   </td>
-                  <td className="px-4 py-3.5 font-semibold text-gray-900 dark:text-white text-sm">₺{t.tutar.toLocaleString("tr-TR")}</td>
+                  <td className="px-4 py-3.5 font-semibold text-gray-900 dark:text-white text-sm">₺{(t.tutar || 0).toLocaleString("tr-TR")}</td>
                   <td className="px-4 py-3.5 text-gray-600 dark:text-slate-400 text-sm">{t.odemeTarihi}</td>
                   <td className="px-4 py-3.5">
                     <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
