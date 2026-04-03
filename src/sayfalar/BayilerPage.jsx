@@ -653,8 +653,8 @@ export default function BayilerPage() {
       const h = {};
       if (!form.eposta.trim()) h.eposta = "E-posta zorunludur.";
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.eposta.trim())) h.eposta = "Geçerli bir e-posta adresi giriniz.";
-      if (!form.telefonlar[0] || !form.telefonlar[0].trim()) h.telefonlar = "Telefon zorunludur.";
-      else if (form.telefonlar[0].replace(/\D/g, "").length < 10) h.telefonlar = "Telefon en az 10 haneli olmalıdır.";
+      /* Telefon zorunlu değil - ekleme sayfasıyla uyumlu */
+      if (form.telefonlar[0] && form.telefonlar[0].trim() && form.telefonlar[0].replace(/\D/g, "").length < 10) h.telefonlar = "Telefon en az 10 haneli olmalıdır.";
       if (!form.adresler[0] || !form.adresler[0].trim()) h.adresler = "Adres zorunludur.";
       if (form.tur === "gercek") {
         if (!form.tcKimlikNo.trim()) h.tcKimlikNo = "TC Kimlik No zorunludur.";
@@ -671,7 +671,7 @@ export default function BayilerPage() {
         if (!form.pasaportNo.trim()) h.pasaportNo = "Pasaport No zorunludur.";
         if (!form.adSoyad.trim()) h.adSoyad = "Ad Soyad zorunludur.";
       }
-      if (!form.yetkili.trim()) h.yetkili = "Yetkili Kişi zorunludur.";
+      /* Yetkili zorunlu değil - ekleme sayfasıyla uyumlu */
       setHatalar(h);
       return Object.keys(h).length === 0;
     };
@@ -836,9 +836,8 @@ export default function BayilerPage() {
                   </>
                 )}
                 <div>
-                  <label className={LABEL_STIL}>Yetkili Kişi <span className="text-red-500">*</span></label>
-                  <input type="text" value={form.yetkili} onChange={(e) => guncelle("yetkili", e.target.value)} className={hatalar.yetkili ? HATA_INPUT : INPUT_STIL} placeholder="Yetkili" />
-                  {hatalar.yetkili && <p className="text-red-500 text-xs mt-0.5">{hatalar.yetkili}</p>}
+                  <label className={LABEL_STIL}>Yetkili Kişi</label>
+                  <input type="text" value={form.yetkili} onChange={(e) => guncelle("yetkili", e.target.value)} className={INPUT_STIL} placeholder="Yetkili" />
                 </div>
                 <div>
                   <label className={LABEL_STIL}>E-posta <span className="text-red-500">*</span></label>
@@ -856,12 +855,12 @@ export default function BayilerPage() {
             <div className="rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 p-4">
               <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">İletişim</p>
               <div className="mb-3">
-                <label className={LABEL_STIL}>Telefonlar <span className="text-red-500">*</span></label>
+                <label className={LABEL_STIL}>Telefonlar</label>
                 {hatalar.telefonlar && <p className="text-red-500 text-xs mb-1">{hatalar.telefonlar}</p>}
                 {form.telefonlar.map((tel, idx) => (
                   <div key={idx} className="flex items-center gap-2 mb-2">
                     <input type="text" placeholder="(5XX) XXX XX XX" value={tel}
-                      onChange={(e) => listeGuncelle("telefonlar", idx, telefonFormatla(e.target.value))} className={hatalar.telefonlar ? HATA_INPUT : INPUT_STIL} />
+                      onChange={(e) => listeGuncelle("telefonlar", idx, telefonFormatla(e.target.value))} className={INPUT_STIL} />
                     {form.telefonlar.length > 1 && (
                       <button type="button" onClick={() => listeSil("telefonlar", idx)}
                         className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 cursor-pointer shrink-0">

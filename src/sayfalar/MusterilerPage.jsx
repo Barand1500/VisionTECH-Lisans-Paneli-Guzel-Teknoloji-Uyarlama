@@ -455,7 +455,7 @@ export default function MusterilerPage() {
       bayiArama: "",
       telefonlar: (m.telefonlar && m.telefonlar.length > 0) ? [...m.telefonlar] : [""],
       adresler: (m.adresler && m.adresler.length > 0) ? [...m.adresler] : [""],
-      durum: m.durum === "Aktif" || m.durum === true,
+      durum: m.durum === "Aktif" || m.durum === "aktif" || m.durum === true,
       sektorId: m.sektorId || "",
     });
     const [hatalar, setHatalar] = useState({});
@@ -491,8 +491,8 @@ export default function MusterilerPage() {
       const h = {};
       if (!form.eposta.trim()) h.eposta = "E-posta zorunludur.";
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.eposta.trim())) h.eposta = "Geçerli bir e-posta adresi giriniz.";
-      if (!form.telefonlar[0] || !form.telefonlar[0].trim()) h.telefonlar = "Telefon zorunludur.";
-      else if (form.telefonlar[0].replace(/\D/g, "").length < 10) h.telefonlar = "Telefon en az 10 haneli olmalıdır.";
+      /* Telefon zorunlu değil - ekleme sayfasıyla uyumlu */
+      if (form.telefonlar[0] && form.telefonlar[0].trim() && form.telefonlar[0].replace(/\D/g, "").length < 10) h.telefonlar = "Telefon en az 10 haneli olmalıdır.";
       if (!form.adresler[0] || !form.adresler[0].trim()) h.adresler = "Adres zorunludur.";
       if (aktifSekme === "gercek") {
         if (!form.tcKimlikNo.trim()) h.tcKimlikNo = "TC Kimlik No zorunludur.";
@@ -709,7 +709,7 @@ export default function MusterilerPage() {
                   {hatalar.eposta && <p className="text-red-500 text-xs mt-1">{hatalar.eposta}</p>}
                 </div>
                 <div>
-                  <label className={LABEL_STIL}>Telefon <span className="text-red-500">*</span></label>
+                  <label className={LABEL_STIL}>Telefon</label>
                   {hatalar.telefonlar && <p className="text-red-500 text-xs mb-1">{hatalar.telefonlar}</p>}
                   {form.telefonlar.map((tel, idx) => (
                     <div key={idx} className="flex items-center gap-2 mb-2">
