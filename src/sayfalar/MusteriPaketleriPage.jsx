@@ -8,7 +8,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useMusteriler } from "../baglam/MusteriContext";
-import { apiGet, apiPost, apiPut } from "../yardimcilar/api";
+import { apiGet, apiPost, apiPut, apiDelete } from "../yardimcilar/api";
 import KopyalaButonu from "../bilesenler/KopyalaButonu";
 
 /* ---- Stil Sabitleri ---- */
@@ -231,9 +231,15 @@ export default function MusteriPaketleriPage() {
   const sayfaliPaketler = filtreliPaketler.slice((paketSayfa - 1) * paketBoyut, paketSayfa * paketBoyut);
 
   /* Aksiyonlar */
-  const paketSil = (pid) => {
-    setPaketler((o) => o.filter((p) => p.id !== pid));
-    setSilOnay(null);
+  const paketSil = async (pid) => {
+    try {
+      await apiDelete(`/lisanslar/${pid}`);
+      setPaketler((o) => o.filter((p) => p.id !== pid));
+      setSilOnay(null);
+    } catch (err) {
+      console.error("Paket silinemedi:", err);
+      setSilOnay(null);
+    }
   };
 
   /* Ek kullanıcı güncelle */
@@ -639,15 +645,15 @@ export default function MusteriPaketleriPage() {
             <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-4 mb-4 space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500 dark:text-slate-400">Temel Kullanıcı:</span>
-                <span className="font-medium text-gray-900 dark:text-white">{ekKullaniciModal.kullanici || 1}</span>
+                <span className="font-medium text-gray-900 dark:text-white">{Number(ekKullaniciModal.kullanici) || 1}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500 dark:text-slate-400">Mevcut Ek Kullanıcı:</span>
-                <span className="font-medium text-gray-900 dark:text-white">{ekKullaniciModal.ekKullanici || 0}</span>
+                <span className="font-medium text-gray-900 dark:text-white">{Number(ekKullaniciModal.ekKullanici) || 0}</span>
               </div>
               <div className="flex justify-between text-sm border-t border-gray-200 dark:border-white/10 pt-3">
                 <span className="text-gray-500 dark:text-slate-400">Toplam Kullanıcı:</span>
-                <span className="font-semibold text-blue-600 dark:text-blue-400">{(ekKullaniciModal.kullanici || 1) + (ekKullaniciModal.ekKullanici || 0)}</span>
+                <span className="font-semibold text-blue-600 dark:text-blue-400">{(Number(ekKullaniciModal.kullanici) || 1) + (Number(ekKullaniciModal.ekKullanici) || 0)}</span>
               </div>
             </div>
 
@@ -681,7 +687,7 @@ export default function MusteriPaketleriPage() {
                 <div className="bg-blue-50 dark:bg-blue-500/10 rounded-lg p-3 border border-blue-200 dark:border-blue-500/20">
                   <div className="flex justify-between text-sm">
                     <span className="text-blue-600 dark:text-blue-400">Yeni Toplam Kullanıcı:</span>
-                    <span className="font-bold text-blue-700 dark:text-blue-300">{(ekKullaniciModal.kullanici || 1) + ekKullaniciDuzenle.yeniEk}</span>
+                    <span className="font-bold text-blue-700 dark:text-blue-300">{(Number(ekKullaniciModal.kullanici) || 1) + Number(ekKullaniciDuzenle.yeniEk)}</span>
                   </div>
                 </div>
               )}
@@ -802,6 +808,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
   /* Şablon state */
   const [sablon, setSablon] = useState(null);
   const [sablonDegerler, setSablonDegerler] = useState({});
+  const [fiyatBreakdown, setFiyatBreakdown] = useState({ temelFiyat: 0, paketFiyat: 0, ekKullaniciFiyat: 0, ekKullaniciAdet: 0, ekKullaniciBirim: 0, toplam: 0 });
 
   /* Form state */
   const [form, setForm] = useState({
@@ -838,22 +845,25 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
   const urunPaketleri = paketler.filter((p) => p.urunId === Number(form.urunId));
   const seciliPaket = paketler.find((p) => p.id === Number(form.paketId));
 
-  /* Fiyat hesaplama yardımcısı */
+  /* Fiyat hesaplama yardımcısı - breakdown döndürür */
   const hesaplaToplamFiyat = (sablonData, sablonVeri, paket, ekKullaniciSayisi) => {
-    let toplam = 0;
+    let temelFiyat = 0;
+    let paketFiyat = 0;
+    let ekKullaniciFiyat = 0;
+    let ekKullaniciBirim = 0;
     
     // 1. Şablondan temel fiyat
     if (sablonData && sablonData.ozellikler) {
       const temelFiyatOz = sablonData.ozellikler.find(oz => oz.ozellik_tipi === "temel_fiyat");
       if (temelFiyatOz) {
         const deger = sablonVeri[temelFiyatOz.id] || temelFiyatOz.deger || {};
-        toplam += Number(deger.fiyat) || 0;
+        temelFiyat = Number(deger.fiyat) || 0;
       }
     }
     
     // 2. Paket fiyatı
     if (paket) {
-      toplam += Number(paket.fiyati) || 0;
+      paketFiyat = Number(paket.fiyati) || 0;
     }
     
     // 3. Ek kullanıcı fiyatı
@@ -861,12 +871,19 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
       const kullaniciOz = sablonData.ozellikler.find(oz => oz.ozellik_tipi === "kullanici_sayisi");
       if (kullaniciOz) {
         const deger = sablonVeri[kullaniciOz.id] || kullaniciOz.deger || {};
-        const ekFiyat = Number(deger.ek_kullanici_fiyat) || 0;
-        toplam += ekKullaniciSayisi * ekFiyat;
+        ekKullaniciBirim = Number(deger.ek_kullanici_fiyat) || 0;
+        ekKullaniciFiyat = Number(ekKullaniciSayisi) * ekKullaniciBirim;
       }
     }
     
-    return toplam;
+    return {
+      temelFiyat,
+      paketFiyat,
+      ekKullaniciFiyat,
+      ekKullaniciAdet: Number(ekKullaniciSayisi) || 0,
+      ekKullaniciBirim,
+      toplam: temelFiyat + paketFiyat + ekKullaniciFiyat
+    };
   };
 
   /* Form güncelle */
@@ -931,10 +948,11 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
 
   /* Fiyat hesaplama useEffect */
   useEffect(() => {
-    const toplamFiyat = hesaplaToplamFiyat(sablon, sablonDegerler, seciliPaket, form.ekKullanici);
-    if (toplamFiyat !== form.fiyat) {
+    const breakdown = hesaplaToplamFiyat(sablon, sablonDegerler, seciliPaket, form.ekKullanici);
+    setFiyatBreakdown(breakdown);
+    if (breakdown.toplam !== form.fiyat) {
       setForm(o => {
-        const brut = toplamFiyat;
+        const brut = breakdown.toplam;
         const tutar = brut * o.indirimOrani / 100;
         return {
           ...o,
@@ -1406,6 +1424,42 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
               {/* Fiyat Bilgileri */}
               <div className="p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
                 <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-3">Fiyat Bilgileri</h4>
+                
+                {/* Fiyat Breakdown */}
+                {(fiyatBreakdown.temelFiyat > 0 || fiyatBreakdown.paketFiyat > 0 || fiyatBreakdown.ekKullaniciFiyat > 0) && (
+                  <div className="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20">
+                    <div className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-2 flex items-center gap-1.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      Fiyat Detayı
+                    </div>
+                    <div className="space-y-1.5 text-xs">
+                      {fiyatBreakdown.temelFiyat > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-slate-400">Ürün Temel Fiyat:</span>
+                          <span className="font-medium text-gray-900 dark:text-white">₺{fiyatBreakdown.temelFiyat.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
+                      {fiyatBreakdown.paketFiyat > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-slate-400">Paket Fiyatı:</span>
+                          <span className="font-medium text-gray-900 dark:text-white">₺{fiyatBreakdown.paketFiyat.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
+                      {fiyatBreakdown.ekKullaniciFiyat > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-slate-400">Ek Kullanıcı ({fiyatBreakdown.ekKullaniciAdet} × ₺{fiyatBreakdown.ekKullaniciBirim.toLocaleString("tr-TR")}):</span>
+                          <span className="font-medium text-gray-900 dark:text-white">₺{fiyatBreakdown.ekKullaniciFiyat.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between pt-1.5 border-t border-blue-200 dark:border-blue-500/30">
+                        <span className="font-semibold text-blue-700 dark:text-blue-300">Toplam:</span>
+                        <span className="font-bold text-blue-700 dark:text-blue-300">₺{fiyatBreakdown.toplam.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-4 gap-3">
                   <div>
                     <label className={LABEL_STIL}>Brüt Fiyat (₺)</label>
