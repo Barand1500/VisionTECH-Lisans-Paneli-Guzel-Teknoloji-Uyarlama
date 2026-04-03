@@ -18,6 +18,7 @@ router.get("/", hataYakala(async (_req, res) => {
     LEFT JOIN urunler u ON l.urun_id = u.id
     LEFT JOIN paketler p ON l.paket_id = p.id
     LEFT JOIN bayiler b ON l.bayi_id = b.id
+    WHERE l.silinme_tarihi IS NULL
     ORDER BY l.id DESC
   `);
   res.json({ basarili: true, veri: temizle(rows) });
@@ -33,6 +34,7 @@ router.get("/musteri/:musteriId", hataYakala(async (req, res) => {
     LEFT JOIN paketler p ON l.paket_id = p.id
     LEFT JOIN bayiler b ON l.bayi_id = b.id
     WHERE l.musteri_id = ?
+    AND l.silinme_tarihi IS NULL
     ORDER BY l.id DESC
   `, musteriId);
   res.json({ basarili: true, veri: temizle(rows) });
@@ -50,6 +52,7 @@ router.get("/:id", hataYakala(async (req, res) => {
     LEFT JOIN paketler p ON l.paket_id = p.id
     LEFT JOIN bayiler b ON l.bayi_id = b.id
     WHERE l.id = ?
+    AND l.silinme_tarihi IS NULL
   `, id);
   if (!row) return bulunamadiHatasi(res, "Lisans bulunamadi.");
   res.json({ basarili: true, veri: temizle(row) });
@@ -175,7 +178,7 @@ router.delete("/:id", hataYakala(async (req, res) => {
   const id = Number(req.params.id);
   const mevcut = await prisma.lisans.findUnique({ where: { id }, select: { id: true } });
   if (!mevcut) return bulunamadiHatasi(res, "Lisans bulunamadi.");
-  await prisma.lisans.delete({ where: { id } });
+  await prisma.lisans.update({ where: { id }, data: { silinme_tarihi: new Date(), durum: "silindi" } });
   res.json({ basarili: true, mesaj: "Lisans basariyla silindi." });
 }));
 
@@ -192,8 +195,8 @@ router.put("/:id/yeni-anahtar", hataYakala(async (req, res) => {
 
 /* ---- Toplu Durum Guncelle ---- */
 router.put("/durum-guncelle", hataYakala(async (_req, res) => {
-  await prisma.$executeRawUnsafe(`UPDATE lisanslar SET durum = 'suresi-dolmus' WHERE bitis_tarihi < CURDATE() AND durum = 'aktif'`);
-  await prisma.$executeRawUnsafe(`UPDATE lisanslar SET durum = 'aktif' WHERE baslangic_tarihi <= CURDATE() AND bitis_tarihi >= CURDATE() AND durum = 'suresi-dolmus'`);
+  await prisma.$executeRawUnsafe(`UPDATE lisanslar SET durum = 'suresi-dolmus' WHERE bitis_tarihi < CURDATE() AND durum = 'aktif' AND silinme_tarihi IS NULL`);
+  await prisma.$executeRawUnsafe(`UPDATE lisanslar SET durum = 'aktif' WHERE baslangic_tarihi <= CURDATE() AND bitis_tarihi >= CURDATE() AND durum = 'suresi-dolmus' AND silinme_tarihi IS NULL`);
   res.json({ basarili: true, mesaj: "Lisans durumlari guncellendi." });
 }));
 

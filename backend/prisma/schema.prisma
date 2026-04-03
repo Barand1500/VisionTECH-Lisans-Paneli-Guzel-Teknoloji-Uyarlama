@@ -22,12 +22,15 @@ model Rol {
   izinler          Json
   varsayilan       Int?      @default(0) @db.TinyInt
   aktif            Int?      @default(1) @db.TinyInt
+  durum            String    @default("aktif") @db.VarChar(50)
   olusturma_tarihi DateTime? @default(now()) @db.DateTime(0)
+  silinme_tarihi   DateTime? @db.DateTime(0)
 
   kullanicilar Kullanici[]
 
   @@map("roller")
   @@index([aktif])
+  @@index([silinme_tarihi])
 }
 
 // =============================================
@@ -37,13 +40,16 @@ model Sektor {
   id               Int      @id @default(autoincrement())
   ad               String   @unique @db.VarChar(200)
   aktif            Int      @default(1) @db.TinyInt
+  durum            String   @default("aktif") @db.VarChar(50)
   olusturma_tarihi DateTime @default(now()) @db.DateTime(0)
+  silinme_tarihi   DateTime? @db.DateTime(0)
 
   musteriler Musteri[]
   bayiler    Bayi[]
 
   @@map("sektorler")
   @@index([aktif])
+  @@index([silinme_tarihi])
 }
 
 // =============================================
@@ -199,6 +205,7 @@ model Bayi {
   lisanslar        Lisans[]
   bayiNotlar       Noti[]
   iletisimKisileri IletisimKisi[]
+  bayiUrunler      BayiUrun[]
 
   @@map("bayiler")
   @@index([durum])
@@ -261,10 +268,12 @@ model IletisimKisi {
 // 10. URUN GRUPLARI
 // =============================================
 model UrunGrubu {
-  id       Int     @id @default(autoincrement())
-  ad       String  @unique @db.VarChar(100)
-  aciklama String? @db.VarChar(255)
-  aktif    Int     @default(1) @db.TinyInt
+  id             Int       @id @default(autoincrement())
+  ad             String    @unique @db.VarChar(100)
+  aciklama       String?   @db.VarChar(255)
+  aktif          Int       @default(1) @db.TinyInt
+  durum          String    @default("aktif") @db.VarChar(50)
+  silinme_tarihi DateTime? @db.DateTime(0)
 
   urunler    Urun[]
   urunTipler UrunTipi[]
@@ -272,41 +281,50 @@ model UrunGrubu {
 
   @@map("urun_gruplari")
   @@index([aktif])
+  @@index([silinme_tarihi])
 }
 
 // =============================================
 // 10.1 URUN TIPLERI
 // =============================================
 model UrunTipi {
-  id      Int     @id @default(autoincrement())
-  grup_id Int?
-  ad      String  @db.VarChar(100)
-  aktif   Int     @default(1) @db.TinyInt
+  id             Int       @id @default(autoincrement())
+  grup_id        Int?
+  ad             String    @db.VarChar(100)
+  aktif          Int       @default(1) @db.TinyInt
+  durum          String    @default("aktif") @db.VarChar(50)
+  silinme_tarihi DateTime? @db.DateTime(0)
 
   grup           UrunGrubu?    @relation(fields: [grup_id], references: [id], onUpdate: Cascade, onDelete: SetNull)
   uygulamaTipler UygulamaTipi[]
   sablonlar      UrunSablon[]
+  urunler        Urun[]        @relation("UrunTipFK")
 
   @@map("urun_tipleri")
   @@index([aktif])
   @@index([grup_id])
+  @@index([silinme_tarihi])
 }
 
 // =============================================
 // 10.2 UYGULAMA TIPLERI
 // =============================================
 model UygulamaTipi {
-  id           Int  @id @default(autoincrement())
-  urun_tipi_id Int?
-  ad           String @db.VarChar(100)
-  aktif        Int    @default(1) @db.TinyInt
+  id             Int       @id @default(autoincrement())
+  urun_tipi_id   Int?
+  ad             String    @db.VarChar(100)
+  aktif          Int       @default(1) @db.TinyInt
+  durum          String    @default("aktif") @db.VarChar(50)
+  silinme_tarihi DateTime? @db.DateTime(0)
 
   urunTipi  UrunTipi? @relation(fields: [urun_tipi_id], references: [id], onUpdate: Cascade, onDelete: SetNull)
   sablonlar  UrunSablon[]
+  urunler    Urun[]    @relation("UygulamaTipFK")
 
   @@map("uygulama_tipleri")
   @@index([aktif])
   @@index([urun_tipi_id])
+  @@index([silinme_tarihi])
 }
 
 // =============================================
@@ -320,8 +338,10 @@ model UrunSablon {
   urun_tipi_id      Int?
   uygulama_tipi_id  Int?
   aktif             Int       @default(1) @db.TinyInt
+  durum             String    @default("aktif") @db.VarChar(50)
   olusturma_tarihi  DateTime  @default(now()) @db.DateTime(0)
   guncelleme_tarihi DateTime? @db.DateTime(0)
+  silinme_tarihi    DateTime? @db.DateTime(0)
 
   grup          UrunGrubu?    @relation(fields: [grup_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
   urunTipi      UrunTipi?     @relation(fields: [urun_tipi_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
@@ -334,6 +354,7 @@ model UrunSablon {
   @@index([urun_tipi_id])
   @@index([uygulama_tipi_id])
   @@index([aktif])
+  @@index([silinme_tarihi])
 }
 
 // =============================================
@@ -360,58 +381,71 @@ model SablonOzellik {
 // 11. URUNLER
 // =============================================
 model Urun {
-  id              Int      @id @default(autoincrement())
-  grup_id         Int?
-  sablon_id       Int?
-  ad              String   @db.VarChar(255)
-  urun_tipi       String?  @db.VarChar(50)
-  uygulama_tipi   String?  @db.VarChar(50)
-  varsayilan_gun  Int      @default(365)
-  ozel_proje      Int      @default(0) @db.TinyInt
-  aktif           Int      @default(1) @db.TinyInt
-  aciklama        String?  @db.Text
-  min_kullanici   Int      @default(1)
-  max_kullanici   Int?
-  demo_gun        Int      @default(30)
-  temel_fiyat     Decimal  @default(0) @db.Decimal(10, 2)
-  versiyon        String?  @db.VarChar(50)
-  versiyon_kontrol Int     @default(0) @db.TinyInt
-  logo_url        String?  @db.VarChar(500)
-  ozellikler      Json?
+  id               Int      @id @default(autoincrement())
+  grup_id          Int?
+  sablon_id        Int?
+  ad               String   @db.VarChar(255)
+  urun_tipi        String?  @db.VarChar(50)
+  uygulama_tipi    String?  @db.VarChar(50)
+  urun_tipi_id     Int?
+  uygulama_tipi_id Int?
+  varsayilan_gun   Int      @default(365)
+  ozel_proje       Int      @default(0) @db.TinyInt
+  aktif            Int      @default(1) @db.TinyInt
+  durum            String   @default("aktif") @db.VarChar(50)
+  aciklama         String?  @db.Text
+  min_kullanici    Int      @default(1)
+  max_kullanici    Int?
+  demo_gun         Int      @default(30)
+  temel_fiyat      Decimal  @default(0) @db.Decimal(10, 2)
+  versiyon         String?  @db.VarChar(50)
+  versiyon_kontrol Int      @default(0) @db.TinyInt
+  logo_url         String?  @db.VarChar(500)
+  ozellikler       Json?
+  silinme_tarihi   DateTime? @db.DateTime(0)
 
-  grup     UrunGrubu?  @relation(fields: [grup_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  sablon   UrunSablon? @relation(fields: [sablon_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  paketler Paket[]
-  lisanslar Lisans[]
-  surumler  Surum[]
+  grup          UrunGrubu?    @relation(fields: [grup_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  sablon        UrunSablon?   @relation(fields: [sablon_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  urunTipFK     UrunTipi?     @relation("UrunTipFK", fields: [urun_tipi_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  uygulamaTipFK UygulamaTipi? @relation("UygulamaTipFK", fields: [uygulama_tipi_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  paketler      Paket[]
+  lisanslar     Lisans[]
+  surumler      Surum[]
+  bayiUrunler   BayiUrun[]
 
   @@map("urunler")
   @@index([grup_id])
   @@index([sablon_id])
   @@index([aktif])
   @@index([urun_tipi])
+  @@index([urun_tipi_id])
+  @@index([uygulama_tipi_id])
+  @@index([silinme_tarihi])
 }
 
 // =============================================
 // 12. PAKETLER
 // =============================================
 model Paket {
-  id               Int     @id @default(autoincrement())
+  id               Int       @id @default(autoincrement())
   urun_id          Int
-  ad               String  @db.VarChar(255)
-  tipi             String? @db.VarChar(50)
-  kullanim_gunu    Int     @default(365)
-  fiyat            Decimal @default(0) @db.Decimal(10, 2)
-  kullanici_sayisi Int     @default(1)
-  aktif            Int     @default(1) @db.TinyInt
+  ad               String    @db.VarChar(255)
+  tipi             String?   @db.VarChar(50)
+  kullanim_gunu    Int       @default(365)
+  fiyat            Decimal   @default(0) @db.Decimal(10, 2)
+  kullanici_sayisi Int       @default(1)
+  aktif            Int       @default(1) @db.TinyInt
+  durum            String    @default("aktif") @db.VarChar(50)
+  silinme_tarihi   DateTime? @db.DateTime(0)
 
-  urun     Urun     @relation(fields: [urun_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  urun      Urun     @relation(fields: [urun_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   lisanslar Lisans[]
 
   @@map("paketler")
   @@index([urun_id])
   @@index([aktif])
   @@index([tipi])
+  @@index([silinme_tarihi])
 }
 
 // =============================================
@@ -425,11 +459,16 @@ model LisansTipi {
   gun              Int      @default(365)
   sira             Int      @default(0)
   aktif            Int      @default(1) @db.TinyInt
+  durum            String   @default("aktif") @db.VarChar(50)
   olusturma_tarihi DateTime @default(now()) @db.DateTime(0)
+  silinme_tarihi   DateTime? @db.DateTime(0)
+
+  lisanslar Lisans[]
 
   @@map("lisans_tipleri")
   @@index([aktif])
   @@index([sira])
+  @@index([silinme_tarihi])
 }
 
 // =============================================
@@ -441,6 +480,8 @@ model Lisans {
   urun_id           Int?
   paket_id          Int?
   bayi_id           Int?
+  lisans_tipi_id    Int?
+  surum_id          Int?
   lisans_anahtari   String?   @unique @db.VarChar(100)
   lisans_tipi       String    @default("standart") @db.VarChar(100)
   baslangic_tarihi  DateTime  @db.Date
@@ -468,46 +509,56 @@ model Lisans {
   notlar            String?   @db.Text
   olusturma_tarihi  DateTime  @default(now()) @db.DateTime(0)
   guncelleme_tarihi DateTime? @db.DateTime(0)
+  silinme_tarihi    DateTime? @db.DateTime(0)
 
-  musteri Musteri  @relation(fields: [musteri_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  urun    Urun?    @relation(fields: [urun_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  paket   Paket?   @relation(fields: [paket_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  bayi    Bayi?    @relation(fields: [bayi_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  musteri    Musteri     @relation(fields: [musteri_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  urun       Urun?       @relation(fields: [urun_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  paket      Paket?      @relation(fields: [paket_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  bayi       Bayi?       @relation(fields: [bayi_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  lisansTipi LisansTipi? @relation(fields: [lisans_tipi_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  surum      Surum?      @relation(fields: [surum_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   @@map("lisanslar")
   @@index([musteri_id])
   @@index([urun_id])
   @@index([paket_id])
   @@index([bayi_id])
+  @@index([lisans_tipi_id])
+  @@index([surum_id])
   @@index([durum])
   @@index([lisans_tipi])
   @@index([odeme_durumu])
   @@index([bitis_tarihi])
   @@index([baslangic_tarihi])
   @@index([olusturma_tarihi])
+  @@index([silinme_tarihi])
 }
 
 // =============================================
 // 14. SURUMLER
 // =============================================
 model Surum {
-  id            Int      @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
   urun_id       Int?
-  urun_adi      String   @db.VarChar(255)
-  surum         String   @db.VarChar(50)
-  tarih         DateTime @db.Date
-  duzenlenenler String?  @db.Text
-  eklenenler    String?  @db.Text
-  cikarilanlar  String?  @db.Text
-  dosya_adi     String?  @db.VarChar(255)
-  aktif         Int      @default(1) @db.TinyInt
+  urun_adi      String    @db.VarChar(255)
+  surum         String    @db.VarChar(50)
+  tarih         DateTime  @db.Date
+  duzenlenenler String?   @db.Text
+  eklenenler    String?   @db.Text
+  cikarilanlar  String?   @db.Text
+  dosya_adi     String?   @db.VarChar(255)
+  aktif         Int       @default(1) @db.TinyInt
+  durum         String    @default("aktif") @db.VarChar(50)
+  silinme_tarihi DateTime? @db.DateTime(0)
 
-  urun Urun? @relation(fields: [urun_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  urun      Urun?    @relation(fields: [urun_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  lisanslar Lisans[]
 
   @@map("surumler")
   @@index([urun_id])
   @@index([tarih])
   @@index([aktif])
+  @@index([silinme_tarihi])
 }
 
 // =============================================
@@ -598,4 +649,37 @@ model YedeklemeLog {
   @@index([kullanici_id])
   @@index([islem_tipi])
   @@index([durum])
+}
+
+// =============================================
+// 19. BAYI-URUN ILISKISI (Pivot)
+// =============================================
+model BayiUrun {
+  id      Int @id @default(autoincrement())
+  bayi_id Int
+  urun_id Int
+
+  bayi Bayi @relation(fields: [bayi_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  urun Urun @relation(fields: [urun_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([bayi_id, urun_id])
+  @@map("bayi_urunler")
+  @@index([bayi_id])
+  @@index([urun_id])
+}
+
+// =============================================
+// 20. PAKET TIPLERI
+// =============================================
+model PaketTipi {
+  id             Int       @id @default(autoincrement())
+  ad             String    @unique @db.VarChar(100)
+  aktif          Int       @default(1) @db.TinyInt
+  durum          String    @default("aktif") @db.VarChar(50)
+  sira           Int       @default(0)
+  silinme_tarihi DateTime? @db.DateTime(0)
+
+  @@map("paket_tipleri")
+  @@index([aktif])
+  @@index([silinme_tarihi])
 }

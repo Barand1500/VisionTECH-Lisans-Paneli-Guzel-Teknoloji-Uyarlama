@@ -1022,7 +1022,7 @@ export default function BayilerPage() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-white/5">
                 {sayfalananlar.length > 0 ? sayfalananlar.map((bayi) => (
-                  <tr key={bayi.id} className={`hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors ${seciliIdler.has(bayi.id) ? "bg-emerald-50/50 dark:bg-emerald-500/5" : ""}`}>
+                  <tr key={bayi.id} className={`hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors ${seciliIdler.has(bayi.id) ? "bg-emerald-50/50 dark:bg-emerald-500/5" : ""} ${bayi.durum !== "aktif" ? "opacity-50" : ""}`}>
                     <td className="px-4 py-4">
                       <input type="checkbox" checked={seciliIdler.has(bayi.id)} onChange={() => tekSecimToggle(bayi.id)}
                         className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-emerald-600 focus:ring-emerald-500 cursor-pointer" />

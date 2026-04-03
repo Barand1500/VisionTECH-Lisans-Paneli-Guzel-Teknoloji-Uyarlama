@@ -13,6 +13,7 @@ const GECERLI_IZINLER = [
 /* ---- Tum Rolleri Listele ---- */
 router.get("/", yetkiKontrol, hataYakala(async (req, res) => {
   const roller = await prisma.rol.findMany({
+    where: { silinme_tarihi: null },
     select: { id: true, ad: true, aciklama: true, izinler: true, varsayilan: true, aktif: true, olusturma_tarihi: true },
     orderBy: { id: "asc" },
   });
@@ -97,7 +98,7 @@ router.delete("/:id", yetkiKontrol, sadaceAdmin, hataYakala(async (req, res) => 
     return dogrulamaHatasi(res, "Bu rol " + kullananlar + " kullanici tarafindan kullaniliyor. Once kullanicilarin rolunu degistirin.");
   }
 
-  await prisma.rol.delete({ where: { id } });
+  await prisma.rol.update({ where: { id }, data: { silinme_tarihi: new Date(), durum: "silindi" } });
   res.json({ basarili: true, mesaj: "Rol basariyla silindi." });
 }));
 

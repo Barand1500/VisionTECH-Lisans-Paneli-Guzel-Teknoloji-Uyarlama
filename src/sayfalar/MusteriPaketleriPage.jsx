@@ -17,7 +17,8 @@ const INPUT_STIL =
 const LABEL_STIL = "block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1";
 
 /* ---- Sabit Değerler ---- */
-const LISANS_TIPLERI_VARSAYILAN = [
+// Lisans tipleri artık DB'den yükleniyor (/api/lisans-tipleri/aktif)
+const LISANS_TIPLERI_FALLBACK = [
   { id: "demo", ad: "Demo", renk: "gray", gun: 30 },
   { id: "standart", ad: "Standart", renk: "blue", gun: 365 },
   { id: "profesyonel", ad: "Profesyonel", renk: "violet", gun: 365 },
@@ -106,10 +107,22 @@ export default function MusteriPaketleriPage() {
   const [dbUrunler, setDbUrunler] = useState([]);
   const [dbPaketler, setDbPaketler] = useState([]);
   const [dbBayiler, setDbBayiler] = useState([]);
-  const [lisansTipleri, setLisansTipleri] = useState(LISANS_TIPLERI_VARSAYILAN);
+  const [lisansTipleri, setLisansTipleri] = useState(LISANS_TIPLERI_FALLBACK);
 
   /* Verileri yükle */
   useEffect(() => {
+    /* Lisans tiplerini DB'den yükle */
+    apiGet("/lisans-tipleri/aktif").then((res) => {
+      if (res.basarili && Array.isArray(res.veri) && res.veri.length > 0) {
+        setLisansTipleri(res.veri.map((lt) => ({
+          id: lt.kod || lt.id,
+          ad: lt.ad,
+          renk: lt.renk || "blue",
+          gun: lt.gun || 365,
+        })));
+      }
+    }).catch(() => {});
+
     /* Lisansları yükle */
     apiGet(`/lisanslar/musteri/${id}`).then((r) => {
       if (r.basarili) {
@@ -646,6 +659,10 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
   const [yukleniyor, setYukleniyor] = useState(false);
   const [hata, setHata] = useState("");
 
+  /* Şablon state */
+  const [sablon, setSablon] = useState(null);
+  const [sablonDegerler, setSablonDegerler] = useState({});
+
   /* Form state */
   const [form, setForm] = useState({
     /* Adım 1: Ürün Seçimi */
@@ -729,9 +746,28 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
   };
 
   /* Ürün seçildiğinde */
-  const urunSec = (urunId) => {
+  const urunSec = async (urunId) => {
     guncelle("urunId", urunId);
     guncelle("paketId", "");
+    /* Ürünün şablonunu getir */
+    try {
+      const res = await apiGet(`/urunler/${urunId}/sablon`);
+      if (res.basarili && res.veri) {
+        setSablon(res.veri);
+        /* Şablon özellik varsayılan değerlerini hazırla */
+        const varsayilanlar = {};
+        (res.veri.ozellikler || []).forEach((oz) => {
+          varsayilanlar[oz.id] = oz.deger || {};
+        });
+        setSablonDegerler(varsayilanlar);
+      } else {
+        setSablon(null);
+        setSablonDegerler({});
+      }
+    } catch {
+      setSablon(null);
+      setSablonDegerler({});
+    }
   };
 
   /* Adım validasyonu */
@@ -773,6 +809,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
         otomatik_yenileme: form.otomatikYenileme,
         bildirim_gun: Number(form.bildirimGun) || 30,
         notlar: form.notlar || null,
+        sablon_verileri: Object.keys(sablonDegerler).length > 0 ? sablonDegerler : null,
       };
       
       const sonuc = await apiPost("/lisanslar", gonderilecek);
@@ -979,6 +1016,177 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
                   <input type="number" value={form.bildirimGun} onChange={(e) => guncelle("bildirimGun", Number(e.target.value))} className={INPUT_STIL} min={1} placeholder="30" />
                 </div>
               </div>
+
+              {/* Şablon Özellikleri (Ürüne özel dinamik alanlar) */}
+              {sablon && sablon.ozellikler && sablon.ozellikler.length > 0 && (
+                <div className="p-4 rounded-xl bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20">
+                  <h4 className="text-sm font-semibold text-violet-700 dark:text-violet-400 mb-3 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                    </svg>
+                    {sablon.ad} - Ürün Özellikleri
+                  </h4>
+                  <div className="space-y-3">
+                    {sablon.ozellikler.map((oz) => {
+                      const deger = sablonDegerler[oz.id] || oz.deger || {};
+                      const sablonGuncelle = (alan, val) => {
+                        setSablonDegerler((prev) => ({
+                          ...prev,
+                          [oz.id]: { ...(prev[oz.id] || oz.deger || {}), [alan]: val },
+                        }));
+                      };
+
+                      switch (oz.ozellik_tipi) {
+                        case "temel_fiyat":
+                          return (
+                            <div key={oz.id}>
+                              <label className={LABEL_STIL}>{oz.baslik || "Temel Fiyat"}</label>
+                              <div className="flex gap-2">
+                                <input type="number" value={deger.fiyat || 0} onChange={(e) => sablonGuncelle("fiyat", Number(e.target.value))} className={INPUT_STIL + " flex-1"} min={0} step="0.01" />
+                                <span className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-500 text-sm">{deger.para_birimi || "TL"}</span>
+                              </div>
+                            </div>
+                          );
+
+                        case "aktivasyon_yenileme":
+                          return (
+                            <div key={oz.id} className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className={LABEL_STIL}>{oz.baslik || "Aktivasyon Fiyat"}</label>
+                                <input type="number" value={deger.aktivasyon_fiyat || 0} onChange={(e) => sablonGuncelle("aktivasyon_fiyat", Number(e.target.value))} className={INPUT_STIL} min={0} step="0.01" />
+                              </div>
+                              <div>
+                                <label className={LABEL_STIL}>Yenileme Fiyat</label>
+                                <input type="number" value={deger.yenileme_fiyat || 0} onChange={(e) => sablonGuncelle("yenileme_fiyat", Number(e.target.value))} className={INPUT_STIL} min={0} step="0.01" />
+                              </div>
+                            </div>
+                          );
+
+                        case "kullanici_sayisi":
+                          return (
+                            <div key={oz.id} className="grid grid-cols-3 gap-2">
+                              <div>
+                                <label className={LABEL_STIL}>{oz.baslik || "Min Kullanıcı"}</label>
+                                <input type="number" value={deger.min || 1} onChange={(e) => sablonGuncelle("min", Number(e.target.value))} className={INPUT_STIL} min={1} />
+                              </div>
+                              <div>
+                                <label className={LABEL_STIL}>Max Kullanıcı</label>
+                                <input type="number" value={deger.max || ""} onChange={(e) => sablonGuncelle("max", e.target.value ? Number(e.target.value) : null)} className={INPUT_STIL} min={1} />
+                              </div>
+                              <div>
+                                <label className={LABEL_STIL}>Ek Kullanıcı ₺</label>
+                                <input type="number" value={deger.ek_kullanici_fiyat || 0} onChange={(e) => sablonGuncelle("ek_kullanici_fiyat", Number(e.target.value))} className={INPUT_STIL} min={0} step="0.01" />
+                              </div>
+                            </div>
+                          );
+
+                        case "sicil_domain":
+                          return (
+                            <div key={oz.id}>
+                              <label className={LABEL_STIL}>{oz.baslik || "Sicil No / Domain"}</label>
+                              <input type="text" value={deger.deger || ""} onChange={(e) => sablonGuncelle("deger", e.target.value)} className={INPUT_STIL} placeholder={deger.alan_tipi === "domain" ? "ornek.com" : "Sicil numarası"} />
+                            </div>
+                          );
+
+                        case "kdv":
+                          return (
+                            <div key={oz.id} className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className={LABEL_STIL}>{oz.baslik || "KDV Oranı (%)"}</label>
+                                <input type="number" value={deger.oran || 20} onChange={(e) => sablonGuncelle("oran", Number(e.target.value))} className={INPUT_STIL} min={0} max={100} />
+                              </div>
+                              <div className="flex items-end">
+                                <label className="flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 dark:border-white/10 cursor-pointer w-full">
+                                  <input type="checkbox" checked={!!deger.dahil} onChange={(e) => sablonGuncelle("dahil", e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-blue-600" />
+                                  <span className="text-sm text-gray-700 dark:text-slate-300">KDV Dahil</span>
+                                </label>
+                              </div>
+                            </div>
+                          );
+
+                        case "sure":
+                          return (
+                            <div key={oz.id} className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className={LABEL_STIL}>{oz.baslik || "Süre"}</label>
+                                <input type="number" value={deger.deger || 1} onChange={(e) => sablonGuncelle("deger", Number(e.target.value))} className={INPUT_STIL} min={1} />
+                              </div>
+                              <div>
+                                <label className={LABEL_STIL}>Birim</label>
+                                <select value={deger.birim || "yil"} onChange={(e) => sablonGuncelle("birim", e.target.value)} className={INPUT_STIL}>
+                                  <option value="gun">Gün</option>
+                                  <option value="ay">Ay</option>
+                                  <option value="yil">Yıl</option>
+                                </select>
+                              </div>
+                            </div>
+                          );
+
+                        case "ek_kullanici_ucret":
+                          return (
+                            <div key={oz.id}>
+                              <label className={LABEL_STIL}>{oz.baslik || "Ek Kullanıcı Ücreti"}</label>
+                              <input type="number" value={deger.fiyat || 0} onChange={(e) => sablonGuncelle("fiyat", Number(e.target.value))} className={INPUT_STIL} min={0} step="0.01" />
+                            </div>
+                          );
+
+                        case "demo_suresi":
+                          return (
+                            <div key={oz.id}>
+                              <label className={LABEL_STIL}>{oz.baslik || "Demo Süresi (Gün)"}</label>
+                              <input type="number" value={deger.gun || 30} onChange={(e) => sablonGuncelle("gun", Number(e.target.value))} className={INPUT_STIL} min={1} />
+                            </div>
+                          );
+
+                        case "min_siparis":
+                          return (
+                            <div key={oz.id}>
+                              <label className={LABEL_STIL}>{oz.baslik || "Minimum Sipariş"}</label>
+                              <div className="flex gap-2">
+                                <input type="number" value={deger.miktar || 1} onChange={(e) => sablonGuncelle("miktar", Number(e.target.value))} className={INPUT_STIL + " flex-1"} min={1} />
+                                <span className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-500 text-sm">{deger.birim || "adet"}</span>
+                              </div>
+                            </div>
+                          );
+
+                        case "ozel_not":
+                          return (
+                            <div key={oz.id}>
+                              <label className={LABEL_STIL}>{oz.baslik || "Özel Not"}</label>
+                              <textarea value={deger.metin || ""} onChange={(e) => sablonGuncelle("metin", e.target.value)} className={`${INPUT_STIL} h-16 resize-none`} placeholder="Açıklama..." />
+                            </div>
+                          );
+
+                        case "marka":
+                          return (
+                            <div key={oz.id}>
+                              <label className={LABEL_STIL}>{oz.baslik || "Marka"}</label>
+                              <input type="text" value={deger.marka || ""} onChange={(e) => sablonGuncelle("marka", e.target.value)} className={INPUT_STIL} />
+                            </div>
+                          );
+
+                        case "ozel_alan":
+                          return (
+                            <div key={oz.id} className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className={LABEL_STIL}>{deger.alan_adi || oz.baslik || "Alan Adı"}</label>
+                                <input type="text" value={deger.alan_degeri || ""} onChange={(e) => sablonGuncelle("alan_degeri", e.target.value)} className={INPUT_STIL} />
+                              </div>
+                            </div>
+                          );
+
+                        default:
+                          return (
+                            <div key={oz.id}>
+                              <label className={LABEL_STIL}>{oz.baslik || oz.ozellik_tipi}</label>
+                              <p className="text-xs text-gray-400 dark:text-slate-500">{JSON.stringify(deger)}</p>
+                            </div>
+                          );
+                      }
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

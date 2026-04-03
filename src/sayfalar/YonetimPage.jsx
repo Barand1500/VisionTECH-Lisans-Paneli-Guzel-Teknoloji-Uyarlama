@@ -70,34 +70,7 @@ const SEKMELER = [
 /*  Sabitler (Dropdown Seçenekleri)                */
 /* ============================================= */
 
-const VARSAYILAN_PAKET_TIPLERI = ["AKTIVASYON", "EK KULLANICI", "YENILEME", "UPGRADE", "DENEME", "BAKIM"];
-
-// localStorage'dan paket tiplerini oku
-const getPaketTipleri = () => {
-  try {
-    const stored = localStorage.getItem("customPaketTipleri");
-    const custom = stored ? JSON.parse(stored) : [];
-    return [...VARSAYILAN_PAKET_TIPLERI, ...custom];
-  } catch {
-    return VARSAYILAN_PAKET_TIPLERI;
-  }
-};
-
-// Yeni paket tipi ekle
-const addPaketTipi = (yeniTip) => {
-  try {
-    const stored = localStorage.getItem("customPaketTipleri");
-    const custom = stored ? JSON.parse(stored) : [];
-    if (!custom.includes(yeniTip) && !VARSAYILAN_PAKET_TIPLERI.includes(yeniTip)) {
-      custom.push(yeniTip);
-      localStorage.setItem("customPaketTipleri", JSON.stringify(custom));
-      return true;
-    }
-    return false;
-  } catch {
-    return false;
-  }
-};
+// Paket tipleri artık DB'den geliyor (/api/paket-tipleri)
 
 
 
@@ -712,29 +685,42 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
     kullaniciSayisi: duzenle ? modal.kullaniciSayisi : 0,
     aktif: duzenle ? modal.aktif : true,
   });
-  const [paketTipleri, setPaketTipleri] = useState(getPaketTipleri());
+  const [paketTipleri, setPaketTipleri] = useState([]);
   const [yeniTipModal, setYeniTipModal] = useState(false);
   const [yeniTip, setYeniTip] = useState("");
   const ref = useRef(null);
   const sallanma = () => { if (ref.current) { ref.current.classList.remove("sallan"); void ref.current.offsetWidth; ref.current.classList.add("sallan"); } };
 
+  // Paket tiplerini API'den yükle
+  const paketTipleriniYukle = async () => {
+    try {
+      const veri = await apiGet("/paket-tipleri");
+      setPaketTipleri(veri);
+    } catch { setPaketTipleri([]); }
+  };
+  useEffect(() => { paketTipleriniYukle(); }, []);
+
   const grupUrunleri = tumUrunler.filter((u) => u.grubu === form.urunGrubu);
 
   const guncelle = (alan, val) => setForm((o) => ({ ...o, [alan]: val }));
 
-  const yeniTipEkle = () => {
+  const yeniTipEkle = async () => {
     const temiz = yeniTip.trim().toUpperCase();
-    if (temiz && addPaketTipi(temiz)) {
-      setPaketTipleri(getPaketTipleri());
-      guncelle("tipi", temiz);
+    if (!temiz) return;
+    try {
+      const yeniKayit = await apiPost("/paket-tipleri", { ad: temiz });
+      await paketTipleriniYukle();
+      guncelle("tipi", yeniKayit.ad);
       setYeniTip("");
       setYeniTipModal(false);
+    } catch (err) {
+      console.error("Paket tipi eklenemedi:", err);
     }
   };
 
   const gonder = (e) => {
     e.preventDefault();
-    if (!form.tipi || !form.adi) return;
+    if (!form.adi) return;
     const seciliUrun = tumUrunler.find((u) => u.id === Number(form.urunId)) || urun;
     kaydet({ ...form, urunId: seciliUrun.id, urunAdi: seciliUrun.adi });
   };
@@ -774,11 +760,11 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
 
           {/* Paket Tipi */}
           <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Paket Tipi <span className="text-red-500">*</span></label>
+            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Paket Tipi</label>
             <div className="flex gap-2">
-              <select value={form.tipi} onChange={(e) => guncelle("tipi", e.target.value)} className={INPUT_STIL + " flex-1"} required>
+              <select value={form.tipi} onChange={(e) => guncelle("tipi", e.target.value)} className={INPUT_STIL + " flex-1"}>
                 <option value="">SEÇİNİZ</option>
-                {paketTipleri.map((t) => <option key={t} value={t}>{t}</option>)}
+                {paketTipleri.map((t) => <option key={t.id} value={t.ad}>{t.ad}</option>)}
               </select>
               <button type="button" onClick={() => setYeniTipModal(true)} title="Yeni Paket Tipi Ekle"
                 className="px-3 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white transition-colors cursor-pointer">
@@ -2784,7 +2770,7 @@ function KullanicilarSekmesi() {
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-white/5">
             {kullanicilar.map((k) => (
-              <tr key={k.id} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors">
+              <tr key={k.id} className={`hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors ${!k.aktif ? "opacity-50" : ""}`}>
                 <td className="px-4 py-3.5">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
@@ -3004,7 +2990,7 @@ function RollerSekmesi() {
         {roller.map((rol) => {
           const izinler = Array.isArray(rol.izinler) ? rol.izinler : [];
           return (
-            <div key={rol.id} className="rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 overflow-hidden transition-all hover:shadow-md hover:border-gray-300 dark:hover:border-white/20">
+            <div key={rol.id} className={`rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 overflow-hidden transition-all hover:shadow-md hover:border-gray-300 dark:hover:border-white/20 ${!rol.aktif ? "opacity-50" : ""}`}>
               {/* Kart Başlık */}
               <div className="px-5 py-4 flex items-start justify-between">
                 <div className="flex items-center gap-3 min-w-0">
@@ -3346,7 +3332,7 @@ function LisansTipleriSekmesi() {
             </thead>
             <tbody>
               {tipler.map((t) => (
-                <tr key={t.id} className="border-b border-gray-100 dark:border-white/[0.04] hover:bg-gray-50 dark:hover:bg-white/[0.02]">
+                <tr key={t.id} className={`border-b border-gray-100 dark:border-white/[0.04] hover:bg-gray-50 dark:hover:bg-white/[0.02] ${!t.aktif ? "opacity-50" : ""}`}>
                   <td className="px-4 py-3 text-gray-600 dark:text-slate-300">{t.sira}</td>
                   <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{t.ad}</td>
                   <td className="px-4 py-3 text-gray-500 dark:text-slate-400 font-mono text-xs">{t.kod}</td>
@@ -3453,7 +3439,7 @@ function LisansTipleriSekmesi() {
 function CopKutusuSekmesi() {
   const [silinen, setSilinen] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
-  const [filtre, setFiltre] = useState("tumu"); // tumu, musteriler, bayiler
+  const [filtre, setFiltre] = useState("tumu"); // tumu, musteri, bayi, urun, paket, lisans, etc.
   const [geriYuklemeOnay, setGeriYuklemeOnay] = useState(null);
 
   const verileriYukle = async () => {
@@ -3472,7 +3458,7 @@ function CopKutusuSekmesi() {
 
   const geriYukle = async (tip, id) => {
     try {
-      await apiPost(`/cop-kutusu/${tip === "musteri" ? "musteriler" : "bayiler"}/${id}/geri-yukle`);
+      await apiPost(`/cop-kutusu/${tip}/${id}/geri-yukle`);
       setGeriYuklemeOnay(null);
       verileriYukle();
     } catch (e) {
@@ -3484,7 +3470,7 @@ function CopKutusuSekmesi() {
   const kaliciSil = async (tip, id) => {
     if (!confirm("Bu kayit kalici olarak silinecek. Emin misiniz?")) return;
     try {
-      await apiDelete(`/cop-kutusu/${tip === "musteri" ? "musteriler" : "bayiler"}/${id}/kalici`);
+      await apiDelete(`/cop-kutusu/${tip}/${id}/kalici`);
       verileriYukle();
     } catch (e) {
       console.error("Kalici silme hatasi:", e);
@@ -3501,10 +3487,15 @@ function CopKutusuSekmesi() {
 
   const filtrelenmis = silinen.filter((item) => {
     if (filtre === "tumu") return true;
-    if (filtre === "musteriler") return item.tip === "musteri";
-    if (filtre === "bayiler") return item.tip === "bayi";
-    return true;
+    return item.tip === filtre;
   });
+
+  const TIP_ETIKETLERI = {
+    musteri: "M\u00fc\u015fteri", bayi: "Bayi", urun: "\u00dcr\u00fcn", paket: "Paket",
+    lisans: "Lisans", lisansTipi: "Lisans Tipi", urunTipi: "\u00dcr\u00fcn Tipi",
+    uygulamaTipi: "Uygulama Tipi", urunGrubu: "\u00dcr\u00fcn Grubu", surum: "S\u00fcr\u00fcm",
+    urunSablon: "\u015eablon", rol: "Rol", sektor: "Sekt\u00f6r", kullanici: "Kullan\u0131c\u0131",
+  };
 
   return (
     <div className="space-y-4">
@@ -3514,8 +3505,17 @@ function CopKutusuSekmesi() {
           <select value={filtre} onChange={(e) => setFiltre(e.target.value)}
             className="px-3 py-2 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm focus:ring-2 focus:ring-blue-500 cursor-pointer">
             <option value="tumu">Tüm Kayıtlar</option>
-            <option value="musteriler">Müşteriler</option>
-            <option value="bayiler">Bayiler</option>
+            <option value="musteri">Müşteriler</option>
+            <option value="bayi">Bayiler</option>
+            <option value="urun">Ürünler</option>
+            <option value="paket">Paketler</option>
+            <option value="lisans">Lisanslar</option>
+            <option value="lisansTipi">Lisans Tipleri</option>
+            <option value="surum">Sürümler</option>
+            <option value="urunSablon">Şablonlar</option>
+            <option value="rol">Roller</option>
+            <option value="sektor">Sektörler</option>
+            <option value="kullanici">Kullanıcılar</option>
           </select>
           <span className="text-sm text-gray-500 dark:text-slate-400">{filtrelenmis.length} kayıt</span>
         </div>
@@ -3536,7 +3536,7 @@ function CopKutusuSekmesi() {
           <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 mx-auto text-gray-300 dark:text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
           <p className="text-sm text-gray-500 dark:text-slate-400">Çöp kutusu boş</p>
-          <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">Silinen müşteri ve bayiler burada görüntülenir</p>
+          <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">Silinen kayıtlar burada görüntülenir</p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-white/[0.06]">
@@ -3553,17 +3553,8 @@ function CopKutusuSekmesi() {
               {filtrelenmis.map((item) => (
                 <tr key={`${item.tip}-${item.id}`} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors">
                   <td className="px-4 py-3">
-                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium ${
-                      item.tip === "musteri" ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400" : "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                    }`}>
-                      {item.tip === "musteri" ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                      ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-                      )}
-                      {item.tip === "musteri" ? "Müşteri" : "Bayi"}
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                      {TIP_ETIKETLERI[item.tip] || item.tip}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -3610,7 +3601,7 @@ function CopKutusuSekmesi() {
             <div className="p-4 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 mb-4">
               <p className="text-sm font-medium text-gray-900 dark:text-white">{geriYuklemeOnay.unvan || geriYuklemeOnay.ad}</p>
               <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
-                {geriYuklemeOnay.tip === "musteri" ? "Müşteri" : "Bayi"}  Silinme: {tarihFormatla(geriYuklemeOnay.silinme_tarihi)}
+                {TIP_ETIKETLERI[geriYuklemeOnay.tip] || geriYuklemeOnay.tip}  Silinme: {tarihFormatla(geriYuklemeOnay.silinme_tarihi)}
               </p>
             </div>
             <div className="flex gap-3">
@@ -3716,7 +3707,7 @@ function SektorlerSekmesi() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {sektorler.map((s) => (
-            <div key={s.id} className="flex items-center justify-between p-4 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:shadow-md transition-all">
+            <div key={s.id} className={`flex items-center justify-between p-4 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:shadow-md transition-all ${!s.aktif ? "opacity-50" : ""}`}>
               <div className="flex items-center gap-3 min-w-0">
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${s.aktif ? "bg-blue-100 dark:bg-blue-500/15" : "bg-gray-100 dark:bg-white/10"}`}>
                   <svg xmlns="http://www.w3.org/2000/svg" className={`w-4 h-4 ${s.aktif ? "text-blue-600 dark:text-blue-400" : "text-gray-400 dark:text-slate-500"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

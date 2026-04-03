@@ -1,60 +1,72 @@
 const express = require("express");
 const router = express.Router();
 const { prisma, temizle } = require("../veritabani/prisma");
+const { hataYakala, bulunamadiHatasi } = require("../yardimcilar/hata-yonetimi");
 
-/* ---- Tüm Silinen Kayıtları Getir ---- */
-router.get("/", async (req, res, next) => {
-  try {
-    const musteriler = await prisma.musteri.findMany({
+/* ---- Desteklenen varlik tipleri ---- */
+const VARLIK_TIPLERI = {
+  musteri:      { model: "musteri",      adAlan: (r) => r.ad_soyad || r.sirket_adi || "Bilinmiyor", select: { id: true, ad_soyad: true, sirket_adi: true, silinme_tarihi: true } },
+  bayi:         { model: "bayi",         adAlan: (r) => r.ad || r.sirket_adi || "Bilinmiyor", select: { id: true, ad: true, sirket_adi: true, silinme_tarihi: true } },
+  urun:         { model: "urun",         adAlan: (r) => r.ad, select: { id: true, ad: true, silinme_tarihi: true } },
+  paket:        { model: "paket",        adAlan: (r) => r.ad, select: { id: true, ad: true, silinme_tarihi: true } },
+  lisans:       { model: "lisans",       adAlan: (r) => r.lisans_anahtari || `Lisans #${r.id}`, select: { id: true, lisans_anahtari: true, silinme_tarihi: true } },
+  lisansTipi:   { model: "lisansTipi",   adAlan: (r) => r.ad, select: { id: true, ad: true, silinme_tarihi: true } },
+  urunTipi:     { model: "urunTipi",     adAlan: (r) => r.ad, select: { id: true, ad: true, silinme_tarihi: true } },
+  uygulamaTipi: { model: "uygulamaTipi", adAlan: (r) => r.ad, select: { id: true, ad: true, silinme_tarihi: true } },
+  urunGrubu:    { model: "urunGrubu",    adAlan: (r) => r.ad, select: { id: true, ad: true, silinme_tarihi: true } },
+  surum:        { model: "surum",        adAlan: (r) => `${r.urun_adi} v${r.surum}`, select: { id: true, urun_adi: true, surum: true, silinme_tarihi: true } },
+  urunSablon:   { model: "urunSablon",   adAlan: (r) => r.ad, select: { id: true, ad: true, silinme_tarihi: true } },
+  rol:          { model: "rol",          adAlan: (r) => r.ad, select: { id: true, ad: true, silinme_tarihi: true } },
+  sektor:       { model: "sektor",       adAlan: (r) => r.ad, select: { id: true, ad: true, silinme_tarihi: true } },
+  kullanici:    { model: "kullanici",    adAlan: (r) => r.ad_soyad || r.kullanici_adi, select: { id: true, ad_soyad: true, kullanici_adi: true, silinme_tarihi: true } },
+};
+
+/* ---- Tum Silinen Kayitlari Getir ---- */
+router.get("/", hataYakala(async (_req, res) => {
+  const tumSilinen = [];
+
+  for (const [tip, cfg] of Object.entries(VARLIK_TIPLERI)) {
+    const kayitlar = await prisma[cfg.model].findMany({
       where: { silinme_tarihi: { not: null } },
-      select: { id: true, ad_soyad: true, sirket_adi: true, silinme_tarihi: true },
+      select: cfg.select,
       orderBy: { silinme_tarihi: "desc" },
     });
-    const bayiler = await prisma.bayi.findMany({
-      where: { silinme_tarihi: { not: null } },
-      select: { id: true, ad: true, silinme_tarihi: true },
-      orderBy: { silinme_tarihi: "desc" },
-    });
+    for (const k of kayitlar) {
+      tumSilinen.push({ id: k.id, ad: cfg.adAlan(k), silinme_tarihi: k.silinme_tarihi, tip });
+    }
+  }
 
-    const tumSilinen = [
-      ...musteriler.map(m => ({ id: m.id, ad: m.ad_soyad || m.sirket_adi || "Bilinmiyor", silinme_tarihi: m.silinme_tarihi, tip: "musteri" })),
-      ...bayiler.map(b => ({ id: b.id, ad: b.ad, silinme_tarihi: b.silinme_tarihi, tip: "bayi" })),
-    ].sort((a, b) => new Date(b.silinme_tarihi) - new Date(a.silinme_tarihi));
+  tumSilinen.sort((a, b) => new Date(b.silinme_tarihi) - new Date(a.silinme_tarihi));
+  res.json({ basarili: true, veri: temizle(tumSilinen) });
+}));
 
-    res.json({ basarili: true, veri: temizle(tumSilinen) });
-  } catch (hata) { next(hata); }
-});
+/* ---- Geri Yukle (herhangi bir varlik) ---- */
+router.post("/:tip/:id/geri-yukle", hataYakala(async (req, res) => {
+  const { tip, id } = req.params;
+  const cfg = VARLIK_TIPLERI[tip];
+  if (!cfg) return res.status(400).json({ basarili: false, mesaj: "Gecersiz varlik tipi." });
 
-/* ---- Müşteriyi Geri Yükle ---- */
-router.post("/musteriler/:id/geri-yukle", async (req, res, next) => {
-  try {
-    await prisma.musteri.update({ where: { id: Number(req.params.id) }, data: { silinme_tarihi: null, durum: "aktif" } });
-    res.json({ basarili: true, mesaj: "Müşteri geri yüklendi" });
-  } catch (hata) { next(hata); }
-});
+  const data = { silinme_tarihi: null };
+  // durum alanı olan modeller için aktif yap
+  if (["musteri", "bayi", "urun", "paket", "lisansTipi", "urunTipi", "uygulamaTipi", "urunGrubu", "surum", "urunSablon", "rol", "sektor"].includes(tip)) {
+    data.durum = "aktif";
+  }
+  if (tip === "lisans") data.durum = "aktif";
+  if (tip === "kullanici") data.aktif = 1;
+  if (tip === "urunSablon") data.aktif = 1;
 
-/* ---- Bayiyi Geri Yükle ---- */
-router.post("/bayiler/:id/geri-yukle", async (req, res, next) => {
-  try {
-    await prisma.bayi.update({ where: { id: Number(req.params.id) }, data: { silinme_tarihi: null, durum: "aktif" } });
-    res.json({ basarili: true, mesaj: "Bayi geri yüklendi" });
-  } catch (hata) { next(hata); }
-});
+  await prisma[cfg.model].update({ where: { id: Number(id) }, data });
+  res.json({ basarili: true, mesaj: "Kayit geri yuklendi." });
+}));
 
-/* ---- Musteriyi Kalici Sil ---- */
-router.delete("/musteriler/:id/kalici", async (req, res, next) => {
-  try {
-    await prisma.musteri.delete({ where: { id: Number(req.params.id) } });
-    res.json({ basarili: true, mesaj: "Musteri kalici olarak silindi" });
-  } catch (hata) { next(hata); }
-});
+/* ---- Kalici Sil (herhangi bir varlik) ---- */
+router.delete("/:tip/:id/kalici", hataYakala(async (req, res) => {
+  const { tip, id } = req.params;
+  const cfg = VARLIK_TIPLERI[tip];
+  if (!cfg) return res.status(400).json({ basarili: false, mesaj: "Gecersiz varlik tipi." });
 
-/* ---- Bayiyi Kalıcı Sil ---- */
-router.delete("/bayiler/:id/kalici", async (req, res, next) => {
-  try {
-    await prisma.bayi.delete({ where: { id: Number(req.params.id) } });
-    res.json({ basarili: true, mesaj: "Bayi kalıcı olarak silindi" });
-  } catch (hata) { next(hata); }
-});
+  await prisma[cfg.model].delete({ where: { id: Number(id) } });
+  res.json({ basarili: true, mesaj: "Kayit kalici olarak silindi." });
+}));
 
 module.exports = router;

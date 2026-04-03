@@ -36,6 +36,8 @@ uygulama.use("/api/raporlar", require("./rotalar/rapor-rotalari"));
 uygulama.use("/api/yedekleme", require("./rotalar/yedekleme-rotalari"));
 uygulama.use("/api/sektorler", require("./rotalar/sektor-rotalari"));
 uygulama.use("/api/sablonlar", require("./rotalar/sablon-rotalari"));
+uygulama.use("/api/paket-tipleri", require("./rotalar/paket-tipi-rotalari"));
+uygulama.use("/api/bayiler", require("./rotalar/bayi-urun-rotalari"));
 uygulama.use("/api/musteriler", require("./rotalar/dosya-rotalari"));
 uygulama.use("/api/iletisim", require("./rotalar/iletisim-rotalari"));
 uygulama.use("/api/kisiler", require("./rotalar/iletisim-kisileri-rotalari"));

@@ -126,7 +126,7 @@ router.delete("/kullanicilar/:id", yetkiKontrol, sadaceAdmin, hataYakala(async (
   const mevcut = await prisma.kullanici.findUnique({ where: { id }, select: { id: true } });
   if (!mevcut) return bulunamadiHatasi(res, "Kullanici bulunamadi.");
 
-  await prisma.kullanici.delete({ where: { id } });
+  await prisma.kullanici.update({ where: { id }, data: { silinme_tarihi: new Date(), aktif: 0 } });
   res.json({ basarili: true, mesaj: "Kullanici basariyla silindi." });
 }));
 

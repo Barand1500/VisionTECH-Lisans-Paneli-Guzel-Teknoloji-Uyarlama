@@ -5,13 +5,13 @@ const { hataYakala, dogrulamaHatasi, bulunamadiHatasi } = require("../yardimcila
 
 /* ---- Tum Lisans Tiplerini Listele ---- */
 router.get("/", hataYakala(async (req, res) => {
-  const tipler = await prisma.lisansTipi.findMany({ orderBy: [{ sira: "asc" }, { id: "asc" }] });
+  const tipler = await prisma.lisansTipi.findMany({ where: { silinme_tarihi: null }, orderBy: [{ sira: "asc" }, { id: "asc" }] });
   res.json({ basarili: true, veri: temizle(tipler) });
 }));
 
 /* ---- Sadece Aktif Lisans Tiplerini Listele ---- */
 router.get("/aktif", hataYakala(async (req, res) => {
-  const tipler = await prisma.lisansTipi.findMany({ where: { aktif: 1 }, orderBy: [{ sira: "asc" }, { id: "asc" }] });
+  const tipler = await prisma.lisansTipi.findMany({ where: { aktif: 1, silinme_tarihi: null }, orderBy: [{ sira: "asc" }, { id: "asc" }] });
   res.json({ basarili: true, veri: temizle(tipler) });
 }));
 
@@ -80,7 +80,7 @@ router.delete("/:id", hataYakala(async (req, res) => {
     return dogrulamaHatasi(res, `Bu lisans tipi ${kullanan} lisansta kullanilmaktadir. Oncelikle bu lisanslarin tipini degistirin.`);
   }
 
-  await prisma.lisansTipi.delete({ where: { id } });
+  await prisma.lisansTipi.update({ where: { id }, data: { silinme_tarihi: new Date(), durum: "silindi" } });
   res.json({ basarili: true, mesaj: "Lisans tipi silindi." });
 }));
 

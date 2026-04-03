@@ -14,6 +14,7 @@ function guvenliSayi(val, def = 0) {
 
 router.get("/tipler", hataYakala(async (_req, res) => {
   const veriler = await prisma.urunTipi.findMany({
+    where: { silinme_tarihi: null },
     include: { grup: { select: { ad: true } } },
     orderBy: { ad: "asc" },
   });
@@ -43,7 +44,7 @@ router.put("/tipler/:id", hataYakala(async (req, res) => {
 }));
 
 router.delete("/tipler/:id", hataYakala(async (req, res) => {
-  await prisma.urunTipi.delete({ where: { id: Number(req.params.id) } });
+  await prisma.urunTipi.update({ where: { id: Number(req.params.id) }, data: { silinme_tarihi: new Date(), durum: "silindi" } });
   res.json({ basarili: true, mesaj: "Urun tipi silindi." });
 }));
 
@@ -53,6 +54,7 @@ router.delete("/tipler/:id", hataYakala(async (req, res) => {
 
 router.get("/uygulama-tipler", hataYakala(async (_req, res) => {
   const veriler = await prisma.uygulamaTipi.findMany({
+    where: { silinme_tarihi: null },
     include: { urunTipi: { select: { ad: true } } },
     orderBy: { ad: "asc" },
   });
@@ -95,7 +97,7 @@ router.put("/uygulama-tipler/:id", hataYakala(async (req, res) => {
 }));
 
 router.delete("/uygulama-tipler/:id", hataYakala(async (req, res) => {
-  await prisma.uygulamaTipi.delete({ where: { id: Number(req.params.id) } });
+  await prisma.uygulamaTipi.update({ where: { id: Number(req.params.id) }, data: { silinme_tarihi: new Date(), durum: "silindi" } });
   res.json({ basarili: true, mesaj: "Uygulama tipi silindi." });
 }));
 
@@ -105,6 +107,7 @@ router.delete("/uygulama-tipler/:id", hataYakala(async (req, res) => {
 
 router.get("/gruplar", hataYakala(async (_req, res) => {
   const veriler = await prisma.urunGrubu.findMany({
+    where: { silinme_tarihi: null },
     include: { _count: { select: { urunler: true } } },
     orderBy: { ad: "asc" },
   });
@@ -134,7 +137,7 @@ router.put("/gruplar/:id", hataYakala(async (req, res) => {
 }));
 
 router.delete("/gruplar/:id", hataYakala(async (req, res) => {
-  await prisma.urunGrubu.delete({ where: { id: Number(req.params.id) } });
+  await prisma.urunGrubu.update({ where: { id: Number(req.params.id) }, data: { silinme_tarihi: new Date(), durum: "silindi" } });
   res.json({ basarili: true, mesaj: "Grup silindi." });
 }));
 
@@ -144,6 +147,7 @@ router.delete("/gruplar/:id", hataYakala(async (req, res) => {
 
 router.get("/", hataYakala(async (_req, res) => {
   const veriler = await prisma.urun.findMany({
+    where: { silinme_tarihi: null },
     include: {
       grup: { select: { ad: true } },
       _count: { select: { paketler: true, lisanslar: true } },
@@ -163,12 +167,27 @@ router.get("/:id", hataYakala(async (req, res) => {
   const id = Number(req.params.id);
   const veri = await prisma.urun.findUnique({
     where: { id },
-    include: { grup: { select: { ad: true } }, paketler: true },
+    include: { grup: { select: { ad: true } }, paketler: { where: { silinme_tarihi: null } } },
   });
-  if (!veri) return bulunamadiHatasi(res, "Urun bulunamadi.");
+  if (!veri || veri.silinme_tarihi) return bulunamadiHatasi(res, "Urun bulunamadi.");
   const { grup, ...urun } = veri;
   urun.grup_adi = grup?.ad || null;
   res.json({ basarili: true, veri: temizle(urun) });
+}));
+
+/* ---- Urunun Sablonunu Getir (paket olusturma icin) ---- */
+router.get("/:id/sablon", hataYakala(async (req, res) => {
+  const id = Number(req.params.id);
+  const urun = await prisma.urun.findUnique({ where: { id }, select: { sablon_id: true } });
+  if (!urun || !urun.sablon_id) return res.json({ basarili: true, veri: null });
+
+  const sablon = await prisma.urunSablon.findUnique({
+    where: { id: urun.sablon_id },
+    include: {
+      ozellikler: { where: { aktif: 1 }, orderBy: { sira: "asc" } },
+    },
+  });
+  res.json({ basarili: true, veri: sablon ? temizle(sablon) : null });
 }));
 
 router.post("/", hataYakala(async (req, res) => {
@@ -220,7 +239,7 @@ router.delete("/:id", hataYakala(async (req, res) => {
   const id = Number(req.params.id);
   const mevcut = await prisma.urun.findUnique({ where: { id }, select: { id: true } });
   if (!mevcut) return bulunamadiHatasi(res, "Urun bulunamadi.");
-  await prisma.urun.delete({ where: { id } });
+  await prisma.urun.update({ where: { id }, data: { silinme_tarihi: new Date(), durum: "silindi" } });
   res.json({ basarili: true, mesaj: "Urun basariyla silindi." });
 }));
 
@@ -230,6 +249,7 @@ router.delete("/:id", hataYakala(async (req, res) => {
 
 router.get("/paketler/tumu", hataYakala(async (_req, res) => {
   const veriler = await prisma.paket.findMany({
+    where: { silinme_tarihi: null },
     include: { urun: { select: { ad: true } } },
     orderBy: { id: "desc" },
   });
@@ -239,7 +259,7 @@ router.get("/paketler/tumu", hataYakala(async (_req, res) => {
 
 router.get("/:urunId/paketler", hataYakala(async (req, res) => {
   const urun_id = Number(req.params.urunId);
-  const paketler = await prisma.paket.findMany({ where: { urun_id }, orderBy: { id: "desc" } });
+  const paketler = await prisma.paket.findMany({ where: { urun_id, silinme_tarihi: null }, orderBy: { id: "desc" } });
   res.json({ basarili: true, veri: temizle(paketler) });
 }));
 
@@ -275,7 +295,7 @@ router.put("/paketler/:id", hataYakala(async (req, res) => {
 }));
 
 router.delete("/paketler/:id", hataYakala(async (req, res) => {
-  await prisma.paket.delete({ where: { id: Number(req.params.id) } });
+  await prisma.paket.update({ where: { id: Number(req.params.id) }, data: { silinme_tarihi: new Date(), durum: "silindi" } });
   res.json({ basarili: true, mesaj: "Paket basariyla silindi." });
 }));
 

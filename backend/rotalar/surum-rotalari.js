@@ -25,7 +25,7 @@ const yukleme = multer({
 
 /* ---- Tum Surumleri Listele ---- */
 router.get("/", hataYakala(async (req, res) => {
-  const surumler = await prisma.surum.findMany({ orderBy: [{ tarih: "desc" }, { id: "desc" }] });
+  const surumler = await prisma.surum.findMany({ where: { silinme_tarihi: null }, orderBy: [{ tarih: "desc" }, { id: "desc" }] });
   res.json({ basarili: true, veri: temizle(surumler) });
 }));
 
@@ -91,7 +91,7 @@ router.delete("/:id", hataYakala(async (req, res) => {
   const mevcut = await prisma.surum.findUnique({ where: { id } });
   if (!mevcut) return bulunamadiHatasi(res, "Surum bulunamadi.");
 
-  await prisma.surum.delete({ where: { id } });
+  await prisma.surum.update({ where: { id }, data: { silinme_tarihi: new Date(), durum: "silindi" } });
   res.json({ basarili: true, mesaj: "Surum basariyla silindi." });
 }));
 

@@ -7,6 +7,7 @@ const { yetkiKontrol } = require("../yardimcilar/yetki-middleware");
 /* ---- Tüm Sektörleri Listele (müşteri/bayi sayıları ile) ---- */
 router.get("/", yetkiKontrol, hataYakala(async (req, res) => {
   const sektorler = await prisma.sektor.findMany({
+    where: { silinme_tarihi: null },
     include: {
       _count: {
         select: {
@@ -67,7 +68,7 @@ router.delete("/:id", yetkiKontrol, hataYakala(async (req, res) => {
   const mevcut = await prisma.sektor.findUnique({ where: { id } });
   if (!mevcut) return bulunamadiHatasi(res, "Sektör bulunamadı.");
 
-  await prisma.sektor.delete({ where: { id } });
+  await prisma.sektor.update({ where: { id }, data: { silinme_tarihi: new Date(), durum: "silindi" } });
   res.json({ basarili: true, mesaj: "Sektör silindi." });
 }));
 

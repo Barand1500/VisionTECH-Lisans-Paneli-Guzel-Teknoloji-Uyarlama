@@ -1101,7 +1101,7 @@ export default function MusterilerPage() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-white/5">
                 {sayfalananlar.map((m) => (
-                  <tr key={m.id} className={`hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors ${seciliIdler.has(m.id) ? "bg-blue-50/50 dark:bg-blue-500/5" : ""}`}>
+                  <tr key={m.id} className={`hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors ${seciliIdler.has(m.id) ? "bg-blue-50/50 dark:bg-blue-500/5" : ""} ${m.durum !== "aktif" ? "opacity-50" : ""}`}>
                     <td className="px-4 py-4">
                       <input type="checkbox" checked={seciliIdler.has(m.id)} onChange={() => tekSecimToggle(m.id)}
                         className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-blue-600 focus:ring-blue-500 cursor-pointer" />

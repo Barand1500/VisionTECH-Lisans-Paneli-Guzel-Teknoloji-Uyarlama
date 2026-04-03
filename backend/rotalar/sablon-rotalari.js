@@ -15,7 +15,7 @@ const { hataYakala } = require("../yardimcilar/hata-yonetimi");
 /* ---- Tum Sablonlari Listele ---- */
 router.get("/", hataYakala(async (req, res) => {
   const sablonlar = await prisma.urunSablon.findMany({
-    where: { aktif: 1 },
+    where: { aktif: 1, silinme_tarihi: null },
     include: {
       grup: { select: { id: true, ad: true } },
       urunTipi: { select: { id: true, ad: true } },
@@ -155,7 +155,7 @@ router.delete("/:id", hataYakala(async (req, res) => {
     });
   }
 
-  await prisma.urunSablon.delete({ where: { id } });
+  await prisma.urunSablon.update({ where: { id }, data: { silinme_tarihi: new Date(), durum: "silindi", aktif: 0 } });
   res.json({ basarili: true, mesaj: "Sablon silindi." });
 }));
 
