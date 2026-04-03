@@ -8,7 +8,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useMusteriler } from "../baglam/MusteriContext";
-import { apiGet, apiPost } from "../yardimcilar/api";
+import { apiGet, apiPost, apiPut } from "../yardimcilar/api";
 import KopyalaButonu from "../bilesenler/KopyalaButonu";
 
 /* ---- Stil Sabitleri ---- */
@@ -218,6 +218,7 @@ export default function MusteriPaketleriPage() {
   const [silOnay, setSilOnay] = useState(null);
   const [lisansKeyModal, setLisansKeyModal] = useState(null);
   const [ekKullaniciModal, setEkKullaniciModal] = useState(null);
+  const [ekKullaniciDuzenle, setEkKullaniciDuzenle] = useState({ yeniEk: 0, kaydetmeUygun: false });
   const [faturaModal, setFaturaModal] = useState(null);
   const [yeniPaketModal, setYeniPaketModal] = useState(false);
 
@@ -233,6 +234,26 @@ export default function MusteriPaketleriPage() {
   const paketSil = (pid) => {
     setPaketler((o) => o.filter((p) => p.id !== pid));
     setSilOnay(null);
+  };
+
+  /* Ek kullanıcı güncelle */
+  const ekKullaniciGuncelle = async () => {
+    if (!ekKullaniciModal) return;
+    try {
+      await apiPut(`/lisanslar/${ekKullaniciModal.id}`, {
+        ek_kullanici: ekKullaniciDuzenle.yeniEk
+      });
+      /* Listeyi güncelle */
+      setPaketler((o) => o.map((p) =>
+        p.id === ekKullaniciModal.id
+          ? { ...p, ekKullanici: ekKullaniciDuzenle.yeniEk }
+          : p
+      ));
+      setEkKullaniciModal(null);
+      setEkKullaniciDuzenle({ yeniEk: 0, kaydetmeUygun: false });
+    } catch (err) {
+      console.error("Ek kullanıcı güncellenemedi:", err);
+    }
   };
 
   /* Yeni paket ekleme callback */
@@ -602,21 +623,85 @@ export default function MusteriPaketleriPage() {
 
       {/* Ek Kullanıcı */}
       {ekKullaniciModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setEkKullaniciModal(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => { setEkKullaniciModal(null); setEkKullaniciDuzenle({ yeniEk: 0, kaydetmeUygun: false }); }}>
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-white/10 w-full max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h4 className="font-bold text-gray-900 dark:text-white">Ek Kullanıcı</h4>
-              <button onClick={() => setEkKullaniciModal(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white cursor-pointer">
+              <div>
+                <h4 className="font-bold text-gray-900 dark:text-white">Ek Kullanıcı Yönetimi</h4>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{ekKullaniciModal.urun}</p>
+              </div>
+              <button onClick={() => { setEkKullaniciModal(null); setEkKullaniciDuzenle({ yeniEk: 0, kaydetmeUygun: false }); }} className="text-gray-400 hover:text-gray-600 dark:hover:text-white cursor-pointer">
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <div className="text-center py-8">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-500/20 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+            
+            {/* Mevcut Bilgiler */}
+            <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-4 mb-4 space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500 dark:text-slate-400">Temel Kullanıcı:</span>
+                <span className="font-medium text-gray-900 dark:text-white">{ekKullaniciModal.kullanici || 1}</span>
               </div>
-              <p className="text-sm text-gray-500 dark:text-slate-400">Ek kullanıcı yönetimi hazırlanıyor...</p>
-              <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">Bu alan yakında aktif olacaktır.</p>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500 dark:text-slate-400">Mevcut Ek Kullanıcı:</span>
+                <span className="font-medium text-gray-900 dark:text-white">{ekKullaniciModal.ekKullanici || 0}</span>
+              </div>
+              <div className="flex justify-between text-sm border-t border-gray-200 dark:border-white/10 pt-3">
+                <span className="text-gray-500 dark:text-slate-400">Toplam Kullanıcı:</span>
+                <span className="font-semibold text-blue-600 dark:text-blue-400">{(ekKullaniciModal.kullanici || 1) + (ekKullaniciModal.ekKullanici || 0)}</span>
+              </div>
+            </div>
+
+            {/* Ek Kullanıcı Düzenleme */}
+            <div className="space-y-3">
+              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300">Yeni Ek Kullanıcı Sayısı</label>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setEkKullaniciDuzenle(o => ({ ...o, yeniEk: Math.max(0, o.yeniEk - 1), kaydetmeUygun: true }))}
+                  className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center cursor-pointer transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-600 dark:text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" /></svg>
+                </button>
+                <input
+                  type="number"
+                  value={ekKullaniciDuzenle.yeniEk}
+                  onChange={(e) => setEkKullaniciDuzenle({ yeniEk: Math.max(0, Number(e.target.value)), kaydetmeUygun: true })}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-center text-lg font-semibold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  min={0}
+                />
+                <button
+                  onClick={() => setEkKullaniciDuzenle(o => ({ ...o, yeniEk: o.yeniEk + 1, kaydetmeUygun: true }))}
+                  className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center cursor-pointer transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-600 dark:text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                </button>
+              </div>
+              
+              {/* Yeni Toplam */}
+              {ekKullaniciDuzenle.kaydetmeUygun && (
+                <div className="bg-blue-50 dark:bg-blue-500/10 rounded-lg p-3 border border-blue-200 dark:border-blue-500/20">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-blue-600 dark:text-blue-400">Yeni Toplam Kullanıcı:</span>
+                    <span className="font-bold text-blue-700 dark:text-blue-300">{(ekKullaniciModal.kullanici || 1) + ekKullaniciDuzenle.yeniEk}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Kaydet Butonu */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => { setEkKullaniciModal(null); setEkKullaniciDuzenle({ yeniEk: 0, kaydetmeUygun: false }); }}
+                  className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer">
+                  İptal
+                </button>
+                <button
+                  onClick={ekKullaniciGuncelle}
+                  disabled={!ekKullaniciDuzenle.kaydetmeUygun}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold cursor-pointer inline-flex items-center justify-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                  Kaydet
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -627,18 +712,58 @@ export default function MusteriPaketleriPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setFaturaModal(null)}>
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-white/10 w-full max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h4 className="font-bold text-gray-900 dark:text-white">Fatura Bilgisi</h4>
+              <div>
+                <h4 className="font-bold text-gray-900 dark:text-white">Fatura Bilgisi</h4>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{faturaModal.urun}</p>
+              </div>
               <button onClick={() => setFaturaModal(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white cursor-pointer">
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <div className="text-center py-8">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-teal-100 dark:bg-teal-500/20 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-teal-600 dark:text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            
+            {/* Fatura Detayları */}
+            <div className="space-y-4">
+              <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-4 space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500 dark:text-slate-400">Fatura No:</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{faturaModal.faturaNo || "-"}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500 dark:text-slate-400">Fatura Tarihi:</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{faturaModal.faturaTarihi ? tarihGosterTR(faturaModal.faturaTarihi) : "-"}</span>
+                </div>
+                <div className="flex justify-between text-sm border-t border-gray-200 dark:border-white/10 pt-3">
+                  <span className="text-gray-500 dark:text-slate-400">Tutar:</span>
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">₺{Number(faturaModal.fiyat || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500 dark:text-slate-400">Net Tutar:</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">₺{Number(faturaModal.netTutar || faturaModal.fiyat || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
+                </div>
               </div>
-              <p className="text-sm text-gray-500 dark:text-slate-400">Fatura bilgisi modülü hazırlanıyor...</p>
-              <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">Bu alan yakında aktif olacaktır.</p>
+              
+              {/* Ödeme Durumu */}
+              <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-white/10">
+                <span className="text-sm text-gray-600 dark:text-slate-400">Ödeme Durumu:</span>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                  faturaModal.odemeDurumu === "odendi" ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" :
+                  faturaModal.odemeDurumu === "kismi" ? "bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400" :
+                  "bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400"
+                }`}>
+                  {faturaModal.odemeDurumu === "odendi" ? "Ödendi" : faturaModal.odemeDurumu === "kismi" ? "Kısmi Ödeme" : "Ödenmedi"}
+                </span>
+              </div>
+              
+              {/* Fatura Geldi Mi? */}
+              <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-white/10">
+                <span className="text-sm text-gray-600 dark:text-slate-400">Fatura Durumu:</span>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                  faturaModal.faturaGeldi ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" :
+                  "bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-slate-400"
+                }`}>
+                  {faturaModal.faturaGeldi ? "Fatura Geldi" : "Fatura Bekleniyor"}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -713,6 +838,37 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
   const urunPaketleri = paketler.filter((p) => p.urunId === Number(form.urunId));
   const seciliPaket = paketler.find((p) => p.id === Number(form.paketId));
 
+  /* Fiyat hesaplama yardımcısı */
+  const hesaplaToplamFiyat = (sablonData, sablonVeri, paket, ekKullaniciSayisi) => {
+    let toplam = 0;
+    
+    // 1. Şablondan temel fiyat
+    if (sablonData && sablonData.ozellikler) {
+      const temelFiyatOz = sablonData.ozellikler.find(oz => oz.ozellik_tipi === "temel_fiyat");
+      if (temelFiyatOz) {
+        const deger = sablonVeri[temelFiyatOz.id] || temelFiyatOz.deger || {};
+        toplam += Number(deger.fiyat) || 0;
+      }
+    }
+    
+    // 2. Paket fiyatı
+    if (paket) {
+      toplam += Number(paket.fiyati) || 0;
+    }
+    
+    // 3. Ek kullanıcı fiyatı
+    if (sablonData && sablonData.ozellikler && ekKullaniciSayisi > 0) {
+      const kullaniciOz = sablonData.ozellikler.find(oz => oz.ozellik_tipi === "kullanici_sayisi");
+      if (kullaniciOz) {
+        const deger = sablonVeri[kullaniciOz.id] || kullaniciOz.deger || {};
+        const ekFiyat = Number(deger.ek_kullanici_fiyat) || 0;
+        toplam += ekKullaniciSayisi * ekFiyat;
+      }
+    }
+    
+    return toplam;
+  };
+
   /* Form güncelle */
   const guncelle = (alan, deger) => {
     setForm((o) => {
@@ -739,12 +895,11 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
       if (alan === "paketId" && deger) {
         const paket = paketler.find((p) => p.id === Number(deger));
         if (paket) {
-          yeni.fiyat = Number(paket.fiyati) || 0;
           /* Paket gün değeri öncelikli - lisans tipi günü override eder */
           yeni.kullanimGunu = paket.kullanimGunu || 365;
           yeni.kullaniciSayisi = paket.kullaniciSayisi || 1;
           yeni.bitisTarihi = tarihEkle(o.baslangicTarihi, paket.kullanimGunu || 365);
-          yeni.netTutar = Number(paket.fiyati) || 0;
+          /* Fiyat hesaplaması useEffect'te yapılacak */
         }
       }
       
@@ -755,6 +910,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
           yeni.kullanimGunu = tip.gun;
           yeni.bitisTarihi = tarihEkle(o.baslangicTarihi, tip.gun);
         }
+        /* Fiyat hesaplaması useEffect'te yapılacak */
       }
       
       if (alan === "fiyat" || alan === "indirimOrani" || alan === "indirimTutari") {
@@ -772,6 +928,23 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, paketler, bayil
       return yeni;
     });
   };
+
+  /* Fiyat hesaplama useEffect */
+  useEffect(() => {
+    const toplamFiyat = hesaplaToplamFiyat(sablon, sablonDegerler, seciliPaket, form.ekKullanici);
+    if (toplamFiyat !== form.fiyat) {
+      setForm(o => {
+        const brut = toplamFiyat;
+        const tutar = brut * o.indirimOrani / 100;
+        return {
+          ...o,
+          fiyat: brut,
+          indirimTutari: tutar,
+          netTutar: brut - tutar
+        };
+      });
+    }
+  }, [sablon, sablonDegerler, seciliPaket, form.ekKullanici]);
 
   /* Ürün seçildiğinde */
   const urunSec = async (urunId) => {

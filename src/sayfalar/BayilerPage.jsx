@@ -150,6 +150,11 @@ export default function BayilerPage() {
   const [dosyalar, setDosyalar] = useState([]);
   const [dosyaYukleniyor, setDosyaYukleniyor] = useState(false);
 
+  /* ---- Bayi Ürünleri Modalı ---- */
+  const [urunlerModal, setUrunlerModal] = useState(null);
+  const [bayiUrunler, setBayiUrunler] = useState([]);
+  const [bayiUrunlerYukleniyor, setBayiUrunlerYukleniyor] = useState(false);
+
   /* ---- Detay Modal Dosyalar ---- */
   const [detayDosyalar, setDetayDosyalar] = useState([]);
   const [detayDosyalarYukleniyor, setDetayDosyalarYukleniyor] = useState(false);
@@ -251,6 +256,19 @@ export default function BayilerPage() {
       setDosyalar([]);
     }
   }, [dosyaModal]);
+
+  /* Ürünler modalı açıldığında bayi ürünlerini yükle */
+  useEffect(() => {
+    if (urunlerModal) {
+      setBayiUrunlerYukleniyor(true);
+      apiGet(`/bayiler/${urunlerModal.id}/urunler`)
+        .then((res) => setBayiUrunler(res.veri || []))
+        .catch(() => setBayiUrunler([]))
+        .finally(() => setBayiUrunlerYukleniyor(false));
+    } else {
+      setBayiUrunler([]);
+    }
+  }, [urunlerModal]);
 
   /* ---- Tüm benzersiz etiketler ---- */
   const tumEtiketler = useMemo(() => {
@@ -1140,7 +1158,7 @@ export default function BayilerPage() {
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                         </button>
-                        <button onClick={() => git(`/dashboard/bayi-urunleri/${bayi.id}`)} title="Bayi Ürünleri"
+                        <button onClick={() => setUrunlerModal(bayi)} title="Bayi Ürünleri"
                           className="w-8 h-8 rounded-lg bg-teal-500 hover:bg-teal-600 text-white flex items-center justify-center cursor-pointer transition-colors">
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
@@ -1524,6 +1542,62 @@ export default function BayilerPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                         </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---- Bayi Ürünleri Modalı ---- */}
+      {urunlerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setUrunlerModal(null)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            {/* Başlık */}
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Bayi Ürünleri</h3>
+                <p className="text-sm text-gray-500 dark:text-slate-400">{urunlerModal.ad}</p>
+              </div>
+              <button onClick={() => setUrunlerModal(null)} className="w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center cursor-pointer text-gray-500 dark:text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            {/* Ürün Listesi */}
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              {bayiUrunlerYukleniyor ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full" />
+                </div>
+              ) : bayiUrunler.length === 0 ? (
+                <p className="text-center text-gray-400 dark:text-slate-500 py-8 text-sm">Bu bayiye tanımlı ürün bulunmuyor.</p>
+              ) : (
+                <div className="space-y-3">
+                  {bayiUrunler.map((u) => (
+                    <div key={u.id} className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.02] hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-teal-100 dark:bg-teal-500/10 flex items-center justify-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-teal-600 dark:text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">{u.urun?.ad || u.urunAdi || "Ürün"}</p>
+                          <p className="text-xs text-gray-500 dark:text-slate-400">
+                            {u.fiyat ? `₺${Number(u.fiyat).toLocaleString("tr-TR")}` : "Fiyat belirtilmemiş"}
+                            {u.komisyon ? ` • %${u.komisyon} komisyon` : ""}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          u.aktif ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                            : "bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-slate-400"
+                        }`}>
+                          {u.aktif ? "Aktif" : "Pasif"}
+                        </span>
                       </div>
                     </div>
                   ))}
