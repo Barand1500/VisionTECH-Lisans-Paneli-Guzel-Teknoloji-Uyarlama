@@ -429,16 +429,46 @@ async function main() {
   await prisma.iletisimKaydi.create({
     data: {
       musteri_id: ornekMusteri.id,
-      tur: "ARAMA",
+      iletisim_turu: "telefon",
       konu: "İlk Görüşme",
-      notlar: "Ürünler hakkında bilgi alındı, demo talep edildi.",
-      tarih: new Date(),
-      tamamlandi: 1,
+      aciklama: "Ürünler hakkında bilgi alındı, demo talep edildi.",
+      iletisim_tarihi: new Date(),
     }
   });
 
   console.log(`   ✓ Müşteri oluşturuldu: Demo Ticaret A.Ş.`);
   console.log(`   ✓ İletişim kaydı eklendi`);
+
+  // =============================================
+  // 7. ÜRÜNLER (Şablonlardan otomatik oluştur)
+  // =============================================
+  console.log("\n📦 Ürünler oluşturuluyor...");
+  
+  const urunVerileri = [
+    { ad: "VegaPos", sablon: vegaPos, grup: "VEGA", temelFiyat: 5000 },
+    { ad: "VegaCari", sablon: vegaCari, grup: "VEGA", temelFiyat: 3500 },
+    { ad: "E-Fatura Başlangıç", sablon: efaturaBaslangic, grup: "GIB", temelFiyat: 1500 },
+    { ad: "E-Fatura Profesyonel", sablon: efaturaPro, grup: "GIB", temelFiyat: 2500 },
+    { ad: "E-Arşiv Fatura", sablon: earsiv, grup: "GIB", temelFiyat: 1000 },
+    { ad: "PAVO Pos", sablon: pavoPos, grup: "PAVO", temelFiyat: 8500 },
+    { ad: "Domain Kaydı", sablon: domainPaketi, grup: "METUNIC", temelFiyat: 0 },
+    { ad: "Web Hosting", sablon: hostingPaketi, grup: "GUZELNET", temelFiyat: 500 },
+    { ad: "Arctos Pro", sablon: arctosPro, grup: "ARCTOS", temelFiyat: 4500 },
+  ];
+
+  for (const uv of urunVerileri) {
+    await prisma.urun.create({
+      data: {
+        ad: uv.ad,
+        sablon_id: uv.sablon.id,
+        grup_id: grupMap[uv.grup],
+        temel_fiyat: uv.temelFiyat,
+        aktif: 1,
+        durum: "aktif",
+      }
+    });
+  }
+  console.log(`   ✓ ${urunVerileri.length} ürün oluşturuldu`);
 
   // =============================================
   // ÖZET
@@ -452,6 +482,7 @@ async function main() {
    • Ürün Tipleri: ${Object.keys(tipMap).length}
    • Uygulama Tipleri: ${Object.keys(uygulamaMap).length}
    • Ürün Şablonları: ${sablonSayisi}
+   • Ürünler: ${urunVerileri.length}
    • Müşteriler: 1 (Demo Ticaret A.Ş.)
 `);
 }

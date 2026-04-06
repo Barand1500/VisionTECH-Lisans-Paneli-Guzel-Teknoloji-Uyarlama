@@ -912,15 +912,17 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
       const deger = sablonVeri[kademeliOz.id] || kademeliOz.deger || {};
       const kademeler = Array.isArray(deger.kademeler) ? deger.kademeler : [];
       const tip = deger.tip || "adet";
-      const birimKey = tip === "adet" ? "adet" : "kapasite";
-      // secili_kademe artık adet/kapasite değeri olacak
+      const birimKey = tip === "kapasite" ? "kapasite" : "adet";
+      // Her kademe için hem adet hem kapasite alanını kontrol et
       const ilkKademe = kademeler.length > 0 ? kademeler[0] : null;
-      const varsayilanSecim = ilkKademe ? ilkKademe[birimKey] : null;
+      const varsayilanSecim = ilkKademe ? (ilkKademe[birimKey] ?? ilkKademe.adet ?? ilkKademe.kapasite) : null;
       const seciliKademe = deger.secili_kademe ?? varsayilanSecim;
-      const kademe = kademeler.find(k => k[birimKey] == seciliKademe);
+      // Kademeyi bul - her iki alanı da kontrol et
+      const kademe = kademeler.find(k => (k[birimKey] ?? k.adet ?? k.kapasite) == seciliKademe);
       if (kademe) {
         kademeFiyat = Number(kademe.fiyat) || 0;
-        kademeAdi = `${kademe[birimKey]} ${kademe.birim || ""}`;
+        const kademeValue = kademe[birimKey] ?? kademe.adet ?? kademe.kapasite;
+        kademeAdi = `${kademeValue} ${kademe.birim || ""}`;
       }
     }
     
@@ -1368,10 +1370,11 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                   sicil_domain: 1,
                   kademeli_fiyat: 2,
                   domain_fiyat: 3,
-                  kullanici_sayisi: 4,
-                  aktivasyon_yenileme: 5,
-                  temel_fiyat: 6,
-                  demo_suresi: 7,
+                  hediye_urun: 4,
+                  kullanici_sayisi: 5,
+                  aktivasyon_yenileme: 6,
+                  temel_fiyat: 7,
+                  demo_suresi: 8,
                 };
                 const siraliOzellikler = [...sablon.ozellikler].sort((a, b) => {
                   const aPriority = siraPriority[a.ozellik_tipi] || 99;
@@ -1485,32 +1488,75 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                           const kademeler = Array.isArray(rawKademeler) ? rawKademeler : [];
                           if (kademeler.length === 0) return null;
                           const tip = deger.tip || "adet";
-                          const birimKey = tip === "adet" ? "adet" : "kapasite";
+                          // Hem adet hem kapasite alanını kontrol et
+                          const birimKey = tip === "kapasite" ? "kapasite" : "adet";
                           const ilkKademe = kademeler[0] || {};
-                          const seciliKademe = deger.secili_kademe ?? ilkKademe[birimKey];
+                          // İlk kademeden değeri bul - her iki alanı da kontrol et
+                          const ilkDeger = ilkKademe[birimKey] ?? ilkKademe.adet ?? ilkKademe.kapasite;
+                          const seciliKademe = deger.secili_kademe ?? ilkDeger;
                           return (
                             <div key={oz.id}>
                               <label className={LABEL_STIL}>{oz.baslik || "Paket Tipi"} <span className="text-red-500">*</span></label>
-                              <div className="grid grid-cols-3 gap-2 mt-1">
+                              <div className="space-y-2 mt-2">
                                 {kademeler.map((kademe, idx) => {
-                                  const kademeValue = kademe[birimKey];
+                                  // Her iki alanı da kontrol et
+                                  const kademeValue = kademe[birimKey] ?? kademe.adet ?? kademe.kapasite;
+                                  const birimAdi = kademe.birim || "";
+                                  const fiyat = Number(kademe.fiyat || 0);
                                   const secili = seciliKademe == kademeValue;
                                   return (
-                                    <button
+                                    <label
                                       key={idx}
-                                      type="button"
-                                      onClick={() => sablonGuncelle("secili_kademe", kademeValue)}
-                                      className={`p-3 rounded-lg border text-center transition-all cursor-pointer ${
+                                      className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
                                         secili 
-                                          ? "border-blue-500 bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400" 
-                                          : "border-gray-200 dark:border-white/10 hover:border-gray-300 text-gray-700 dark:text-slate-300"
+                                          ? "border-blue-500 bg-blue-50 dark:bg-blue-500/15" 
+                                          : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
                                       }`}
                                     >
-                                      <p className="text-sm font-semibold">{kademeValue} {kademe.birim || ""}</p>
-                                      <p className="text-xs mt-1 font-bold">₺{Number(kademe.fiyat || 0).toLocaleString("tr-TR")}</p>
-                                    </button>
+                                      <input 
+                                        type="radio" 
+                                        name={`kademe_${oz.id}`}
+                                        checked={secili}
+                                        onChange={() => sablonGuncelle("secili_kademe", kademeValue)}
+                                        className="w-4 h-4 text-blue-600"
+                                      />
+                                      <div className="flex-1 flex items-center justify-between">
+                                        <span className={`font-semibold ${secili ? "text-blue-700 dark:text-blue-400" : "text-gray-700 dark:text-slate-300"}`}>
+                                          {kademeValue} {birimAdi}
+                                        </span>
+                                        <span className={`font-bold ${fiyat === 0 ? "text-green-600" : secili ? "text-blue-600" : "text-gray-500"}`}>
+                                          {fiyat === 0 ? "Dahil" : `+₺${fiyat.toLocaleString("tr-TR")}`}
+                                        </span>
+                                      </div>
+                                    </label>
                                   );
                                 })}
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        case "hediye_urun": {
+                          const hediyeler = Array.isArray(deger.hediyeler) ? deger.hediyeler : [];
+                          if (hediyeler.length === 0) return null;
+                          return (
+                            <div key={oz.id} className="p-3 rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-500/10 dark:to-emerald-500/10 border border-green-200 dark:border-green-500/30">
+                              <div className="flex items-center gap-2 mb-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                                </svg>
+                                <span className="text-sm font-semibold text-green-700 dark:text-green-400">Hediye Ürünler</span>
+                              </div>
+                              <p className="text-xs text-green-600 dark:text-green-500 mb-2">Bu paketle birlikte aşağıdaki ürünler ücretsiz verilecek:</p>
+                              <div className="space-y-1">
+                                {hediyeler.map((hediye, idx) => (
+                                  <div key={idx} className="flex items-center gap-2 px-2 py-1.5 bg-white/60 dark:bg-white/5 rounded-lg">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-700 dark:text-slate-300">{hediye.ad || hediye.label || hediye}</span>
+                                  </div>
+                                ))}
                               </div>
                             </div>
                           );
