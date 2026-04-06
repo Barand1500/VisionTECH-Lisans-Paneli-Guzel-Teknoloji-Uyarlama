@@ -1224,84 +1224,67 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
 
           {/* Adım 2: Lisans Bilgileri */}
           {adim === 2 && (
-            <div className="space-y-4">
-              {/* Lisans Tipi */}
+            <div className="space-y-5">
+              
+              {/* Lisans Tipi - Kompakt kartlar */}
               <div>
                 <label className={LABEL_STIL}>Lisans Tipi</label>
-                <div className="grid grid-cols-4 gap-2 mt-2">
-                  {lisansTipleri.map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => guncelle("lisansTipi", t.id)}
-                      className={`p-3 rounded-lg border text-center transition-all cursor-pointer ${
-                        form.lisansTipi === t.id
-                          ? `border-${t.renk}-500 bg-${t.renk}-50 dark:bg-${t.renk}-500/10`
-                          : "border-gray-200 dark:border-white/10"
-                      }`}
-                    >
-                      <p className={`text-sm font-medium ${form.lisansTipi === t.id ? `text-${t.renk}-700 dark:text-${t.renk}-400` : "text-gray-700 dark:text-slate-300"}`}>{t.ad}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{t.gun} gün</p>
-                    </button>
-                  ))}
+                <div className="grid grid-cols-4 gap-2 mt-1">
+                  {lisansTipleri.map((t) => {
+                    const secili = form.lisansTipi === t.id;
+                    const renkler = {
+                      purple: secili ? "border-purple-500 bg-purple-50 dark:bg-purple-500/15 ring-1 ring-purple-500" : "",
+                      blue: secili ? "border-blue-500 bg-blue-50 dark:bg-blue-500/15 ring-1 ring-blue-500" : "",
+                      emerald: secili ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/15 ring-1 ring-emerald-500" : "",
+                      amber: secili ? "border-amber-500 bg-amber-50 dark:bg-amber-500/15 ring-1 ring-amber-500" : ""
+                    };
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => guncelle("lisansTipi", t.id)}
+                        className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                          secili ? renkler[t.renk] : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
+                        }`}
+                      >
+                        <p className={`text-sm font-semibold ${secili ? `text-${t.renk}-700 dark:text-${t.renk}-400` : "text-gray-700 dark:text-slate-300"}`}>{t.ad}</p>
+                        <p className={`text-[11px] mt-0.5 ${secili ? `text-${t.renk}-600 dark:text-${t.renk}-500` : "text-gray-400"}`}>{t.gun} gün</p>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Tarihler */}
-              <div className="grid grid-cols-3 gap-3">
-                <div>
+              {/* Başlangıç Tarihi ve Hesaplanan Bitiş */}
+              <div className="flex gap-3">
+                <div className="flex-1">
                   <label className={LABEL_STIL}>Başlangıç Tarihi <span className="text-red-500">*</span></label>
                   <input type="date" value={form.baslangicTarihi} onChange={(e) => guncelle("baslangicTarihi", e.target.value)} className={INPUT_STIL} />
                 </div>
-                <div>
-                  <label className={LABEL_STIL}>Kullanım Günü</label>
-                  <input type="number" value={form.kullanimGunu} onChange={(e) => guncelle("kullanimGunu", Number(e.target.value))} className={INPUT_STIL} min={1} />
+                <div className="flex items-end gap-2 text-sm text-gray-500 dark:text-slate-400 pb-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                  <span className="font-medium">{form.kullanimGunu} gün</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
                 </div>
-                <div>
+                <div className="flex-1">
                   <label className={LABEL_STIL}>Bitiş Tarihi</label>
-                  <input type="date" value={form.bitisTarihi} onChange={(e) => guncelle("bitisTarihi", e.target.value)} className={INPUT_STIL} readOnly />
+                  <input type="date" value={form.bitisTarihi} className={`${INPUT_STIL} bg-gray-50 dark:bg-white/5 cursor-not-allowed`} readOnly />
                 </div>
               </div>
 
-              {/* Kullanıcı Sayıları - Şablonda kullanici_sayisi yoksa statik alanlar gösterilir */}
-              {(!sablon || !sablon.ozellikler?.some((oz) => oz.ozellik_tipi === "kullanici_sayisi")) && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={LABEL_STIL}>Temel Kullanıcı Sayısı</label>
-                    <input type="number" value={form.kullaniciSayisi} onChange={(e) => guncelle("kullaniciSayisi", Number(e.target.value))} className={INPUT_STIL} min={1} />
-                  </div>
-                  <div>
-                    <label className={LABEL_STIL}>Ek Kullanıcı</label>
-                    <input type="number" value={form.ekKullanici} onChange={(e) => guncelle("ekKullanici", Number(e.target.value))} className={INPUT_STIL} min={0} />
-                  </div>
-                </div>
-              )}
-
-              {/* Ek Seçenekler */}
-              <div className="grid grid-cols-2 gap-3">
-                <label className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 dark:border-white/10 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">
-                  <input type="checkbox" checked={form.otomatikYenileme} onChange={(e) => guncelle("otomatikYenileme", e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 dark:text-slate-300">Otomatik Yenileme</p>
-                    <p className="text-xs text-gray-400">Süre bitince otomatik uzat</p>
-                  </div>
-                </label>
-                <div>
-                  <label className={LABEL_STIL}>Bildirim Süresi (Gün)</label>
-                  <input type="number" value={form.bildirimGun} onChange={(e) => guncelle("bildirimGun", Number(e.target.value))} className={INPUT_STIL} min={1} placeholder="30" />
-                </div>
-              </div>
-
-              {/* Şablon Özellikleri (Ürüne özel dinamik alanlar) */}
+              {/* Şablon Özellikleri (Ürüne özel alanlar) */}
               {sablon && sablon.ozellikler && sablon.ozellikler.length > 0 && (
-                <div className="p-4 rounded-xl bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20">
-                  <h4 className="text-sm font-semibold text-violet-700 dark:text-violet-400 mb-3 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-500/5 dark:to-gray-500/5 border border-gray-200 dark:border-white/10">
+                  <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300 flex items-center gap-2 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     {sablon.ad} - Ürün Özellikleri
                   </h4>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {sablon.ozellikler.map((oz) => {
                       const deger = sablonDegerler[oz.id] || oz.deger || {};
                       const sablonGuncelle = (alan, val) => {
@@ -1315,7 +1298,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                         case "temel_fiyat":
                           return (
                             <div key={oz.id}>
-                              <label className={LABEL_STIL}>{oz.baslik || "Temel Fiyat"}</label>
+                              <label className={LABEL_STIL}>{oz.baslik || "Temel Fiyat"} <span className="text-red-500">*</span></label>
                               <div className="flex gap-2">
                                 <input type="number" value={deger.fiyat || 0} onChange={(e) => sablonGuncelle("fiyat", Number(e.target.value))} className={INPUT_STIL + " flex-1"} min={0} step="0.01" />
                                 <span className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-500 text-sm">{deger.para_birimi || "TL"}</span>
@@ -1325,32 +1308,54 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
 
                         case "aktivasyon_yenileme":
                           return (
-                            <div key={oz.id} className="grid grid-cols-2 gap-2">
+                            <div key={oz.id} className="grid grid-cols-2 gap-3">
                               <div>
-                                <label className={LABEL_STIL}>{oz.baslik || "Aktivasyon Fiyat"}</label>
-                                <input type="number" value={deger.aktivasyon_fiyat || 0} onChange={(e) => sablonGuncelle("aktivasyon_fiyat", Number(e.target.value))} className={INPUT_STIL} min={0} step="0.01" />
+                                <label className={LABEL_STIL}>Aktivasyon Fiyat <span className="text-red-500">*</span></label>
+                                <div className="relative">
+                                  <input type="number" value={deger.aktivasyon_fiyat || 0} onChange={(e) => sablonGuncelle("aktivasyon_fiyat", Number(e.target.value))} className={`${INPUT_STIL} pr-8`} min={0} step="0.01" />
+                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₺</span>
+                                </div>
                               </div>
                               <div>
                                 <label className={LABEL_STIL}>Yenileme Fiyat</label>
-                                <input type="number" value={deger.yenileme_fiyat || 0} onChange={(e) => sablonGuncelle("yenileme_fiyat", Number(e.target.value))} className={INPUT_STIL} min={0} step="0.01" />
+                                <div className="relative">
+                                  <input type="number" value={deger.yenileme_fiyat || 0} onChange={(e) => sablonGuncelle("yenileme_fiyat", Number(e.target.value))} className={`${INPUT_STIL} pr-8`} min={0} step="0.01" />
+                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₺</span>
+                                </div>
                               </div>
                             </div>
                           );
 
                         case "kullanici_sayisi":
                           return (
-                            <div key={oz.id} className="grid grid-cols-3 gap-2">
-                              <div>
-                                <label className={LABEL_STIL}>{oz.baslik || "Min Kullanıcı"}</label>
-                                <input type="number" value={deger.min || 1} onChange={(e) => sablonGuncelle("min", Number(e.target.value))} className={INPUT_STIL} min={1} />
-                              </div>
-                              <div>
-                                <label className={LABEL_STIL}>Max Kullanıcı</label>
-                                <input type="number" value={deger.max || ""} onChange={(e) => sablonGuncelle("max", e.target.value ? Number(e.target.value) : null)} className={INPUT_STIL} min={1} />
-                              </div>
-                              <div>
-                                <label className={LABEL_STIL}>Ek Kullanıcı ₺</label>
-                                <input type="number" value={deger.ek_kullanici_fiyat || 0} onChange={(e) => sablonGuncelle("ek_kullanici_fiyat", Number(e.target.value))} className={INPUT_STIL} min={0} step="0.01" />
+                            <div key={oz.id}>
+                              <label className={LABEL_STIL}>{oz.baslik || "Kullanıcı Sayısı"}</label>
+                              <div className="grid grid-cols-2 gap-3 mt-1">
+                                <div className="flex items-center gap-2">
+                                  <button 
+                                    type="button"
+                                    onClick={() => sablonGuncelle("min", Math.max(1, (deger.min || 1) - 1))}
+                                    className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 flex items-center justify-center text-gray-600 dark:text-slate-300 transition-colors"
+                                  >−</button>
+                                  <input 
+                                    type="number" 
+                                    value={deger.min || 1} 
+                                    onChange={(e) => sablonGuncelle("min", Math.max(1, Number(e.target.value)))} 
+                                    className={`${INPUT_STIL} text-center flex-1`} 
+                                    min={1} 
+                                  />
+                                  <button 
+                                    type="button"
+                                    onClick={() => sablonGuncelle("min", (deger.min || 1) + 1)}
+                                    className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 flex items-center justify-center text-gray-600 dark:text-slate-300 transition-colors"
+                                  >+</button>
+                                </div>
+                                {deger.ek_kullanici_fiyat > 0 && (
+                                  <p className="text-xs text-gray-500 dark:text-slate-400 flex items-center">
+                                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">+₺{Number(deger.ek_kullanici_fiyat).toLocaleString("tr-TR")}</span>
+                                    <span className="ml-1">/ ek kullanıcı</span>
+                                  </p>
+                                )}
                               </div>
                             </div>
                           );
@@ -1358,110 +1363,140 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                         case "sicil_domain":
                           return (
                             <div key={oz.id}>
-                              <label className={LABEL_STIL}>{oz.baslik || "Sicil No / Domain"}</label>
-                              <input type="text" value={deger.deger || ""} onChange={(e) => { sablonGuncelle("deger", e.target.value); guncelle("domain", e.target.value); }} className={INPUT_STIL} placeholder={deger.alan_tipi === "domain" ? "ornek.com" : "Sicil numarası"} />
+                              <label className={LABEL_STIL}>{oz.baslik || (deger.alan_tipi === "domain" ? "Alan Adı" : "Sicil No")} {deger.zorunlu && <span className="text-red-500">*</span>}</label>
+                              <input 
+                                type="text" 
+                                value={deger.deger || ""} 
+                                onChange={(e) => { sablonGuncelle("deger", e.target.value); guncelle("domain", e.target.value); }} 
+                                className={INPUT_STIL} 
+                                placeholder={deger.alan_tipi === "domain" ? "ornek.com" : "Sicil numarasını girin"} 
+                              />
                             </div>
                           );
 
-                        case "kdv":
-                          return (
-                            <div key={oz.id} className="grid grid-cols-2 gap-2">
-                              <div>
-                                <label className={LABEL_STIL}>{oz.baslik || "KDV Oranı (%)"}</label>
-                                <input type="number" value={deger.oran || 20} onChange={(e) => sablonGuncelle("oran", Number(e.target.value))} className={INPUT_STIL} min={0} max={100} />
-                              </div>
-                              <div className="flex items-end">
-                                <label className="flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 dark:border-white/10 cursor-pointer w-full">
-                                  <input type="checkbox" checked={!!deger.dahil} onChange={(e) => sablonGuncelle("dahil", e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-blue-600" />
-                                  <span className="text-sm text-gray-700 dark:text-slate-300">KDV Dahil</span>
-                                </label>
-                              </div>
-                            </div>
-                          );
-
-                        case "sure":
-                          return (
-                            <div key={oz.id} className="grid grid-cols-2 gap-2">
-                              <div>
-                                <label className={LABEL_STIL}>{oz.baslik || "Süre"}</label>
-                                <input type="number" value={deger.deger || 1} onChange={(e) => sablonGuncelle("deger", Number(e.target.value))} className={INPUT_STIL} min={1} />
-                              </div>
-                              <div>
-                                <label className={LABEL_STIL}>Birim</label>
-                                <select value={deger.birim || "yil"} onChange={(e) => sablonGuncelle("birim", e.target.value)} className={INPUT_STIL}>
-                                  <option value="gun">Gün</option>
-                                  <option value="ay">Ay</option>
-                                  <option value="yil">Yıl</option>
-                                </select>
-                              </div>
-                            </div>
-                          );
-
-                        case "ek_kullanici_ucret":
+                        case "kademeli_fiyat":
+                          const kademeler = deger.kademeler || [];
+                          const seciliKademe = deger.secili_kademe || (kademeler.length > 0 ? kademeler[0].deger : null);
                           return (
                             <div key={oz.id}>
-                              <label className={LABEL_STIL}>{oz.baslik || "Ek Kullanıcı Ücreti"}</label>
-                              <input type="number" value={deger.fiyat || 0} onChange={(e) => sablonGuncelle("fiyat", Number(e.target.value))} className={INPUT_STIL} min={0} step="0.01" />
+                              <label className={LABEL_STIL}>{oz.baslik || "Paket Seçimi"} <span className="text-red-500">*</span></label>
+                              <div className="grid grid-cols-3 gap-2 mt-1">
+                                {kademeler.map((kademe, idx) => {
+                                  const secili = seciliKademe === kademe.deger;
+                                  return (
+                                    <button
+                                      key={idx}
+                                      type="button"
+                                      onClick={() => sablonGuncelle("secili_kademe", kademe.deger)}
+                                      className={`p-3 rounded-xl border-2 text-center transition-all ${
+                                        secili 
+                                          ? "border-violet-500 bg-violet-50 dark:bg-violet-500/15 ring-1 ring-violet-500" 
+                                          : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
+                                      }`}
+                                    >
+                                      <p className={`text-sm font-semibold ${secili ? "text-violet-700 dark:text-violet-400" : "text-gray-700 dark:text-slate-300"}`}>
+                                        {kademe.deger}
+                                      </p>
+                                      <p className={`text-xs mt-0.5 ${secili ? "text-violet-600 dark:text-violet-500" : "text-gray-500"}`}>
+                                        {deger.birim || ""}
+                                      </p>
+                                      <p className={`text-sm font-bold mt-1 ${secili ? "text-violet-600 dark:text-violet-400" : "text-gray-600 dark:text-slate-400"}`}>
+                                        ₺{Number(kademe.fiyat).toLocaleString("tr-TR")}
+                                      </p>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+
+                        case "domain_fiyat":
+                          const uzantilar = deger.uzantilar || [];
+                          const seciliUzanti = deger.secili_uzanti || (uzantilar.length > 0 ? uzantilar[0].uzanti : null);
+                          return (
+                            <div key={oz.id}>
+                              <label className={LABEL_STIL}>{oz.baslik || "Domain Uzantısı"} <span className="text-red-500">*</span></label>
+                              <div className="space-y-2 mt-1">
+                                {uzantilar.map((uzanti, idx) => {
+                                  const secili = seciliUzanti === uzanti.uzanti;
+                                  return (
+                                    <button
+                                      key={idx}
+                                      type="button"
+                                      onClick={() => sablonGuncelle("secili_uzanti", uzanti.uzanti)}
+                                      className={`w-full p-3 rounded-xl border-2 flex items-center justify-between transition-all ${
+                                        secili 
+                                          ? "border-cyan-500 bg-cyan-50 dark:bg-cyan-500/15" 
+                                          : "border-gray-200 dark:border-white/10 hover:border-gray-300"
+                                      }`}
+                                    >
+                                      <span className={`font-mono font-semibold ${secili ? "text-cyan-700 dark:text-cyan-400" : "text-gray-700 dark:text-slate-300"}`}>
+                                        {uzanti.uzanti}
+                                      </span>
+                                      <div className="text-right">
+                                        <span className={`text-sm ${secili ? "text-cyan-600" : "text-gray-500"}`}>
+                                          Aktivasyon: ₺{uzanti.aktivasyon}
+                                        </span>
+                                        <span className="mx-2 text-gray-300">|</span>
+                                        <span className={`text-sm ${secili ? "text-cyan-600" : "text-gray-500"}`}>
+                                          Yenileme: ₺{uzanti.yenileme}
+                                        </span>
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
                             </div>
                           );
 
                         case "demo_suresi":
                           return (
                             <div key={oz.id}>
-                              <label className={LABEL_STIL}>{oz.baslik || "Demo Süresi (Gün)"}</label>
-                              <input type="number" value={deger.gun || 30} onChange={(e) => sablonGuncelle("gun", Number(e.target.value))} className={INPUT_STIL} min={1} />
-                            </div>
-                          );
-
-                        case "min_siparis":
-                          return (
-                            <div key={oz.id}>
-                              <label className={LABEL_STIL}>{oz.baslik || "Minimum Sipariş"}</label>
-                              <div className="flex gap-2">
-                                <input type="number" value={deger.miktar || 1} onChange={(e) => sablonGuncelle("miktar", Number(e.target.value))} className={INPUT_STIL + " flex-1"} min={1} />
-                                <span className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-500 text-sm">{deger.birim || "adet"}</span>
-                              </div>
-                            </div>
-                          );
-
-                        case "ozel_not":
-                          return (
-                            <div key={oz.id}>
-                              <label className={LABEL_STIL}>{oz.baslik || "Özel Not"}</label>
-                              <textarea value={deger.metin || ""} onChange={(e) => sablonGuncelle("metin", e.target.value)} className={`${INPUT_STIL} h-16 resize-none`} placeholder="Açıklama..." />
-                            </div>
-                          );
-
-                        case "marka":
-                          return (
-                            <div key={oz.id}>
-                              <label className={LABEL_STIL}>{oz.baslik || "Marka"}</label>
-                              <input type="text" value={deger.marka || ""} onChange={(e) => sablonGuncelle("marka", e.target.value)} className={INPUT_STIL} />
-                            </div>
-                          );
-
-                        case "ozel_alan":
-                          return (
-                            <div key={oz.id} className="grid grid-cols-2 gap-2">
-                              <div>
-                                <label className={LABEL_STIL}>{deger.alan_adi || oz.baslik || "Alan Adı"}</label>
-                                <input type="text" value={deger.alan_degeri || ""} onChange={(e) => sablonGuncelle("alan_degeri", e.target.value)} className={INPUT_STIL} />
+                              <label className={LABEL_STIL}>{oz.baslik || "Demo Süresi"}</label>
+                              <div className="flex items-center gap-2">
+                                <input type="number" value={deger.gun || 30} onChange={(e) => sablonGuncelle("gun", Number(e.target.value))} className={`${INPUT_STIL} w-24`} min={1} />
+                                <span className="text-sm text-gray-500">gün</span>
                               </div>
                             </div>
                           );
 
                         default:
-                          return (
-                            <div key={oz.id}>
-                              <label className={LABEL_STIL}>{oz.baslik || oz.ozellik_tipi}</label>
-                              <p className="text-xs text-gray-400 dark:text-slate-500">{JSON.stringify(deger)}</p>
-                            </div>
-                          );
+                          return null;
                       }
                     })}
                   </div>
                 </div>
               )}
+
+              {/* Ek Ayarlar - Collapsible */}
+              <details className="group">
+                <summary className="flex items-center gap-2 cursor-pointer text-sm font-medium text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-300">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                  Ek Ayarlar
+                </summary>
+                <div className="mt-3 pl-6 space-y-3">
+                  <label className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-white/10 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                    <input 
+                      type="checkbox" 
+                      checked={form.otomatikYenileme} 
+                      onChange={(e) => guncelle("otomatikYenileme", e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-700 dark:text-slate-300">Otomatik Yenileme</p>
+                      <p className="text-xs text-gray-400">Süre bitince lisansı otomatik uzat</p>
+                    </div>
+                  </label>
+                  {form.otomatikYenileme && (
+                    <div>
+                      <label className={LABEL_STIL}>Bildirim Süresi (Bitiş öncesi kaç gün)</label>
+                      <input type="number" value={form.bildirimGun} onChange={(e) => guncelle("bildirimGun", Number(e.target.value))} className={`${INPUT_STIL} w-32`} min={1} placeholder="30" />
+                    </div>
+                  )}
+                </div>
+              </details>
             </div>
           )}
 

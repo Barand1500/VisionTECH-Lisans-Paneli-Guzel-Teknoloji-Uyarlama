@@ -317,12 +317,12 @@ router.delete("/:id", hataYakala(async (req, res) => {
   const mevcut = await prisma.urun.findUnique({ where: { id }, select: { id: true } });
   if (!mevcut) return bulunamadiHatasi(res, "Urun bulunamadi.");
   
-  // Transaction ile hem ürünü sil hem de lisanslardan ürünü kaldır
+  // Transaction ile hem ürünü sil hem de ilgili lisansları sil (soft delete)
   await prisma.$transaction([
-    // Bu ürüne ait lisansların urun_id'sini null yap
+    // Bu ürüne ait lisansları soft delete yap (çöp kutusuna gider)
     prisma.lisans.updateMany({
-      where: { urun_id: id },
-      data: { urun_id: null }
+      where: { urun_id: id, silinme_tarihi: null },
+      data: { silinme_tarihi: new Date(), durum: "silindi" }
     }),
     // Ürünü soft delete yap
     prisma.urun.update({ 
@@ -331,7 +331,7 @@ router.delete("/:id", hataYakala(async (req, res) => {
     })
   ]);
   
-  res.json({ basarili: true, mesaj: "Urun basariyla silindi." });
+  res.json({ basarili: true, mesaj: "Urun ve ilgili lisanslar basariyla silindi." });
 }));
 
 /* ============================================================

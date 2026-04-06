@@ -69,4 +69,37 @@ router.delete("/:tip/:id/kalici", hataYakala(async (req, res) => {
   res.json({ basarili: true, mesaj: "Kayit kalici olarak silindi." });
 }));
 
+/* ---- Toplu Kalici Sil ---- */
+router.post("/toplu-sil", hataYakala(async (req, res) => {
+  const { kayitlar } = req.body; // [{ tip: "musteri", id: 1 }, { tip: "urun", id: 2 }, ...]
+  
+  if (!Array.isArray(kayitlar) || kayitlar.length === 0) {
+    return res.status(400).json({ basarili: false, mesaj: "Silinecek kayit bulunamadi." });
+  }
+
+  let silinenSayisi = 0;
+  const hatalar = [];
+
+  for (const kayit of kayitlar) {
+    const cfg = VARLIK_TIPLERI[kayit.tip];
+    if (!cfg) {
+      hatalar.push(`Gecersiz tip: ${kayit.tip}`);
+      continue;
+    }
+    try {
+      await prisma[cfg.model].delete({ where: { id: Number(kayit.id) } });
+      silinenSayisi++;
+    } catch (e) {
+      hatalar.push(`${kayit.tip} #${kayit.id}: ${e.message}`);
+    }
+  }
+
+  res.json({ 
+    basarili: true, 
+    mesaj: `${silinenSayisi} kayit kalici olarak silindi.`,
+    silinenSayisi,
+    hatalar: hatalar.length > 0 ? hatalar : undefined
+  });
+}));
+
 module.exports = router;
