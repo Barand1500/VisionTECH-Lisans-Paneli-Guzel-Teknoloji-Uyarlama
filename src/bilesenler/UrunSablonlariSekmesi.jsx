@@ -858,11 +858,12 @@ function SablonTasarimci({ sablonId, kapat }) {
 
 function OzellikWidget({ ozellik, sira, toplam, guncelle, degerGuncelle, sil, yukari, asagi }) {
   const [acik, setAcik] = useState(true);
+  const [yardimAcik, setYardimAcik] = useState(false);
   const tip = OZELLIK_TIPLERI.find((t) => t.id === ozellik.ozellik_tipi);
   const r = getRenk(tip?.renk || "gray");
 
   return (
-    <div className={`rounded-2xl border ${r.border} ${r.bg} overflow-hidden transition-all`}>
+    <div className={`rounded-2xl border ${r.border} ${r.bg} transition-all`}>
       {/* Widget Başlık */}
       <div className="flex items-center gap-3 px-4 py-3">
         {/* Sıra & İkon */}
@@ -905,6 +906,13 @@ function OzellikWidget({ ozellik, sira, toplam, guncelle, degerGuncelle, sil, yu
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
             </svg>
           </button>
+          {/* Yardım Butonu */}
+          <button onClick={() => setYardimAcik(true)}
+            className="w-7 h-7 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/20 flex items-center justify-center cursor-pointer transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
           <button onClick={sil}
             className="w-7 h-7 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 flex items-center justify-center cursor-pointer transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -916,7 +924,7 @@ function OzellikWidget({ ozellik, sira, toplam, guncelle, degerGuncelle, sil, yu
 
       {/* Widget İçerik */}
       {acik && (
-        <div className="px-4 pb-4 pt-1">
+        <div className="px-4 pb-4 pt-1 overflow-visible">
           <OzellikFormu
             tip={ozellik.ozellik_tipi}
             deger={ozellik.deger}
@@ -924,6 +932,226 @@ function OzellikWidget({ ozellik, sira, toplam, guncelle, degerGuncelle, sil, yu
           />
         </div>
       )}
+
+      {/* Yardım Modal */}
+      {yardimAcik && (
+        <WidgetYardimModal
+          tip={tip}
+          kapat={() => setYardimAcik(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ============================================= */
+/*  Widget Yardım Modal                          */
+/* ============================================= */
+
+const WIDGET_YARDIM_METINLERI = {
+  temel_fiyat: {
+    baslik: "Temel Fiyat Nedir?",
+    aciklama: "Ürünün sabit satış fiyatını belirler. Yeni şablon oluşturulduğunda otomatik olarak eklenir.",
+    alanlar: [
+      { ad: "Fiyat", aciklama: "Ürünün birim satış fiyatı" },
+      { ad: "Para Birimi", aciklama: "TL, USD veya EUR seçebilirsiniz" },
+    ],
+    ornek: "Örnek: E-Fatura ürünü için 500 TL temel fiyat belirleyebilirsiniz.",
+  },
+  aktivasyon_yenileme: {
+    baslik: "Aktivasyon / Yenileme Fiyatı",
+    aciklama: "İlk kez alım ve yenileme için farklı fiyatlar tanımlamanızı sağlar.",
+    alanlar: [
+      { ad: "Aktivasyon Fiyatı", aciklama: "Müşterinin ürünü ilk aldığında ödeyeceği tutar" },
+      { ad: "Yenileme Fiyatı", aciklama: "Lisans yenilemede ödeyeceği tutar" },
+    ],
+    ornek: "Örnek: Aktivasyon 1000 TL, Yenileme 600 TL",
+  },
+  kademeli_fiyat: {
+    baslik: "Kademeli Fiyat (Adet/Kapasite)",
+    aciklama: "Miktar arttıkça farklı fiyatlar uygulamanızı sağlar. Adet veya kapasite bazlı olarak kullanabilirsiniz.",
+    alanlar: [
+      { ad: "Adet Bazlı", aciklama: "1-10 adet, 11-50 adet gibi kademeler için farklı fiyatlar" },
+      { ad: "Kapasite Bazlı", aciklama: "5GB, 10GB, 50GB gibi kapasite kademeleri için fiyatlar" },
+    ],
+    ornek: "Örnek: 1-10 adet: 100 TL, 11-50 adet: 80 TL, 51+ adet: 60 TL",
+  },
+  hediye_urun: {
+    baslik: "Hediye Ürün",
+    aciklama: "Bu ürün alındığında hangi ürünlerin hediye olarak verileceğini belirler.",
+    alanlar: [
+      { ad: "Ürün Seçimi", aciklama: "Hediye verilecek ürünleri arayarak seçin" },
+    ],
+    ornek: "Örnek: E-Fatura alana E-Mutabakat hediye",
+  },
+  paket_indirimi: {
+    baslik: "Paket İndirimi",
+    aciklama: "Belirli ürünlerle birlikte alındığında indirim uygulanmasını sağlar.",
+    alanlar: [
+      { ad: "Ürün Seçimi", aciklama: "Birlikte alınması gereken ürünler" },
+      { ad: "İndirim Oranı/Tutarı", aciklama: "Yüzde veya sabit tutar indirim" },
+    ],
+    ornek: "Örnek: E-Fatura + E-Arşiv birlikte alınırsa %15 indirim",
+  },
+  periyot_indirim: {
+    baslik: "Aylık / Yıllık İndirim",
+    aciklama: "Müşteri yıllık alım yaparsa indirim uygulanmasını sağlar.",
+    alanlar: [
+      { ad: "Aylık Oran", aciklama: "Aylık alımlarda uygulanacak indirim" },
+      { ad: "Yıllık Oran", aciklama: "Yıllık alımlarda uygulanacak indirim" },
+    ],
+    ornek: "Örnek: Yıllık alımlarda %20 indirim",
+  },
+  gecis_fiyati: {
+    baslik: "Geçiş Fiyatı",
+    aciklama: "Başka bir üründen bu ürüne geçiş yapan müşterilere özel fiyat tanımlar.",
+    alanlar: [
+      { ad: "Hedef Ürün", aciklama: "Hangi ürünlerden geçiş yapanlara uygulanacak" },
+      { ad: "Geçiş Fiyatı", aciklama: "Geçiş yapanlara özel fiyat" },
+    ],
+    ornek: "Örnek: Rakip ürününden geçenlere 300 TL'ye aktivasyon",
+  },
+  kullanici_sayisi: {
+    baslik: "Kullanıcı Sayısı",
+    aciklama: "Minimum ve maksimum kullanıcı sayısı ile ek kullanıcı ücretini belirler.",
+    alanlar: [
+      { ad: "Min Kullanıcı", aciklama: "Pakete dahil minimum kullanıcı" },
+      { ad: "Max Kullanıcı", aciklama: "İzin verilen maksimum kullanıcı (boş = sınırsız)" },
+      { ad: "Ek Kullanıcı Fiyatı", aciklama: "Her ek kullanıcı için ücret" },
+    ],
+    ornek: "Örnek: 1-5 kullanıcı dahil, ek kullanıcı 50 TL",
+  },
+  sicil_domain: {
+    baslik: "Sicil No / Domain",
+    aciklama: "Lisansa bağlı sicil numarası veya domain adresi gereksinimi.",
+    alanlar: [
+      { ad: "Alan Tipi", aciklama: "Sicil No, Domain, MAC veya IP adresi" },
+      { ad: "Zorunlu", aciklama: "İşaretlenirse paket eklerken bu alan mutlaka girilmeli" },
+    ],
+    ornek: "Örnek: E-Fatura için vergi sicil numarası zorunlu",
+  },
+  siparis_miktari: {
+    baslik: "Sipariş Miktarı (Min-Max)",
+    aciklama: "Bu üründen minimum ve maksimum kaç adet alınabileceğini belirler.",
+    alanlar: [
+      { ad: "Min Adet", aciklama: "En az alınması gereken miktar" },
+      { ad: "Max Adet", aciklama: "En fazla alınabilecek miktar (boş = sınırsız)" },
+    ],
+    ornek: "Örnek: Minimum 100 kontör, maksimum 10000 kontör",
+  },
+  kampanya: {
+    baslik: "Kampanya / Promosyon",
+    aciklama: "Koşullu kampanya kuralları tanımlayarak otomatik indirim uygulanmasını sağlar.",
+    alanlar: [
+      { ad: "Kampanya Adı", aciklama: "Kampanyanın görünen adı" },
+      { ad: "Koşullar", aciklama: "İndirim uygulanması için sağlanması gereken kurallar" },
+      { ad: "İndirim Oranı", aciklama: "Koşullar sağlanınca uygulanacak indirim" },
+    ],
+    ornek: "Örnek: 5+ ürün alana %10 indirim",
+  },
+  bagimli_urun: {
+    baslik: "Bağımlı Ürün",
+    aciklama: "Bu ürünün çalışması için gerekli olan diğer ürünleri belirler. Paket verilirken uyarı gösterilir.",
+    alanlar: [
+      { ad: "Ürün Seçimi", aciklama: "Bu ürün için gerekli olan ürünler" },
+      { ad: "Zorunlu", aciklama: "İşaretlenirse bağımlı ürünler olmadan satış yapılamaz" },
+    ],
+    ornek: "Örnek: E-Arşiv için E-Fatura gereklidir",
+  },
+  demo_suresi: {
+    baslik: "Demo Süresi",
+    aciklama: "Ürünün ücretsiz deneme süresini belirler.",
+    alanlar: [
+      { ad: "Gün", aciklama: "Deneme süresi gün cinsinden" },
+    ],
+    ornek: "Örnek: 30 gün ücretsiz deneme",
+  },
+  otomatik_yenileme: {
+    baslik: "Otomatik Yenileme",
+    aciklama: "Lisans bitiminde otomatik yenileme ve bildirim ayarları.",
+    alanlar: [
+      { ad: "Aktif", aciklama: "Otomatik yenileme açık/kapalı" },
+      { ad: "Bildirim Günü", aciklama: "Bitiş tarihinden kaç gün önce uyarı" },
+    ],
+    ornek: "Örnek: Bitiş tarihinden 30 gün önce bildirim",
+  },
+  domain_fiyat: {
+    baslik: "Domain Uzantı Fiyatlandırma",
+    aciklama: "Her domain uzantısı için farklı aktivasyon ve yenileme fiyatı tanımlar.",
+    alanlar: [
+      { ad: "Uzantı", aciklama: ".com, .com.tr gibi uzantılar" },
+      { ad: "Aktivasyon", aciklama: "İlk kayıt fiyatı" },
+      { ad: "Yenileme", aciklama: "Yenileme fiyatı" },
+    ],
+    ornek: "Örnek: .com Aktivasyon: 150 TL, Yenileme: 100 TL",
+  },
+};
+
+function WidgetYardimModal({ tip, kapat }) {
+  const yardim = WIDGET_YARDIM_METINLERI[tip?.id] || {
+    baslik: tip?.ad || "Widget Yardım",
+    aciklama: tip?.aciklama || "Bu widget hakkında detaylı bilgi bulunmuyor.",
+    alanlar: [],
+    ornek: "",
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={kapat}>
+      <div
+        className="relative w-full max-w-lg bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Başlık */}
+        <div className="flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-500 to-violet-500">
+          <span className="text-2xl">{tip?.ikon || "❓"}</span>
+          <h3 className="text-lg font-bold text-white">{yardim.baslik}</h3>
+          <button onClick={kapat} className="ml-auto text-white/70 hover:text-white cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* İçerik */}
+        <div className="p-6 space-y-4">
+          <p className="text-sm text-gray-600 dark:text-slate-300">{yardim.aciklama}</p>
+
+          {/* Alanlar */}
+          {yardim.alanlar.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide">Alanlar</h4>
+              <div className="space-y-2">
+                {yardim.alanlar.map((alan, i) => (
+                  <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-gray-50 dark:bg-white/5">
+                    <span className="text-xs font-medium text-blue-600 dark:text-blue-400 whitespace-nowrap">{alan.ad}:</span>
+                    <span className="text-xs text-gray-600 dark:text-slate-400">{alan.aciklama}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Örnek */}
+          {yardim.ornek && (
+            <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+              <p className="text-xs text-amber-800 dark:text-amber-300">
+                <span className="font-semibold">💡 </span>
+                {yardim.ornek}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Alt Buton */}
+        <div className="px-6 py-4 bg-gray-50 dark:bg-white/5 flex justify-end">
+          <button
+            onClick={kapat}
+            className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium cursor-pointer transition-colors"
+          >
+            Anladım
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1017,11 +1245,28 @@ function OzellikFormu({ tip, deger, guncelle }) {
         <div className="grid grid-cols-3 gap-3">
           <div>
             <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Min Kullanıcı</label>
-            <input type="number" value={deger.min || 1} onChange={(e) => guncelle("min", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={1} />
+            <input 
+              type="number" 
+              inputMode="numeric"
+              value={deger.min || 1} 
+              onChange={(e) => guncelle("min", Number(e.target.value))} 
+              onKeyDown={(e) => { if (["e", "E", "+", "-", "."].includes(e.key)) e.preventDefault(); }}
+              className={KUCUK_INPUT + " w-full"} 
+              min={1} 
+            />
           </div>
           <div>
             <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Max Kullanıcı</label>
-            <input type="number" value={deger.max || ""} onChange={(e) => guncelle("max", e.target.value ? Number(e.target.value) : null)} placeholder="Sınırsız" className={KUCUK_INPUT + " w-full"} min={1} />
+            <input 
+              type="number" 
+              inputMode="numeric"
+              value={deger.max ?? ""} 
+              onChange={(e) => guncelle("max", e.target.value ? Number(e.target.value) : null)} 
+              onKeyDown={(e) => { if (["e", "E", "+", "-", "."].includes(e.key)) e.preventDefault(); }}
+              placeholder="Sınırsız" 
+              className={KUCUK_INPUT + " w-full"} 
+              min={1} 
+            />
           </div>
           <div>
             <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Ek Kullanıcı Fiyatı</label>
@@ -1063,11 +1308,28 @@ function OzellikFormu({ tip, deger, guncelle }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Minimum Adet</label>
-            <input type="number" value={deger.min || 1} onChange={(e) => guncelle("min", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={1} />
+            <input 
+              type="number" 
+              inputMode="numeric"
+              value={deger.min || 1} 
+              onChange={(e) => guncelle("min", Number(e.target.value))} 
+              onKeyDown={(e) => { if (["e", "E", "+", "-", "."].includes(e.key)) e.preventDefault(); }}
+              className={KUCUK_INPUT + " w-full"} 
+              min={1} 
+            />
           </div>
           <div>
             <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Maximum Adet</label>
-            <input type="number" value={deger.max || ""} onChange={(e) => guncelle("max", e.target.value ? Number(e.target.value) : null)} placeholder="Sınırsız" className={KUCUK_INPUT + " w-full"} min={1} />
+            <input 
+              type="number" 
+              inputMode="numeric"
+              value={deger.max ?? ""} 
+              onChange={(e) => guncelle("max", e.target.value ? Number(e.target.value) : null)} 
+              onKeyDown={(e) => { if (["e", "E", "+", "-", "."].includes(e.key)) e.preventDefault(); }}
+              placeholder="Sınırsız" 
+              className={KUCUK_INPUT + " w-full"} 
+              min={1} 
+            />
           </div>
         </div>
       );
@@ -1346,7 +1608,7 @@ function BagimliUrunFormu({ deger, guncelle }) {
           </button>
         )}
         {acik && filtrelenmis.length > 0 && (
-          <div className="absolute z-20 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 shadow-xl">
+          <div className="absolute z-[60] bottom-full left-0 right-0 mb-1 max-h-48 overflow-y-auto rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 shadow-xl">
             {filtrelenmis.slice(0, 15).map((u) => (
               <button key={u.id} onClick={() => urunEkle(u)}
                 className="w-full text-left px-3 py-2 text-xs hover:bg-blue-50 dark:hover:bg-blue-500/10 text-gray-700 dark:text-slate-300 cursor-pointer transition-colors flex items-center justify-between">
@@ -1450,22 +1712,38 @@ function KademeliAdetKapasiteForm({ deger, guncelle }) {
         <span className="text-[11px] text-gray-400">→</span>
         <span className="text-[11px] font-medium text-gray-500 dark:text-slate-400">Fiyat</span>
       </div>
-      {kademeler.map((k, i) => (
-        <div key={i} className="flex items-center gap-2">
-          <input type="text" value={k[birimKey] ?? ""} onChange={(e) => kademeGuncelle(i, birimKey, e.target.value)}
-            placeholder={birimLabel} className={KUCUK_INPUT + " w-28"} />
-          <span className="text-gray-400 text-xs">→</span>
-          <input type="number" value={k.fiyat || 0} onChange={(e) => kademeGuncelle(i, "fiyat", Number(e.target.value))}
-            className={KUCUK_INPUT + " w-32"} min={0} step="0.01" />
-          <span className="text-xs text-gray-400">TL</span>
-          <button onClick={() => kademeSil(i)}
-            className="w-7 h-7 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 flex items-center justify-center cursor-pointer transition-colors shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      ))}
+      {kademeler.map((k, i) => {
+        const birimDeger = deger.birim || (tip === "adet" ? "Adet" : "GB");
+        return (
+          <div key={i} className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <input 
+                type="number" 
+                inputMode="numeric"
+                value={k[birimKey] ?? ""} 
+                onChange={(e) => kademeGuncelle(i, birimKey, e.target.value ? Number(e.target.value) : "")}
+                onKeyDown={(e) => { if (["e", "E", "+", "-", "."].includes(e.key)) e.preventDefault(); }}
+                placeholder={birimLabel} 
+                className={KUCUK_INPUT + " w-20"} 
+                min={0}
+              />
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-400 font-medium whitespace-nowrap">
+                {birimDeger}
+              </span>
+            </div>
+            <span className="text-gray-400 text-xs">→</span>
+            <input type="number" value={k.fiyat || 0} onChange={(e) => kademeGuncelle(i, "fiyat", Number(e.target.value))}
+              className={KUCUK_INPUT + " w-28"} min={0} step="0.01" />
+            <span className="text-xs text-gray-400">TL</span>
+            <button onClick={() => kademeSil(i)}
+              className="w-7 h-7 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 flex items-center justify-center cursor-pointer transition-colors shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        );
+      })}
       <button onClick={kademeEkle}
         className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 font-medium cursor-pointer mt-1">
         <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1572,7 +1850,7 @@ function UrunSecimFormu({ deger, guncelle, baslik, renk = "blue" }) {
           </button>
         )}
         {acik && filtrelenmis.length > 0 && (
-          <div className="absolute z-20 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 shadow-xl">
+          <div className="absolute z-[60] bottom-full left-0 right-0 mb-1 max-h-48 overflow-y-auto rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 shadow-xl">
             {filtrelenmis.slice(0, 15).map((u) => (
               <button key={u.id} onClick={() => urunEkle(u)}
                 className="w-full text-left px-3 py-2 text-xs hover:bg-blue-50 dark:hover:bg-blue-500/10 text-gray-700 dark:text-slate-300 cursor-pointer transition-colors flex items-center justify-between">
@@ -1674,7 +1952,7 @@ function PaketIndirimiFormu({ deger, guncelle }) {
           </button>
         )}
         {acik && filtrelenmis.length > 0 && (
-          <div className="absolute z-20 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 shadow-xl">
+          <div className="absolute z-[60] bottom-full left-0 right-0 mb-1 max-h-48 overflow-y-auto rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 shadow-xl">
             {filtrelenmis.slice(0, 15).map((u) => (
               <button key={u.id} onClick={() => urunEkle(u)}
                 className="w-full text-left px-3 py-2 text-xs hover:bg-violet-50 dark:hover:bg-violet-500/10 text-gray-700 dark:text-slate-300 cursor-pointer transition-colors flex items-center justify-between">
@@ -1761,7 +2039,7 @@ function GecisFiyatiFormu({ deger, guncelle }) {
             className={KUCUK_INPUT + " w-full"}
           />
           {acik && filtrelenmis.length > 0 && (
-            <div className="absolute z-20 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 shadow-xl">
+            <div className="absolute z-[60] bottom-full left-0 right-0 mb-1 max-h-48 overflow-y-auto rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 shadow-xl">
               {filtrelenmis.slice(0, 15).map((u) => (
                 <button key={u.id} onClick={() => urunSec(u)}
                   className="w-full text-left px-3 py-2 text-xs hover:bg-cyan-50 dark:hover:bg-cyan-500/10 text-gray-700 dark:text-slate-300 cursor-pointer transition-colors flex items-center justify-between">
