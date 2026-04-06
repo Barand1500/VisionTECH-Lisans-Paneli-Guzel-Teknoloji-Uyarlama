@@ -140,6 +140,8 @@ function UrunlerSekmesi() {
   const [modal, setModal] = useState(null); // null | "yeni" | urunObjesi (düzenleme)
   const [paketModal, setPaketModal] = useState(null); // null | urunObjesi (paketleri göster)
   const [silinecekUrun, setSilinecekUrun] = useState(null);
+  const [urunKullanimBilgisi, setUrunKullanimBilgisi] = useState(null);
+  const [kullanimYukleniyor, setKullanimYukleniyor] = useState(false);
   const [silinecekPaket, setSilinecekPaket] = useState(null);
   const [silmeYukleniyor, setSilmeYukleniyor] = useState(false);
   const sayfaBasi = 10;
@@ -195,6 +197,25 @@ function UrunlerSekmesi() {
   };
 
   useEffect(() => { verileriYukle(); }, []);
+
+  /* ---- Ürün Silme Öncesi Kullanım Kontrolü ---- */
+  useEffect(() => {
+    if (silinecekUrun) {
+      setKullanimYukleniyor(true);
+      setUrunKullanimBilgisi(null);
+      apiGet(`/urunler/${silinecekUrun.id}/kullanim`)
+        .then(res => {
+          setUrunKullanimBilgisi(res.veri);
+        })
+        .catch(err => {
+          console.error("Kullanim bilgisi alinamadi:", err);
+          setUrunKullanimBilgisi({ musteri_sayisi: 0, lisans_sayisi: 0 });
+        })
+        .finally(() => setKullanimYukleniyor(false));
+    } else {
+      setUrunKullanimBilgisi(null);
+    }
+  }, [silinecekUrun]);
 
   /* ---- Filtreleme ---- */
   const filtrelenmis = urunler.filter((u) => {
@@ -506,8 +527,43 @@ function UrunlerSekmesi() {
         kapat={() => setSilinecekUrun(null)}
         onay={urunSil}
         baslik="Ürünü silmek istediğinizden emin misiniz?"
-        mesaj={silinecekUrun ? `"${silinecekUrun.adi}" ürünü kalıcı olarak silinecek. Bu işlem geri alınamaz.` : ""}
-        yukleniyor={silmeYukleniyor}
+        mesaj={
+          kullanimYukleniyor ? (
+            <span className="flex items-center gap-2">
+              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              Kullanım bilgisi kontrol ediliyor...
+            </span>
+          ) : urunKullanimBilgisi && urunKullanimBilgisi.musteri_sayisi > 0 ? (
+            <div className="space-y-2">
+              <div className="p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-lg">
+                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-semibold">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  Dikkat! Bu ürünü kullanan müşteriler var.
+                </div>
+                <p className="mt-1 text-sm text-amber-600 dark:text-amber-300">
+                  <span className="font-bold">{urunKullanimBilgisi.musteri_sayisi}</span> müşterinin <span className="font-bold">{urunKullanimBilgisi.lisans_sayisi}</span> lisansında bu ürün kullanılıyor.
+                </p>
+                {urunKullanimBilgisi.musteriler && urunKullanimBilgisi.musteriler.length > 0 && (
+                  <div className="mt-2 text-xs text-amber-600/80 dark:text-amber-400/80">
+                    Örn: {urunKullanimBilgisi.musteriler.slice(0, 3).map(m => m.ad).join(", ")}
+                    {urunKullanimBilgisi.musteriler.length > 3 && ` ve ${urunKullanimBilgisi.musteriler.length - 3} diğer...`}
+                  </div>
+                )}
+              </div>
+              <p className="text-gray-600 dark:text-slate-400">
+                Sildiğinizde bu ürün tüm müşteri lisanslarından kaldırılacak ve çöp kutusuna taşınacak.
+              </p>
+            </div>
+          ) : silinecekUrun ? (
+            `"${silinecekUrun.adi}" ürünü çöp kutusuna taşınacak.`
+          ) : ""
+        }
+        yukleniyor={silmeYukleniyor || kullanimYukleniyor}
       />
     </div>
   );

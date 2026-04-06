@@ -216,6 +216,55 @@ router.get("/:id/sablon", hataYakala(async (req, res) => {
   res.json({ basarili: true, veri: sablon ? temizle(sablon) : null });
 }));
 
+/* ---- Urunun Kullanim Bilgisi (silme oncesi kontrol) ---- */
+router.get("/:id/kullanim", hataYakala(async (req, res) => {
+  const id = Number(req.params.id);
+  const urun = await prisma.urun.findUnique({ where: { id }, select: { id: true, ad: true } });
+  if (!urun) return bulunamadiHatasi(res, "Urun bulunamadi.");
+
+  // Bu ürüne ait aktif lisansları ve müşteri bilgilerini getir
+  const lisanslar = await prisma.lisans.findMany({
+    where: { 
+      urun_id: id, 
+      silinme_tarihi: null 
+    },
+    select: {
+      id: true,
+      musteri_id: true,
+      musteri: {
+        select: {
+          id: true,
+          ad_soyad: true,
+          sirket_adi: true,
+          tur: true,
+        }
+      }
+    }
+  });
+
+  // Benzersiz müşterileri bul
+  const musteriMap = new Map();
+  lisanslar.forEach(l => {
+    if (l.musteri && !musteriMap.has(l.musteri_id)) {
+      musteriMap.set(l.musteri_id, {
+        id: l.musteri.id,
+        ad: l.musteri.tur === 'tuzel' ? l.musteri.sirket_adi : l.musteri.ad_soyad
+      });
+    }
+  });
+
+  res.json({
+    basarili: true,
+    veri: {
+      urun_id: id,
+      urun_adi: urun.ad,
+      lisans_sayisi: lisanslar.length,
+      musteri_sayisi: musteriMap.size,
+      musteriler: Array.from(musteriMap.values()).slice(0, 10) // İlk 10 müşteri
+    }
+  });
+}));
+
 router.post("/", hataYakala(async (req, res) => {
   const { ad, grup_id, sablon_id, urun_tipi, uygulama_tipi, varsayilan_gun, ozel_proje, aktif, aciklama, min_kullanici, max_kullanici, demo_gun, temel_fiyat, versiyon, logo_url, ozellikler } = req.body;
   if (!ad) return dogrulamaHatasi(res, "Urun adi zorunludur.");
@@ -267,7 +316,21 @@ router.delete("/:id", hataYakala(async (req, res) => {
   const id = Number(req.params.id);
   const mevcut = await prisma.urun.findUnique({ where: { id }, select: { id: true } });
   if (!mevcut) return bulunamadiHatasi(res, "Urun bulunamadi.");
-  await prisma.urun.update({ where: { id }, data: { silinme_tarihi: new Date(), durum: "silindi" } });
+  
+  // Transaction ile hem ürünü sil hem de lisanslardan ürünü kaldır
+  await prisma.$transaction([
+    // Bu ürüne ait lisansların urun_id'sini null yap
+    prisma.lisans.updateMany({
+      where: { urun_id: id },
+      data: { urun_id: null }
+    }),
+    // Ürünü soft delete yap
+    prisma.urun.update({ 
+      where: { id }, 
+      data: { silinme_tarihi: new Date(), durum: "silindi" } 
+    })
+  ]);
+  
   res.json({ basarili: true, mesaj: "Urun basariyla silindi." });
 }));
 
