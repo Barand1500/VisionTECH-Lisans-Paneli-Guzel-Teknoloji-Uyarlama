@@ -60,7 +60,7 @@ uygulama.get("/api/durum", (req, res) => {
 });
 
 /* ---- SPA Fallback (React Router icin) ---- */
-uygulama.get("*", (req, res) => {
+uygulama.get("/{*splat}", (req, res) => {
   // API isteklerini atla
   if (req.path.startsWith("/api")) {
     return res.status(404).json({ basarili: false, mesaj: "API rotasi bulunamadi." });
