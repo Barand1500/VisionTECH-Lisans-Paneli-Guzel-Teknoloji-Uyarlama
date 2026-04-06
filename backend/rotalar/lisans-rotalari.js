@@ -53,6 +53,24 @@ router.get("/musteri/:musteriId", hataYakala(async (req, res) => {
   res.json({ basarili: true, veri: temizle(rows) });
 }));
 
+/* ---- Bayinin Lisansları ---- */
+router.get("/bayi/:bayiId", hataYakala(async (req, res) => {
+  const bayiId = Number(req.params.bayiId);
+  const rows = await prisma.$queryRawUnsafe(`
+    SELECT l.*, u.ad AS urun_adi, u.sablon_id, p.ad AS paket_adi, m.ad_soyad AS musteri_adi,
+           m.sirket_adi, lt.ad AS lisans_tipi_adi, lt.renk AS lisans_tipi_renk, lt.gun AS lisans_tipi_gun
+    FROM lisanslar l
+    LEFT JOIN urunler u ON l.urun_id = u.id
+    LEFT JOIN paketler p ON l.paket_id = p.id
+    LEFT JOIN musteriler m ON l.musteri_id = m.id
+    LEFT JOIN lisans_tipleri lt ON l.lisans_tipi = lt.kod
+    WHERE l.bayi_id = ?
+    AND l.silinme_tarihi IS NULL
+    ORDER BY l.id DESC
+  `, bayiId);
+  res.json({ basarili: true, veri: temizle(rows) });
+}));
+
 /* ---- Tek Lisans ---- */
 router.get("/:id", hataYakala(async (req, res) => {
   const id = Number(req.params.id);
