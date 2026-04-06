@@ -1465,7 +1465,8 @@ function SeciliUrunListesi({ urunler, kaldir, renk = "blue", tekli = false, tumU
 
 const KUCUK_INPUT = "px-3 py-2 rounded-lg bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all";
 
-function OzellikFormu({ tip, deger, guncelle }) {
+function OzellikFormu({ tip, deger: rawDeger, guncelle }) {
+  const deger = rawDeger || {};
   switch (tip) {
     case "temel_fiyat":
       return (
@@ -1688,7 +1689,8 @@ function OzellikFormu({ tip, deger, guncelle }) {
 /*  Kademeli Fiyat Formu (Ortak)                 */
 /* ============================================= */
 
-function KademeliForm({ deger, guncelle, birimLabel, birimKey }) {
+function KademeliForm({ deger: rawDeger, guncelle, birimLabel, birimKey }) {
+  const deger = rawDeger || {};
   const kademeler = deger.kademeler || [];
 
   const kademeEkle = () => {
@@ -1760,7 +1762,8 @@ function KademeliForm({ deger, guncelle, birimLabel, birimKey }) {
 
 const YAYGIN_UZANTILAR = [".com", ".com.tr", ".net", ".org", ".org.tr", ".net.tr", ".biz", ".info", ".gen.tr", ".web.tr", ".name.tr", ".tel.tr", ".tv.tr", ".av.tr"];
 
-function DomainFiyatFormu({ deger, guncelle }) {
+function DomainFiyatFormu({ deger: rawDeger, guncelle }) {
+  const deger = rawDeger || {};
   const uzantilar = deger.uzantilar || [];
 
   const uzantiEkle = () => {
@@ -1838,7 +1841,8 @@ function DomainFiyatFormu({ deger, guncelle }) {
 /*  Bağımlı Ürün Seçme Formu (çoklu + arama)    */
 /* ============================================= */
 
-function BagimliUrunFormu({ deger, guncelle }) {
+function BagimliUrunFormu({ deger: rawDeger, guncelle }) {
+  const deger = rawDeger || {};
   const [arama, setArama] = useState("");
   const [acik, setAcik] = useState(false);
   const [tumUrunler, setTumUrunler] = useState([]);
@@ -1950,7 +1954,8 @@ const BIRIM_SECENEKLERI = {
   kapasite: ["GB", "TB", "MB", "KB"],
 };
 
-function KademeliAdetKapasiteForm({ deger, guncelle }) {
+function KademeliAdetKapasiteForm({ deger: rawDeger, guncelle }) {
+  const deger = rawDeger || {};
   const tip = deger.tip || "adet"; // "adet" veya "kapasite"
   const kademeler = deger.kademeler || [];
   const birimKey = tip === "adet" ? "adet" : "kapasite";
@@ -2064,7 +2069,8 @@ function KademeliAdetKapasiteForm({ deger, guncelle }) {
 /*  hediye_urun ve diğerlerinde kullanılır       */
 /* ============================================= */
 
-function UrunSecimFormu({ deger, guncelle, baslik, renk = "blue" }) {
+function UrunSecimFormu({ deger: rawDeger, guncelle, baslik, renk = "blue" }) {
+  const deger = rawDeger || {};
   const [arama, setArama] = useState("");
   const [acik, setAcik] = useState(false);
   const [tumUrunler, setTumUrunler] = useState([]);
@@ -2160,7 +2166,8 @@ function UrunSecimFormu({ deger, guncelle, baslik, renk = "blue" }) {
 /*  Paket İndirimi Formu (Ürün Seçim + İndirim)  */
 /* ============================================= */
 
-function PaketIndirimiFormu({ deger, guncelle }) {
+function PaketIndirimiFormu({ deger: rawDeger, guncelle }) {
+  const deger = rawDeger || {};
   const [arama, setArama] = useState("");
   const [acik, setAcik] = useState(false);
   const [tumUrunler, setTumUrunler] = useState([]);
@@ -2262,7 +2269,8 @@ function PaketIndirimiFormu({ deger, guncelle }) {
 /*  Geçiş Fiyatı Formu (Hedef Ürün Arama)        */
 /* ============================================= */
 
-function GecisFiyatiFormu({ deger, guncelle }) {
+function GecisFiyatiFormu({ deger: rawDeger, guncelle }) {
+  const deger = rawDeger || {};
   const [arama, setArama] = useState("");
   const [acik, setAcik] = useState(false);
   const [tumUrunler, setTumUrunler] = useState([]);
@@ -2386,7 +2394,8 @@ const OPERATORLER = {
   ],
 };
 
-function KampanyaKosulBuilder({ deger, guncelle }) {
+function KampanyaKosulBuilder({ deger: rawDeger, guncelle }) {
+  const deger = rawDeger || {};
   const kosullar = deger.kosullar || [];
   const [acikIdx, setAcikIdx] = useState(null);
 
