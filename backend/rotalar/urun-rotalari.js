@@ -355,7 +355,7 @@ router.get("/:urunId/paketler", hataYakala(async (req, res) => {
 }));
 
 router.post("/paketler", hataYakala(async (req, res) => {
-  const { urun_id, ad, tipi, kullanim_gunu, fiyat, kullanici_sayisi, aktif } = req.body;
+  const { urun_id, ad, tipi, kullanim_gunu, fiyat, kullanici_sayisi, aktif, ozellikler } = req.body;
   if (!urun_id || !ad) return dogrulamaHatasi(res, "Urun ve paket adi zorunludur.");
 
   const sonuc = await prisma.paket.create({
@@ -365,6 +365,7 @@ router.post("/paketler", hataYakala(async (req, res) => {
       fiyat: guvenliSayi(fiyat, 0),
       kullanici_sayisi: guvenliSayi(kullanici_sayisi, 1),
       aktif: aktif !== undefined ? (aktif ? 1 : 0) : 1,
+      ozellikler: ozellikler || null,
     },
   });
   res.status(201).json({ basarili: true, mesaj: "Paket basariyla eklendi.", id: sonuc.id });
@@ -372,7 +373,7 @@ router.post("/paketler", hataYakala(async (req, res) => {
 
 router.put("/paketler/:id", hataYakala(async (req, res) => {
   const id = Number(req.params.id);
-  const { ad, tipi, kullanim_gunu, fiyat, kullanici_sayisi, aktif } = req.body;
+  const { ad, tipi, kullanim_gunu, fiyat, kullanici_sayisi, aktif, ozellikler } = req.body;
   const data = {};
   if (ad) data.ad = ad;
   if (tipi !== undefined) data.tipi = tipi || null;
@@ -380,6 +381,7 @@ router.put("/paketler/:id", hataYakala(async (req, res) => {
   if (fiyat !== undefined) data.fiyat = guvenliSayi(fiyat, 0);
   if (kullanici_sayisi !== undefined) data.kullanici_sayisi = guvenliSayi(kullanici_sayisi, 1);
   if (aktif !== undefined) data.aktif = aktif ? 1 : 0;
+  if (ozellikler !== undefined) data.ozellikler = ozellikler;
 
   await prisma.paket.update({ where: { id }, data });
   res.json({ basarili: true, mesaj: "Paket basariyla guncellendi." });
