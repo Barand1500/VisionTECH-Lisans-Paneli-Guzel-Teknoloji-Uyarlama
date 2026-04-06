@@ -13,6 +13,7 @@ import KopyalaButonu from "../bilesenler/KopyalaButonu";
 const SEKMELER = [
   { id: "genel", etiket: "Genel Bilgiler", ikon: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
   { id: "kisiler", etiket: "Kişiler", ikon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" },
+  { id: "paketler", etiket: "Paketler", ikon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" },
   { id: "musteriler", etiket: "Müşteriler", ikon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" },
   { id: "dosyalar", etiket: "Dosyalar", ikon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
   { id: "notlar", etiket: "Notlar", ikon: "M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" },
@@ -42,6 +43,7 @@ export default function BayiDetayPage() {
   /* Alt veriler */
   const [kisiler, setKisiler] = useState([]);
   const [musteriler, setMusteriler] = useState([]);
+  const [paketler, setPaketler] = useState([]);
   const [dosyalar, setDosyalar] = useState([]);
   const [notlar, setNotlar] = useState([]);
 
@@ -74,6 +76,12 @@ export default function BayiDetayPage() {
           const musteriYanit = await apiGet(`/bayiler/${id}/musteriler`);
           setMusteriler(musteriYanit.veri || []);
         } catch { setMusteriler([]); }
+
+        /* Paketler (Lisanslar) */
+        try {
+          const paketYanit = await apiGet(`/lisanslar/bayi/${id}`);
+          setPaketler(paketYanit.veri || []);
+        } catch { setPaketler([]); }
 
         /* Dosyalar */
         try {
@@ -529,6 +537,75 @@ export default function BayiDetayPage() {
                               <KopyalaButonu metin={kisi.eposta} />
                             </div>
                           )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* PAKETLER */}
+            {aktifSekme === "paketler" && (
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-sm font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Bayi Paketleri ({paketler.length})</h3>
+                  <button onClick={() => git(`/dashboard/bayi-paketleri/${id}`)}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold transition-colors cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Paket Yönetimi
+                  </button>
+                </div>
+
+                {paketler.length === 0 ? (
+                  <div className="text-center py-12">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 mx-auto text-gray-300 dark:text-slate-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                    <p className="text-gray-500 dark:text-slate-400 mb-2">Bu bayiye ait paket yok</p>
+                    <button onClick={() => git(`/dashboard/bayi-paketleri/${id}`)}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold transition-colors cursor-pointer">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                      </svg>
+                      İlk Paketi Ekle
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {paketler.map((paket) => (
+                      <div key={paket.id} className="p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-teal-300 dark:hover:border-teal-500/50 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                              </svg>
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900 dark:text-white">{paket.urun_adi || "Ürün"}</p>
+                              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
+                                <span>{paket.lisans_tipi || "Standart"}</span>
+                                {paket.bitis_tarihi && (
+                                  <>
+                                    <span>•</span>
+                                    <span className={new Date(paket.bitis_tarihi) < new Date() ? "text-red-500" : ""}>
+                                      {new Date(paket.bitis_tarihi).toLocaleDateString("tr-TR")}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                            paket.bitis_tarihi && new Date(paket.bitis_tarihi) < new Date()
+                              ? "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400"
+                              : "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+                          }`}>
+                            {paket.bitis_tarihi && new Date(paket.bitis_tarihi) < new Date() ? "Süresi Dolmuş" : "Aktif"}
+                          </span>
                         </div>
                       </div>
                     ))}

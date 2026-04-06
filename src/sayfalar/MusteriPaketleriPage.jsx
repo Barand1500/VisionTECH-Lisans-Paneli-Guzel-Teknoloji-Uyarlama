@@ -1476,7 +1476,30 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                               <input 
                                 type="text" 
                                 value={deger.deger || ""} 
-                                onChange={(e) => { sablonGuncelle("deger", e.target.value); guncelle("domain", e.target.value); }} 
+                                onChange={(e) => { 
+                                  const val = e.target.value;
+                                  sablonGuncelle("deger", val); 
+                                  guncelle("domain", val);
+                                  // Domain uzantısını otomatik seç
+                                  if (deger.alan_tipi === "domain" && val.includes(".")) {
+                                    const domainFiyatOz = siraliOzellikler.find(o => o.ozellik_tipi === "domain_fiyat");
+                                    if (domainFiyatOz) {
+                                      const dfDeger = sablonDegerler[domainFiyatOz.id] || domainFiyatOz.deger || {};
+                                      const uzantilar = dfDeger.uzantilar || [];
+                                      // Uzantıları uzunluğuna göre sırala (uzun olanlar önce - .com.tr vs .com)
+                                      const siraliUzantilar = [...uzantilar].sort((a, b) => b.uzanti.length - a.uzanti.length);
+                                      for (const u of siraliUzantilar) {
+                                        if (val.toLowerCase().endsWith(u.uzanti.toLowerCase())) {
+                                          setSablonDegerler((prev) => ({
+                                            ...prev,
+                                            [domainFiyatOz.id]: { ...(prev[domainFiyatOz.id] || domainFiyatOz.deger || {}), secili_uzanti: u.uzanti }
+                                          }));
+                                          break;
+                                        }
+                                      }
+                                    }
+                                  }
+                                }} 
                                 className={INPUT_STIL}
                                 placeholder={deger.alan_tipi === "domain" ? "ornek.com" : "Sicil numarasını girin"} 
                               />

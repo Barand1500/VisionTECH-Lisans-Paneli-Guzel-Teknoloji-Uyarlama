@@ -20,6 +20,7 @@ import LisansYonetimiPage from "./sayfalar/LisansYonetimiPage";
 import YonetimPage from "./sayfalar/YonetimPage";
 import RaporlarPage from "./sayfalar/RaporlarPage";
 import MusteriPaketleriPage from "./sayfalar/MusteriPaketleriPage";
+import BayiPaketleriPage from "./sayfalar/BayiPaketleriPage";
 import AktiviteLoguPage from "./sayfalar/AktiviteLoguPage";
 import TakvimPage from "./sayfalar/TakvimPage";
 
@@ -76,6 +77,9 @@ function App() {
 
           {/* Bayi Duzenleme Sayfasi (ayni form) */}
           <Route path="bayi-duzenle/:id" element={<BayiEklePage />} />
+
+          {/* Bayi Paketleri Sayfasi */}
+          <Route path="bayi-paketleri/:id" element={<BayiPaketleriPage />} />
 
           {/* Yonetim Sayfasi */}
           <Route path="yonetim" element={<YonetimPage />} />
