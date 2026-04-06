@@ -3846,12 +3846,15 @@ function CopKutusuSekmesi() {
   const [yukleniyor, setYukleniyor] = useState(true);
   const [filtre, setFiltre] = useState("tumu"); // tumu, musteri, bayi, urun, paket, lisans, etc.
   const [geriYuklemeOnay, setGeriYuklemeOnay] = useState(null);
+  const [seciliKayitlar, setSeciliKayitlar] = useState([]); // [{ tip, id }, ...]
+  const [topluSilOnay, setTopluSilOnay] = useState(false);
 
   const verileriYukle = async () => {
     setYukleniyor(true);
     try {
       const res = await apiGet("/cop-kutusu");
       setSilinen(res.veri || []);
+      setSeciliKayitlar([]); // Veriler yenilenince seçim sıfırlansın
     } catch (e) {
       console.error("Cop kutusu verileri yuklenemedi:", e);
     } finally {
@@ -3879,6 +3882,38 @@ function CopKutusuSekmesi() {
       verileriYukle();
     } catch (e) {
       console.error("Kalici silme hatasi:", e);
+    }
+  };
+
+  const topluKaliciSil = async () => {
+    if (seciliKayitlar.length === 0) return;
+    try {
+      const res = await apiPost("/cop-kutusu/toplu-sil", { kayitlar: seciliKayitlar });
+      setTopluSilOnay(false);
+      verileriYukle();
+      if (res.hatalar && res.hatalar.length > 0) {
+        console.warn("Bazı kayıtlar silinemedi:", res.hatalar);
+      }
+    } catch (e) {
+      console.error("Toplu silme hatasi:", e);
+      alert(e.message || "Toplu silme hatası");
+    }
+  };
+
+  const kayitSecToggle = (tip, id) => {
+    const key = `${tip}-${id}`;
+    setSeciliKayitlar((prev) => {
+      const var_mi = prev.some(k => `${k.tip}-${k.id}` === key);
+      if (var_mi) return prev.filter(k => `${k.tip}-${k.id}` !== key);
+      return [...prev, { tip, id }];
+    });
+  };
+
+  const tumunuSecToggle = () => {
+    if (seciliKayitlar.length === filtrelenmis.length) {
+      setSeciliKayitlar([]);
+    } else {
+      setSeciliKayitlar(filtrelenmis.map(item => ({ tip: item.tip, id: item.id })));
     }
   };
 
@@ -3923,12 +3958,24 @@ function CopKutusuSekmesi() {
             <option value="kullanici">Kullanıcılar</option>
           </select>
           <span className="text-sm text-gray-500 dark:text-slate-400">{filtrelenmis.length} kayıt</span>
+          {seciliKayitlar.length > 0 && (
+            <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">({seciliKayitlar.length} seçili)</span>
+          )}
         </div>
-        <button onClick={verileriYukle} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-slate-400 text-sm hover:bg-gray-200 dark:hover:bg-white/10 transition-colors cursor-pointer">
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-          Yenile
-        </button>
+        <div className="flex items-center gap-2">
+          {seciliKayitlar.length > 0 && (
+            <button onClick={() => setTopluSilOnay(true)} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors cursor-pointer">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              Toplu Sil ({seciliKayitlar.length})
+            </button>
+          )}
+          <button onClick={verileriYukle} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-slate-400 text-sm hover:bg-gray-200 dark:hover:bg-white/10 transition-colors cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+            Yenile
+          </button>
+        </div>
       </div>
 
       {/* İçerik */}
@@ -3948,6 +3995,14 @@ function CopKutusuSekmesi() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 dark:bg-white/[0.02] border-b border-gray-200 dark:border-white/[0.06]">
+                <th className="text-center px-3 py-3 w-10">
+                  <input 
+                    type="checkbox" 
+                    checked={filtrelenmis.length > 0 && seciliKayitlar.length === filtrelenmis.length}
+                    onChange={tumunuSecToggle}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Tip</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Ad</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Silinme Tarihi</th>
@@ -3955,8 +4010,18 @@ function CopKutusuSekmesi() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-white/[0.04]">
-              {filtrelenmis.map((item) => (
-                <tr key={`${item.tip}-${item.id}`} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors">
+              {filtrelenmis.map((item) => {
+                const secili = seciliKayitlar.some(k => k.tip === item.tip && k.id === item.id);
+                return (
+                <tr key={`${item.tip}-${item.id}`} className={`hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors ${secili ? 'bg-blue-50/50 dark:bg-blue-500/5' : ''}`}>
+                  <td className="text-center px-3 py-3">
+                    <input 
+                      type="checkbox"
+                      checked={secili}
+                      onChange={() => kayitSecToggle(item.tip, item.id)}
+                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">
                       {TIP_ETIKETLERI[item.tip] || item.tip}
@@ -3983,7 +4048,8 @@ function CopKutusuSekmesi() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              );
+              })}
             </tbody>
           </table>
         </div>
@@ -4015,6 +4081,40 @@ function CopKutusuSekmesi() {
               </button>
               <button onClick={() => geriYukle(geriYuklemeOnay.tip, geriYuklemeOnay.id)} className="flex-1 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors cursor-pointer">
                 Geri Yükle
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toplu Silme Onay Modal */}
+      {topluSilOnay && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setTopluSilOnay(false)}>
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-500/15 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Toplu Kalıcı Silme</h3>
+                <p className="text-sm text-gray-500 dark:text-slate-400">Bu işlem geri alınamaz!</p>
+              </div>
+            </div>
+            <div className="p-4 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 mb-4">
+              <p className="text-sm font-medium text-red-700 dark:text-red-400">
+                {seciliKayitlar.length} kayıt kalıcı olarak silinecek.
+              </p>
+              <p className="text-xs text-red-600 dark:text-red-500 mt-1">
+                Bu kayıtlar veritabanından tamamen kaldırılacak ve kurtarılamayacak.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setTopluSilOnay(false)} className="flex-1 px-4 py-2.5 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium hover:bg-gray-200 dark:hover:bg-white/10 transition-colors cursor-pointer">
+                İptal
+              </button>
+              <button onClick={topluKaliciSil} className="flex-1 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors cursor-pointer">
+                Tümünü Sil
               </button>
             </div>
           </div>
