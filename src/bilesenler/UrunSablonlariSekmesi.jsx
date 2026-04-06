@@ -1359,12 +1359,14 @@ const RENK_SEMALARI = {
 
 function SeciliUrunListesi({ urunler, kaldir, renk = "blue", tekli = false, tumUrunler = [] }) {
   const [bilgiUrun, setBilgiUrun] = useState(null);
+  const [bilgiYukleniyor, setBilgiYukleniyor] = useState(false);
   const r = RENK_SEMALARI[renk] || RENK_SEMALARI.blue;
 
   if (!urunler || urunler.length === 0) return null;
 
-  // Bilgi butonuna tıklandığında tam ürün verisini bul
-  const bilgiGoster = (u) => {
+  // Bilgi butonuna tıklandığında tam ürün verisini bul veya API'den çek
+  const bilgiGoster = async (u) => {
+    // Önce tumUrunler'de ara
     if (u.id && tumUrunler.length > 0) {
       const tamUrun = tumUrunler.find(tu => tu.id === u.id);
       if (tamUrun) {
@@ -1372,11 +1374,30 @@ function SeciliUrunListesi({ urunler, kaldir, renk = "blue", tekli = false, tumU
         return;
       }
     }
-    // Tam veri bulunamazsa mevcut bilgiyle göster
+    
+    // tumUrunler'de yoksa ve ID varsa API'den çek
+    if (u.id) {
+      setBilgiYukleniyor(true);
+      try {
+        const yanit = await apiGet(`/urunler/${u.id}`);
+        if (yanit.basarili && yanit.veri) {
+          setBilgiUrun(yanit.veri);
+        } else {
+          // API'den de alınamadıysa mevcut bilgiyle göster
+          setBilgiUrun(u);
+        }
+      } catch {
+        // Hata durumunda mevcut bilgiyle göster
+        setBilgiUrun(u);
+      } finally {
+        setBilgiYukleniyor(false);
+      }
+      return;
+    }
+    
+    // Elle eklenen ürünler için mevcut bilgiyle göster
     setBilgiUrun(u);
   };
-
-  if (!urunler || urunler.length === 0) return null;
 
   return (
     <>
@@ -1406,7 +1427,8 @@ function SeciliUrunListesi({ urunler, kaldir, renk = "blue", tekli = false, tumU
               {/* Bilgi Butonu */}
               <button
                 onClick={() => bilgiGoster(u)}
-                className={`w-6 h-6 rounded-lg flex items-center justify-center cursor-pointer transition-colors ${r.info}`}
+                disabled={bilgiYukleniyor}
+                className={`w-6 h-6 rounded-lg flex items-center justify-center cursor-pointer transition-colors ${r.info} ${bilgiYukleniyor ? 'opacity-50' : ''}`}
                 title="Ürün bilgisi"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className={`w-3.5 h-3.5 ${r.ikon}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

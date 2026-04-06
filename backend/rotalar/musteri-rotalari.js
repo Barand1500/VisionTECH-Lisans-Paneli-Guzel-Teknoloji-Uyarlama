@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { prisma, temizle } = require("../veritabani/prisma");
 const { hataYakala, dogrulamaHatasi, bulunamadiHatasi } = require("../yardimcilar/hata-yonetimi");
+const { epostaGecerliMi, tcKimlikGecerliMi, vergiNoGecerliMi, pasaportNoGecerliMi } = require("../yardimcilar/validasyon");
 
 /* ---- Tum Musterileri Listele ---- */
 router.get("/", hataYakala(async (req, res) => {
@@ -53,6 +54,12 @@ router.post("/", hataYakala(async (req, res) => {
   if (!tur) return dogrulamaHatasi(res, "Musteri turu zorunludur.");
   if (tur === "gercek" && !ad_soyad) return dogrulamaHatasi(res, "Gercek kisi icin ad soyad zorunludur.");
   if (tur === "tuzel" && !sirket_adi) return dogrulamaHatasi(res, "Tuzel kisi icin sirket adi zorunludur.");
+  
+  /* Validasyon kontrolleri */
+  if (eposta && !epostaGecerliMi(eposta)) return dogrulamaHatasi(res, "Gecersiz e-posta formati.");
+  if (tc_kimlik_no && !tcKimlikGecerliMi(tc_kimlik_no)) return dogrulamaHatasi(res, "Gecersiz TC kimlik numarasi.");
+  if (vergi_no && !vergiNoGecerliMi(vergi_no)) return dogrulamaHatasi(res, "Vergi numarasi 10-11 haneli olmalidir.");
+  if (pasaport_no && !pasaportNoGecerliMi(pasaport_no)) return dogrulamaHatasi(res, "Gecersiz pasaport numarasi formati.");
 
   const sonuc = await prisma.musteri.create({
     data: {
@@ -88,6 +95,12 @@ router.put("/:id", hataYakala(async (req, res) => {
   if (!mevcut) return bulunamadiHatasi(res, "Musteri bulunamadi.");
 
   const { tur, ad_soyad, sirket_adi, yetkili_kisi, eposta, tc_kimlik_no, vergi_no, vergi_dairesi, pasaport_no, sektor_id, etiketler, durum, ust_musteri_id, telefonlar, adresler } = req.body;
+
+  /* Validasyon kontrolleri (güncelleme) */
+  if (eposta && !epostaGecerliMi(eposta)) return dogrulamaHatasi(res, "Gecersiz e-posta formati.");
+  if (tc_kimlik_no && !tcKimlikGecerliMi(tc_kimlik_no)) return dogrulamaHatasi(res, "Gecersiz TC kimlik numarasi.");
+  if (vergi_no && !vergiNoGecerliMi(vergi_no)) return dogrulamaHatasi(res, "Vergi numarasi 10-11 haneli olmalidir.");
+  if (pasaport_no && !pasaportNoGecerliMi(pasaport_no)) return dogrulamaHatasi(res, "Gecersiz pasaport numarasi formati.");
 
   await prisma.musteri.update({
     where: { id },

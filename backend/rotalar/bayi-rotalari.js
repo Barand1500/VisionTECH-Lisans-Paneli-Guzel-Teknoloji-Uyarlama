@@ -5,6 +5,7 @@ const path = require("path");
 const fs = require("fs");
 const { prisma, temizle } = require("../veritabani/prisma");
 const { hataYakala, dogrulamaHatasi, bulunamadiHatasi } = require("../yardimcilar/hata-yonetimi");
+const { epostaGecerliMi, tcKimlikGecerliMi, vergiNoGecerliMi, pasaportNoGecerliMi } = require("../yardimcilar/validasyon");
 
 /* ---- Multer ayarlari ---- */
 const depolama = multer.diskStorage({
@@ -63,6 +64,12 @@ router.post("/", hataYakala(async (req, res) => {
   const { ad, yetkili, eposta, telefon, vergi_no, vergi_dairesi, sektor_id, sehir, durum, tur, ust_bayi_id, tc_kimlik_no, pasaport_no, ad_soyad, sirket_adi, notlar, etiketler } = req.body;
   if (!ad) return dogrulamaHatasi(res, "Bayi adi zorunludur.");
 
+  /* Validasyon kontrolleri */
+  if (eposta && !epostaGecerliMi(eposta)) return dogrulamaHatasi(res, "Gecersiz e-posta formati.");
+  if (tc_kimlik_no && !tcKimlikGecerliMi(tc_kimlik_no)) return dogrulamaHatasi(res, "Gecersiz TC kimlik numarasi.");
+  if (vergi_no && !vergiNoGecerliMi(vergi_no)) return dogrulamaHatasi(res, "Vergi numarasi 10-11 haneli olmalidir.");
+  if (pasaport_no && !pasaportNoGecerliMi(pasaport_no)) return dogrulamaHatasi(res, "Gecersiz pasaport numarasi formati.");
+
   const sonuc = await prisma.bayi.create({
     data: {
       ad, yetkili: yetkili || null, eposta: eposta || null, telefon: telefon || null,
@@ -84,6 +91,12 @@ router.put("/:id", hataYakala(async (req, res) => {
   if (!mevcut) return bulunamadiHatasi(res, "Bayi bulunamadi.");
 
   const { ad, yetkili, eposta, telefon, vergi_no, vergi_dairesi, sektor_id, sehir, durum, tur, ust_bayi_id, tc_kimlik_no, pasaport_no, ad_soyad, sirket_adi, notlar, etiketler } = req.body;
+
+  /* Validasyon kontrolleri (güncelleme) */
+  if (eposta && !epostaGecerliMi(eposta)) return dogrulamaHatasi(res, "Gecersiz e-posta formati.");
+  if (tc_kimlik_no && !tcKimlikGecerliMi(tc_kimlik_no)) return dogrulamaHatasi(res, "Gecersiz TC kimlik numarasi.");
+  if (vergi_no && !vergiNoGecerliMi(vergi_no)) return dogrulamaHatasi(res, "Vergi numarasi 10-11 haneli olmalidir.");
+  if (pasaport_no && !pasaportNoGecerliMi(pasaport_no)) return dogrulamaHatasi(res, "Gecersiz pasaport numarasi formati.");
 
   await prisma.bayi.update({
     where: { id },
