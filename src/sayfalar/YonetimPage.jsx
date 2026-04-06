@@ -516,7 +516,7 @@ function UrunlerSekmesi() {
       </div>
 
       {/* ---- Ürün Oluştur/Düzenle Modalı ---- */}
-      {modal && <UrunModal modal={modal} kapat={() => setModal(null)} kaydet={urunKaydet} urunGruplari={urunGruplari} urunTipleri={urunTipleri} uygulamaTipleri={uygulamaTipleri} sablonlar={sablonlar} />}
+      {modal && <UrunModal modal={modal} kapat={() => setModal(null)} kaydet={urunKaydet} urunGruplari={urunGruplari} urunTipleri={urunTipleri} uygulamaTipleri={uygulamaTipleri} sablonlar={sablonlar} tumUrunler={urunler} />}
 
       {/* ---- Paketler Modalı ---- */}
       {paketModal && <PaketlerModal urun={paketModal} kapat={() => setPaketModal(null)} paketler={paketler} setPaketler={setPaketler} tumUrunler={urunler} paketleriYenile={verileriYukle} urunGruplari={urunGruplari} />}
@@ -995,7 +995,7 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
 /*  Ürün Oluştur / Düzenle Modalı                */
 /* ============================================= */
 
-function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTipleri, sablonlar }) {
+function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTipleri, sablonlar, tumUrunler = [] }) {
   const duzenle = modal !== "yeni";
   const [form, setForm] = useState({
     id: duzenle ? modal.id : null,
@@ -1019,6 +1019,7 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
   const [aktifSekme, setAktifSekme] = useState("temel"); // "temel" | "gelismis"
   const [mevcutSurumler, setMevcutSurumler] = useState([]);
   const [mevcutSurumBilgisi, setMevcutSurumBilgisi] = useState(null);
+  const [benzerUrunBilgisi, setBenzerUrunBilgisi] = useState(null);
   const ref = useRef(null);
 
   /* Mevcut sürümleri yükle */
@@ -1057,6 +1058,63 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
       setMevcutSurumBilgisi(null);
     }
   }, [form.urunTipi, form.uygulamaTipi, mevcutSurumler]);
+
+  /* Şablon, grup veya ürün adı değişince benzer ürün kontrolü */
+  useEffect(() => {
+    if (duzenle) {
+      setBenzerUrunBilgisi(null);
+      return;
+    }
+    
+    let benzerUrun = null;
+    
+    /* Önce aynı şablonu kullanan ürünleri kontrol et */
+    if (form.sablonId) {
+      const ayniSablonlu = tumUrunler.filter(u => u.sablonId === form.sablonId && u.id !== form.id);
+      if (ayniSablonlu.length > 0) {
+        /* En yüksek versiyonlu olanı bul */
+        benzerUrun = ayniSablonlu.sort((a, b) => (b.versiyon || "0.0.0").localeCompare(a.versiyon || "0.0.0"))[0];
+      }
+    }
+    
+    /* Şablonla bulunamadıysa, aynı gruptaki benzer isimli ürünleri kontrol et */
+    if (!benzerUrun && form.grup_id && form.adi && form.adi.length >= 3) {
+      const formAdiLower = form.adi.toLowerCase();
+      const ayniGruptakiler = tumUrunler.filter(u => {
+        if (u.grup_id !== form.grup_id || u.id === form.id) return false;
+        const urunAdiLower = (u.adi || "").toLowerCase();
+        /* İsmin ilk 3 karakteri veya kelime eşleşmesi */
+        return urunAdiLower.includes(formAdiLower.slice(0, 3)) || 
+               formAdiLower.includes(urunAdiLower.slice(0, 3));
+      });
+      if (ayniGruptakiler.length > 0) {
+        benzerUrun = ayniGruptakiler.sort((a, b) => (b.versiyon || "0.0.0").localeCompare(a.versiyon || "0.0.0"))[0];
+      }
+    }
+    
+    if (benzerUrun && benzerUrun.versiyon) {
+      /* Bir üst versiyon hesapla */
+      const sonVersiyon = benzerUrun.versiyon;
+      const parcalar = sonVersiyon.split(".").map(Number);
+      const yeniMajor = parcalar[0] || 1;
+      const yeniMinor = parcalar[1] || 0;
+      const yeniPatch = (parcalar[2] || 0) + 1;
+      const onerilenVersiyon = `${yeniMajor}.${yeniMinor}.${yeniPatch}`;
+      
+      setBenzerUrunBilgisi({
+        urun: benzerUrun,
+        mevcutVersiyon: sonVersiyon,
+        onerilenVersiyon
+      });
+      
+      /* Eğer versiyon boşsa önerilen versiyonu otomatik koy */
+      if (!form.versiyon) {
+        setForm(o => ({ ...o, versiyon: onerilenVersiyon }));
+      }
+    } else {
+      setBenzerUrunBilgisi(null);
+    }
+  }, [form.sablonId, form.grup_id, form.adi, tumUrunler, duzenle]);
 
   /* Versiyon formatlama (otomatik nokta ekleme) */
   const versiyonFormatla = (deger) => {
@@ -1266,18 +1324,43 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                       placeholder="Örn: 1.0.0" 
                       className={INPUT_STIL + " flex-1"} 
                     />
-                    {mevcutSurumBilgisi && (
+                    {(benzerUrunBilgisi || mevcutSurumBilgisi) && (
                       <button
                         type="button"
-                        onClick={() => guncelle("versiyon", mevcutSurumBilgisi.onerilen)}
+                        onClick={() => guncelle("versiyon", benzerUrunBilgisi?.onerilenVersiyon || mevcutSurumBilgisi?.onerilen)}
                         className="px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold transition-colors cursor-pointer shrink-0"
-                        title={`Önerilen versiyona ayarla: ${mevcutSurumBilgisi.onerilen}`}
+                        title={`Önerilen versiyona ayarla: ${benzerUrunBilgisi?.onerilenVersiyon || mevcutSurumBilgisi?.onerilen}`}
                       >
                         +
                       </button>
                     )}
                   </div>
-                  {mevcutSurumBilgisi && (
+                  
+                  {/* Benzer ürün bilgisi (şablon/grup bazlı) */}
+                  {benzerUrunBilgisi && (
+                    <div className="mt-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20">
+                      <div className="flex items-center gap-2 mb-1">
+                        <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">Bu uygulamanın mevcut bir versiyonu var!</span>
+                      </div>
+                      <p className="text-[11px] text-blue-600 dark:text-blue-300 ml-6">
+                        <span className="font-semibold">"{benzerUrunBilgisi.urun.adi}"</span> ürünü 
+                        <span className="font-mono font-bold mx-1 px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-500/20">{benzerUrunBilgisi.mevcutVersiyon}</span> 
+                        versiyonunda
+                      </p>
+                      <p className="text-[10px] text-blue-500 dark:text-blue-400 ml-6 mt-1 flex items-center gap-1">
+                        <span>→</span>
+                        <span>Önerilen sonraki versiyon:</span>
+                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{benzerUrunBilgisi.onerilenVersiyon}</span>
+                        <span className="text-blue-400 dark:text-blue-500 ml-1">(+ butonuyla uygula)</span>
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Mevcut sürüm bilgisi (tip bazlı - eski sistem) */}
+                  {!benzerUrunBilgisi && mevcutSurumBilgisi && (
                     <div className="mt-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
                       <p className="text-[10px] text-amber-700 dark:text-amber-400">
                         <span className="font-semibold">{mevcutSurumBilgisi.urun}</span> için mevcut sürüm: <span className="font-mono font-bold">{mevcutSurumBilgisi.surum}</span>
