@@ -1157,6 +1157,287 @@ function WidgetYardimModal({ tip, kapat }) {
 }
 
 /* ============================================= */
+/*  Ürün Bilgi Modal (Seçilen ürün detayı)       */
+/* ============================================= */
+
+function UrunBilgiModal({ urun, kapat }) {
+  const [detay, setDetay] = useState(null);
+  const [yukleniyor, setYukleniyor] = useState(true);
+
+  useEffect(() => {
+    if (urun?.id) {
+      setYukleniyor(true);
+      apiGet(`/urunler/${urun.id}`)
+        .then((res) => setDetay(res.veri))
+        .catch(() => setDetay(null))
+        .finally(() => setYukleniyor(false));
+    } else {
+      setYukleniyor(false);
+    }
+  }, [urun?.id]);
+
+  if (!urun) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={kapat}>
+      <div
+        className="relative w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Başlık */}
+        <div className="flex items-center gap-3 px-5 py-4 bg-gradient-to-r from-blue-500 to-cyan-500">
+          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base font-bold text-white truncate">{urun.ad}</h3>
+            <p className="text-xs text-white/70">Ürün Bilgileri</p>
+          </div>
+          <button onClick={kapat} className="text-white/70 hover:text-white cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* İçerik */}
+        <div className="p-5">
+          {yukleniyor ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : detay ? (
+            <div className="space-y-4">
+              {/* Grup & Tip */}
+              <div className="flex flex-wrap gap-2">
+                {detay.grup?.ad && (
+                  <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    {detay.grup.ad}
+                  </span>
+                )}
+                {detay.urunTipi?.ad && (
+                  <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-500/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
+                    </svg>
+                    {detay.urunTipi.ad}
+                  </span>
+                )}
+                {detay.uygulamaTipi?.ad && (
+                  <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    {detay.uygulamaTipi.ad}
+                  </span>
+                )}
+              </div>
+
+              {/* Detay Bilgiler */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-xl bg-gray-50 dark:bg-white/5">
+                  <p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-1">Durum</p>
+                  <p className={`text-sm font-semibold ${detay.aktif ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400"}`}>
+                    {detay.aktif ? "✓ Aktif" : "○ Pasif"}
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-gray-50 dark:bg-white/5">
+                  <p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-1">Şablon</p>
+                  <p className="text-sm font-semibold text-gray-700 dark:text-slate-300 truncate">
+                    {detay.sablon?.ad || "—"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Açıklama */}
+              {detay.aciklama && (
+                <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-1 font-medium">Açıklama</p>
+                  <p className="text-xs text-amber-800 dark:text-amber-300">{detay.aciklama}</p>
+                </div>
+              )}
+
+              {/* Fiyat Bilgisi */}
+              {detay.sablon?.icerik && (() => {
+                try {
+                  const icerik = typeof detay.sablon.icerik === "string" ? JSON.parse(detay.sablon.icerik) : detay.sablon.icerik;
+                  const temelFiyat = icerik?.ozellikler?.find(o => o.ozellik_tipi === "temel_fiyat");
+                  if (temelFiyat?.deger?.fiyat) {
+                    return (
+                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
+                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1 font-medium">Temel Fiyat</p>
+                        <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">
+                          {temelFiyat.deger.fiyat.toLocaleString("tr-TR")} {temelFiyat.deger.para_birimi || "TL"}
+                        </p>
+                      </div>
+                    );
+                  }
+                } catch { return null; }
+                return null;
+              })()}
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-slate-400">Ürün bilgisi bulunamadı</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">Bu ürün elle eklenmiş olabilir</p>
+            </div>
+          )}
+        </div>
+
+        {/* Alt Buton */}
+        <div className="px-5 py-3 bg-gray-50 dark:bg-white/5 flex justify-end">
+          <button
+            onClick={kapat}
+            className="px-4 py-2 rounded-lg bg-gray-200 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/20 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer transition-colors"
+          >
+            Kapat
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================= */
+/*  Seçili Ürün Kartı (Tekrar kullanılabilir)    */
+/* ============================================= */
+
+const RENK_SEMALARI = {
+  red: {
+    kart: "bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-500/10 dark:to-rose-500/10 border-red-200 dark:border-red-500/20",
+    metin: "text-red-700 dark:text-red-400",
+    ikon: "text-red-500 dark:text-red-400",
+    buton: "hover:bg-red-100 dark:hover:bg-red-500/20",
+    info: "hover:bg-red-200/50 dark:hover:bg-red-500/30",
+  },
+  emerald: {
+    kart: "bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-500/10 dark:to-teal-500/10 border-emerald-200 dark:border-emerald-500/20",
+    metin: "text-emerald-700 dark:text-emerald-400",
+    ikon: "text-emerald-500 dark:text-emerald-400",
+    buton: "hover:bg-emerald-100 dark:hover:bg-emerald-500/20",
+    info: "hover:bg-emerald-200/50 dark:hover:bg-emerald-500/30",
+  },
+  violet: {
+    kart: "bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-500/10 dark:to-purple-500/10 border-violet-200 dark:border-violet-500/20",
+    metin: "text-violet-700 dark:text-violet-400",
+    ikon: "text-violet-500 dark:text-violet-400",
+    buton: "hover:bg-violet-100 dark:hover:bg-violet-500/20",
+    info: "hover:bg-violet-200/50 dark:hover:bg-violet-500/30",
+  },
+  amber: {
+    kart: "bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-500/10 dark:to-orange-500/10 border-amber-200 dark:border-amber-500/20",
+    metin: "text-amber-700 dark:text-amber-400",
+    ikon: "text-amber-500 dark:text-amber-400",
+    buton: "hover:bg-amber-100 dark:hover:bg-amber-500/20",
+    info: "hover:bg-amber-200/50 dark:hover:bg-amber-500/30",
+  },
+  cyan: {
+    kart: "bg-gradient-to-r from-cyan-50 to-sky-50 dark:from-cyan-500/10 dark:to-sky-500/10 border-cyan-200 dark:border-cyan-500/20",
+    metin: "text-cyan-700 dark:text-cyan-400",
+    ikon: "text-cyan-500 dark:text-cyan-400",
+    buton: "hover:bg-cyan-100 dark:hover:bg-cyan-500/20",
+    info: "hover:bg-cyan-200/50 dark:hover:bg-cyan-500/30",
+  },
+  blue: {
+    kart: "bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-500/10 dark:to-indigo-500/10 border-blue-200 dark:border-blue-500/20",
+    metin: "text-blue-700 dark:text-blue-400",
+    ikon: "text-blue-500 dark:text-blue-400",
+    buton: "hover:bg-blue-100 dark:hover:bg-blue-500/20",
+    info: "hover:bg-blue-200/50 dark:hover:bg-blue-500/30",
+  },
+};
+
+function SeciliUrunListesi({ urunler, kaldir, renk = "blue", tekli = false, tumUrunler = [] }) {
+  const [bilgiUrun, setBilgiUrun] = useState(null);
+  const r = RENK_SEMALARI[renk] || RENK_SEMALARI.blue;
+
+  if (!urunler || urunler.length === 0) return null;
+
+  // Bilgi butonuna tıklandığında tam ürün verisini bul
+  const bilgiGoster = (u) => {
+    if (u.id && tumUrunler.length > 0) {
+      const tamUrun = tumUrunler.find(tu => tu.id === u.id);
+      if (tamUrun) {
+        setBilgiUrun(tamUrun);
+        return;
+      }
+    }
+    // Tam veri bulunamazsa mevcut bilgiyle göster
+    setBilgiUrun(u);
+  };
+
+  if (!urunler || urunler.length === 0) return null;
+
+  return (
+    <>
+      <div className={tekli ? "space-y-2" : "grid grid-cols-1 sm:grid-cols-2 gap-2"}>
+        {urunler.map((u, i) => (
+          <div
+            key={i}
+            className={`group relative flex items-center gap-2 px-3 py-2 rounded-xl border ${r.kart} transition-all hover:shadow-sm`}
+          >
+            {/* Ürün İkonu */}
+            <div className={`w-7 h-7 rounded-lg bg-white/60 dark:bg-white/10 flex items-center justify-center shrink-0 ${r.ikon}`}>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+            </div>
+
+            {/* Ürün Adı */}
+            <div className="flex-1 min-w-0">
+              <p className={`text-xs font-semibold truncate ${r.metin}`}>{u.ad}</p>
+              {!u.id && (
+                <p className="text-[9px] text-gray-400 dark:text-slate-500">Elle eklendi</p>
+              )}
+            </div>
+
+            {/* Butonlar */}
+            <div className="flex items-center gap-0.5 shrink-0">
+              {/* Bilgi Butonu */}
+              <button
+                onClick={() => bilgiGoster(u)}
+                className={`w-6 h-6 rounded-lg flex items-center justify-center cursor-pointer transition-colors ${r.info}`}
+                title="Ürün bilgisi"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className={`w-3.5 h-3.5 ${r.ikon}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
+
+              {/* Kaldır Butonu */}
+              <button
+                onClick={() => tekli ? kaldir() : kaldir(i)}
+                className={`w-6 h-6 rounded-lg flex items-center justify-center cursor-pointer transition-colors ${r.buton}`}
+                title="Kaldır"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Bilgi Modal */}
+      {bilgiUrun && (
+        <UrunBilgiModal urun={bilgiUrun} kapat={() => setBilgiUrun(null)} />
+      )}
+    </>
+  );
+}
+
+/* ============================================= */
 /*  Özellik Formları (her tip için ayrı)         */
 /* ============================================= */
 
@@ -1584,18 +1865,12 @@ function BagimliUrunFormu({ deger, guncelle }) {
     <div className="space-y-3">
       {/* Seçilen ürünler */}
       {urunler.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {urunler.map((u, i) => (
-            <span key={i} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-500/20 font-medium">
-              {u.ad}
-              <button onClick={() => urunKaldir(i)} className="ml-0.5 hover:text-red-900 dark:hover:text-red-300 cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </span>
-          ))}
-        </div>
+        <SeciliUrunListesi 
+          urunler={urunler} 
+          kaldir={urunKaldir} 
+          renk="red"
+          tumUrunler={tumUrunler}
+        />
       )}
 
       {/* Arama / Ekleme */}
@@ -1812,31 +2087,18 @@ function UrunSecimFormu({ deger, guncelle, baslik, renk = "blue" }) {
     guncelle("urunler", urunler.filter((_, i) => i !== idx));
   };
 
-  const renkler = {
-    emerald: { badge: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20" },
-    blue: { badge: "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20" },
-    violet: { badge: "bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-500/20" },
-    amber: { badge: "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20" },
-  };
-
   return (
     <div className="space-y-3">
       <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400">{baslik}</label>
       
       {/* Seçilen ürünler */}
       {urunler.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {urunler.map((u, i) => (
-            <span key={i} className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border font-medium ${renkler[renk]?.badge || renkler.blue.badge}`}>
-              {u.ad}
-              <button onClick={() => urunKaldir(i)} className="ml-0.5 opacity-70 hover:opacity-100 cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </span>
-          ))}
-        </div>
+        <SeciliUrunListesi 
+          urunler={urunler} 
+          kaldir={urunKaldir} 
+          renk={renk}
+          tumUrunler={tumUrunler}
+        />
       )}
 
       {/* Arama */}
@@ -1927,18 +2189,12 @@ function PaketIndirimiFormu({ deger, guncelle }) {
       
       {/* Seçilen ürünler */}
       {urunler.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {urunler.map((u, i) => (
-            <span key={i} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-500/20 font-medium">
-              {u.ad}
-              <button onClick={() => urunKaldir(i)} className="ml-0.5 opacity-70 hover:opacity-100 cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </span>
-          ))}
-        </div>
+        <SeciliUrunListesi 
+          urunler={urunler} 
+          kaldir={urunKaldir} 
+          renk="violet"
+          tumUrunler={tumUrunler}
+        />
       )}
 
       {/* Arama */}
@@ -2025,16 +2281,13 @@ function GecisFiyatiFormu({ deger, guncelle }) {
       
       {/* Seçili ürün */}
       {deger.hedef_urun_ad ? (
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-500/20 font-medium">
-            {deger.hedef_urun_ad}
-            <button onClick={temizle} className="ml-0.5 opacity-70 hover:opacity-100 cursor-pointer">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </span>
-        </div>
+        <SeciliUrunListesi 
+          urunler={[{ id: deger.hedef_urun_id, ad: deger.hedef_urun_ad }]} 
+          kaldir={temizle} 
+          renk="cyan"
+          tumUrunler={tumUrunler}
+          tekli
+        />
       ) : (
         <div ref={wrapRef} className="relative">
           <input
