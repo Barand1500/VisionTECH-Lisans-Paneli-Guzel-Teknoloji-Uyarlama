@@ -283,7 +283,7 @@ export default function BayilerPage() {
   useEffect(() => {
     if (dosyaModal) {
       setDosyaYukleniyor(true);
-      apiGet(`/dosyalar/bayi/${dosyaModal.id}`)
+      apiGet(`/dosyalar/bayi/${dosyaModal.id}/dosyalar`)
         .then((res) => setDosyalar(res.veri || []))
         .catch(() => setDosyalar([]))
         .finally(() => setDosyaYukleniyor(false));

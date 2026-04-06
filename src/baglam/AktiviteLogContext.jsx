@@ -30,9 +30,16 @@ export function AktiviteLogProvider({ children }) {
   const [loglar, setLoglar] = useState([]);
 
   const loglariYukle = useCallback(async () => {
+    // Token yoksa API isteği yapma (login olmadan önce hata önleme)
+    const token = localStorage.getItem("gt_token");
+    if (!token) {
+      setLoglar([]);
+      return;
+    }
+    
     try {
       const yanit = await apiGet("/aktivite-loglar");
-      setLoglar(yanit.veri.map((l) => ({
+      setLoglar((yanit.veri || []).map((l) => ({
         id: l.id,
         tur: l.tip,
         detay: l.mesaj,
@@ -43,6 +50,7 @@ export function AktiviteLogProvider({ children }) {
       })));
     } catch (e) {
       console.error("Aktivite loglari yuklenemedi:", e);
+      setLoglar([]);
     }
   }, []);
 

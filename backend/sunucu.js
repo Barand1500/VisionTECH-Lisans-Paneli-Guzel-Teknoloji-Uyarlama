@@ -24,6 +24,7 @@ uygulama.use(express.urlencoded({ limit: "50mb", extended: true }));
 uygulama.use("/api/yetki", require("./rotalar/yetki-rotalari"));
 uygulama.use("/api/musteriler", require("./rotalar/musteri-rotalari"));
 uygulama.use("/api/bayiler", require("./rotalar/bayi-rotalari"));
+uygulama.use("/api/bayi-urunler", require("./rotalar/bayi-urun-rotalari")); // Ayri endpoint
 uygulama.use("/api/urunler", require("./rotalar/urun-rotalari"));
 uygulama.use("/api/lisanslar", require("./rotalar/lisans-rotalari"));
 uygulama.use("/api/lisans-tipleri", require("./rotalar/lisans-tipi-rotalari"));
@@ -37,8 +38,6 @@ uygulama.use("/api/yedekleme", require("./rotalar/yedekleme-rotalari"));
 uygulama.use("/api/sektorler", require("./rotalar/sektor-rotalari"));
 uygulama.use("/api/sablonlar", require("./rotalar/sablon-rotalari"));
 uygulama.use("/api/paket-tipleri", require("./rotalar/paket-tipi-rotalari"));
-uygulama.use("/api/bayiler", require("./rotalar/bayi-urun-rotalari"));
-uygulama.use("/api/musteriler", require("./rotalar/dosya-rotalari"));
 uygulama.use("/api/dosyalar", require("./rotalar/dosya-rotalari"));
 uygulama.use("/api/iletisim", require("./rotalar/iletisim-rotalari"));
 uygulama.use("/api/kisiler", require("./rotalar/iletisim-kisileri-rotalari"));
@@ -61,7 +60,11 @@ uygulama.get("/api/durum", (req, res) => {
 });
 
 /* ---- SPA Fallback (React Router icin) ---- */
-uygulama.get("/{*path}", (req, res) => {
+uygulama.get("*", (req, res) => {
+  // API isteklerini atla
+  if (req.path.startsWith("/api")) {
+    return res.status(404).json({ basarili: false, mesaj: "API rotasi bulunamadi." });
+  }
   const indexDosya = path.join(__dirname, "..", "Frontend", "index.html");
   const fs = require("fs");
   if (fs.existsSync(indexDosya)) {

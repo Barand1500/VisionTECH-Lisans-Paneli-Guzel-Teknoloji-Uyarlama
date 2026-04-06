@@ -8,8 +8,17 @@ function rastgeleLisansAnahtari() {
   return crypto.randomBytes(16).toString("hex").toUpperCase().replace(/(.{4})/g, "$1-").slice(0, -1);
 }
 
-/* ---- Tum Lisanslar ---- */
-router.get("/", hataYakala(async (_req, res) => {
+/* ---- Tum Lisanslar (bayi_id filtresi destekli) ---- */
+router.get("/", hataYakala(async (req, res) => {
+  const { bayi_id } = req.query;
+  let whereClause = "WHERE l.silinme_tarihi IS NULL";
+  const params = [];
+  
+  if (bayi_id) {
+    whereClause += " AND l.bayi_id = ?";
+    params.push(Number(bayi_id));
+  }
+  
   const rows = await prisma.$queryRawUnsafe(`
     SELECT l.*, m.ad_soyad AS musteri_adi, m.sirket_adi, m.tur AS musteri_turu,
            u.ad AS urun_adi, u.sablon_id, p.ad AS paket_adi, b.ad AS bayi_adi,
@@ -20,9 +29,9 @@ router.get("/", hataYakala(async (_req, res) => {
     LEFT JOIN paketler p ON l.paket_id = p.id
     LEFT JOIN bayiler b ON l.bayi_id = b.id
     LEFT JOIN lisans_tipleri lt ON l.lisans_tipi = lt.kod
-    WHERE l.silinme_tarihi IS NULL
+    ${whereClause}
     ORDER BY l.id DESC
-  `);
+  `, ...params);
   res.json({ basarili: true, veri: temizle(rows) });
 }));
 

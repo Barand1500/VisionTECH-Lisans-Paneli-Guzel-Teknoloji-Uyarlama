@@ -18,14 +18,42 @@ const INPUT_STIL =
 /*  Özellik Tipleri Tanımları                    */
 /* ============================================= */
 
+/* ============================================= */
+/*  MANTIK AÇIKLAMASI:                           */
+/*  - temel_fiyat: Şablon oluşturulduğunda       */
+/*    otomatik eklenir. Sabit ürün fiyatı.       */
+/*  - kademeli_fiyat: Adet veya Kapasite bazlı   */
+/*    kademe fiyatlandırma (birleşik widget)     */
+/*  - hediye_urun: Mevcut ürünlerden arama ile   */
+/*    seçim + çoklu hediye verilebilir           */
+/*  - paket_indirimi: Birlikte alınacak ürünler  */
+/*    arama ile seçilir, indirim uygulanır       */
+/*  - periyot_indirim: Aylık/Yıllık seçim ile    */
+/*    farklı indirim oranları tanımlanır         */
+/*  - gecis_fiyati: Kaynak ürün (sabit info) +   */
+/*    Hedef ürün arama ile seçilir               */
+/*  - kullanici_sayisi: Min/max kullanıcı ve     */
+/*    ek kullanıcı fiyatı (paket verirken        */
+/*    kullanıcı eklenirse bu fiyat eklenir)      */
+/*  - sicil_domain: Zorunlu ise paket eklerken   */
+/*    bu alan mutlaka doldurulmalı               */
+/*  - siparis_miktari: Bu üründen min/max kaç    */
+/*    adet alınabilir kontrolü                   */
+/*  - kampanya: Koşul builder ile if-else tarzı  */
+/*    mantıksal kampanya kuralları               */
+/*  - bagimli_urun: Bu ürün verilirken bağımlı   */
+/*    ürünler de olmalı uyarısı verir            */
+/* ============================================= */
+
 const OZELLIK_TIPLERI = [
   {
     id: "temel_fiyat",
     ad: "Temel Fiyat",
     ikon: "₺",
     renk: "emerald",
-    aciklama: "Sabit ürün fiyatı",
+    aciklama: "Sabit ürün fiyatı (otomatik eklenir)",
     varsayilan: { fiyat: 0, para_birimi: "TL" },
+    otomatik: true, // Şablon oluşturulduğunda otomatik eklenir
   },
   {
     id: "aktivasyon_yenileme",
@@ -36,52 +64,49 @@ const OZELLIK_TIPLERI = [
     varsayilan: { aktivasyon_fiyat: 0, yenileme_fiyat: 0, para_birimi: "TL" },
   },
   {
-    id: "kademeli_adet",
-    ad: "Kademeli Fiyat (Adet)",
+    id: "kademeli_fiyat",
+    ad: "Kademeli Fiyat (Adet-Kapasite)",
     ikon: "📊",
     renk: "violet",
-    aciklama: "Kontör/adet bazlı kademe fiyatlandırma",
-    varsayilan: { kademeler: [{ adet: 0, fiyat: 0 }], birim: "Adet" },
-  },
-  {
-    id: "kademeli_kapasite",
-    ad: "Kademeli Fiyat (Kapasite)",
-    ikon: "💾",
-    renk: "cyan",
-    aciklama: "GB/TB bazlı kademe fiyatlandırma",
-    varsayilan: { kademeler: [{ kapasite: "", fiyat: 0 }], birim: "GB" },
+    aciklama: "Adet veya kapasite bazlı kademe fiyatı",
+    varsayilan: { tip: "adet", kademeler: [{ deger: "", fiyat: 0 }], birim: "Adet" },
+    // Mantık: Paket verilirken kademeye göre fiyat hesaplanır
   },
   {
     id: "hediye_urun",
     ad: "Hediye Ürün",
     ikon: "🎁",
     renk: "pink",
-    aciklama: "Bu ürünü alana hediye ürün",
-    varsayilan: { urun_adi: "", miktar: 1, aciklama: "" },
+    aciklama: "Ürün arama ile hediye seçimi (çoklu)",
+    varsayilan: { urunler: [], miktar: 1 },
+    // Mantık: Bu ürün alındığında seçilen ürünler hediye verilir
   },
   {
     id: "paket_indirimi",
     ad: "Paket İndirimi",
     ikon: "📦",
     renk: "amber",
-    aciklama: "Başka ürünlerle alınca toplu indirim",
-    varsayilan: { birlikte_urunler: "", indirim_orani: 0, aciklama: "" },
+    aciklama: "Birlikte alınan ürünlerde indirim",
+    varsayilan: { urunler: [], indirim_orani: 0 },
+    // Mantık: Seçilen ürünlerle birlikte alınırsa indirim uygulanır
   },
   {
-    id: "yillik_indirim",
-    ad: "Yıllık İndirim Oranı",
+    id: "periyot_indirim",
+    ad: "Aylık / Yıllık İndirim",
     ikon: "📅",
     renk: "teal",
-    aciklama: "Yıllık alıma özel indirim",
-    varsayilan: { oran: 0, aciklama: "" },
+    aciklama: "Periyoda göre farklı indirim oranları",
+    varsayilan: { aylik_oran: 0, yillik_oran: 0 },
+    // Mantık: Müşteri aylık/yıllık seçimine göre indirim uygulanır
   },
   {
     id: "gecis_fiyati",
     ad: "Geçiş Fiyatı",
     ikon: "🔀",
     renk: "orange",
-    aciklama: "Başka üründen geçiş yapana özel",
-    varsayilan: { kaynak_urun: "", fiyat: 0, aciklama: "" },
+    aciklama: "Başka üründen geçiş yapana özel fiyat",
+    varsayilan: { hedef_urunler: [], fiyat: 0 },
+    // Mantık: Seçilen ürünlerden geçiş yapanlara özel fiyat
   },
   {
     id: "kullanici_sayisi",
@@ -90,6 +115,7 @@ const OZELLIK_TIPLERI = [
     renk: "indigo",
     aciklama: "Min/max kullanıcı ve ek kullanıcı ücreti",
     varsayilan: { min: 1, max: null, ek_kullanici_fiyat: 0 },
+    // Mantık: Ek kullanıcı eklenirse bu fiyat kadar artış olur
   },
   {
     id: "sicil_domain",
@@ -98,62 +124,33 @@ const OZELLIK_TIPLERI = [
     renk: "sky",
     aciklama: "Lisansa bağlı sicil no veya domain",
     varsayilan: { alan_tipi: "sicil_no", zorunlu: false },
+    // Mantık: Zorunlu ise paket eklerken bu alan boş bırakılamaz
   },
   {
     id: "domain_fiyat",
     ad: "Domain Uzantı Fiyatlandırma",
     ikon: "🌍",
     renk: "cyan",
-    aciklama: "Her domain uzantısı için farklı fiyat (.com, .org, vb.)",
+    aciklama: "Her domain uzantısı için farklı fiyat",
     varsayilan: { uzantilar: [{ uzanti: ".com", aktivasyon: 0, yenileme: 0 }], para_birimi: "TL" },
   },
   {
-    id: "kdv",
-    ad: "KDV Oranı",
-    ikon: "🏛️",
-    renk: "slate",
-    aciklama: "Vergi oranı ve dahil/hariç seçimi",
-    varsayilan: { oran: 20, dahil: false },
-  },
-  {
-    id: "sure",
-    ad: "Süre Seçenekleri",
-    ikon: "⏱️",
-    renk: "lime",
-    aciklama: "Yıllık, aylık, adet bazlı süre",
-    varsayilan: { tip: "yillik", deger: 1, birim: "yil" },
+    id: "siparis_miktari",
+    ad: "Sipariş Miktarı (Min-Max)",
+    ikon: "📋",
+    renk: "yellow",
+    aciklama: "Üründen alınabilecek min/max adet",
+    varsayilan: { min_adet: 1, max_adet: null },
+    // Mantık: Paket verilirken bu sınırlar kontrol edilir
   },
   {
     id: "kampanya",
     ad: "Kampanya / Promosyon",
     ikon: "🏷️",
     renk: "rose",
-    aciklama: "Özel kampanya tanımı",
-    varsayilan: { ad: "", kosul: "", indirim_orani: 0, bitis_tarihi: "", aciklama: "" },
-  },
-  {
-    id: "ek_kullanici_ucret",
-    ad: "Ek Kullanıcı Ücreti",
-    ikon: "👤",
-    renk: "fuchsia",
-    aciklama: "Kullanıcı başına ücret",
-    varsayilan: { fiyat: 0, para_birimi: "TL" },
-  },
-  {
-    id: "min_siparis",
-    ad: "Minimum Sipariş",
-    ikon: "📋",
-    renk: "yellow",
-    aciklama: "Minimum sipariş miktarı",
-    varsayilan: { miktar: 1, birim: "adet" },
-  },
-  {
-    id: "ozel_not",
-    ad: "Özel Not / Açıklama",
-    ikon: "📝",
-    renk: "gray",
-    aciklama: "Serbest metin alanı",
-    varsayilan: { metin: "" },
+    aciklama: "Koşullu kampanya tanımı",
+    varsayilan: { ad: "", kosullar: [], indirim_orani: 0, bitis_tarihi: "" },
+    // Mantık: Koşullar sağlanırsa kampanya indirimi uygulanır
   },
   {
     id: "demo_suresi",
@@ -177,23 +174,8 @@ const OZELLIK_TIPLERI = [
     ikon: "🔗",
     renk: "red",
     aciklama: "Bu ürün için gerekli diğer ürünler",
-    varsayilan: { urunler: [], zorunlu: true, aciklama: "" },
-  },
-  {
-    id: "marka",
-    ad: "Marka",
-    ikon: "🏢",
-    renk: "blue",
-    aciklama: "Ürün markası bilgisi",
-    varsayilan: { marka: "" },
-  },
-  {
-    id: "ozel_alan",
-    ad: "Özel Alan",
-    ikon: "⚙️",
-    renk: "neutral",
-    aciklama: "İstediğin adı ve değeri gir",
-    varsayilan: { alan_adi: "", alan_degeri: "" },
+    varsayilan: { urunler: [], zorunlu: true },
+    // Mantık: Bu ürün verilirken bağımlı ürünler yoksa uyarı verilir
   },
 ];
 
@@ -452,6 +434,8 @@ function SablonTasarimci({ sablonId, kapat }) {
     grup_id: null,
     urun_tipi_id: null,
     uygulama_tipi_id: null,
+    kdv_aktif: false,
+    kdv_oran: 20,
   });
   const [ozellikler, setOzellikler] = useState([]);
   const [urunGruplari, setUrunGruplari] = useState([]);
@@ -461,6 +445,22 @@ function SablonTasarimci({ sablonId, kapat }) {
   const [solPanelAcik, setSolPanelAcik] = useState(true);
   const [aramaMetni, setAramaMetni] = useState("");
   const sayac = useRef(0);
+
+  /* Yeni şablon oluşturulurken Temel Fiyat otomatik ekle */
+  useEffect(() => {
+    if (!sablonId && ozellikler.length === 0) {
+      const temelFiyatTip = OZELLIK_TIPLERI.find(t => t.id === "temel_fiyat");
+      if (temelFiyatTip) {
+        setOzellikler([{
+          _key: ++sayac.current,
+          ozellik_tipi: "temel_fiyat",
+          baslik: "",
+          deger: JSON.parse(JSON.stringify(temelFiyatTip.varsayilan)),
+          sira: 0,
+        }]);
+      }
+    }
+  }, [sablonId]);
 
   /* Tip verilerini yukle */
   useEffect(() => {
@@ -494,6 +494,8 @@ function SablonTasarimci({ sablonId, kapat }) {
           grup_id: s.grup_id,
           urun_tipi_id: s.urun_tipi_id,
           uygulama_tipi_id: s.uygulama_tipi_id,
+          kdv_aktif: s.kdv_aktif || false,
+          kdv_oran: s.kdv_oran ?? 20,
         });
         setOzellikler(
           (s.ozellikler || []).map((oz, i) => ({
@@ -784,6 +786,35 @@ function SablonTasarimci({ sablonId, kapat }) {
                   </select>
                 </div>
               )}
+
+              {/* KDV Ayarı */}
+              <div className="md:col-span-2 mt-2">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-500/10 border border-slate-200 dark:border-slate-500/20">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={form.kdv_aktif || false} 
+                      onChange={(e) => setForm((f) => ({ ...f, kdv_aktif: e.target.checked }))}
+                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
+                    />
+                    <span className="text-sm font-medium text-gray-700 dark:text-slate-300">KDV Uygula</span>
+                  </label>
+                  {form.kdv_aktif && (
+                    <div className="flex items-center gap-2 ml-4 animate-fadeIn">
+                      <span className="text-xs text-gray-500 dark:text-slate-400">Oran:</span>
+                      <input
+                        type="number"
+                        value={form.kdv_oran ?? 20}
+                        onChange={(e) => setForm((f) => ({ ...f, kdv_oran: Number(e.target.value) }))}
+                        className="w-16 px-2 py-1 rounded-lg bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        min={0}
+                        max={100}
+                      />
+                      <span className="text-xs text-gray-500 dark:text-slate-400">%</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -945,81 +976,41 @@ function OzellikFormu({ tip, deger, guncelle }) {
         </div>
       );
 
-    case "kademeli_adet":
-      return <KademeliForm deger={deger} guncelle={guncelle} birimLabel="Adet" birimKey="adet" />;
-
-    case "kademeli_kapasite":
-      return <KademeliForm deger={deger} guncelle={guncelle} birimLabel="Kapasite" birimKey="kapasite" />;
+    case "kademeli_fiyat":
+      return <KademeliAdetKapasiteForm deger={deger} guncelle={guncelle} />;
 
     case "hediye_urun":
-      return (
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Hediye Ürün Adı</label>
-            <input type="text" value={deger.urun_adi || ""} onChange={(e) => guncelle("urun_adi", e.target.value)} className={KUCUK_INPUT + " w-full"} placeholder="Örn: E-Mutabakat" />
-          </div>
-          <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Miktar</label>
-            <input type="number" value={deger.miktar || 1} onChange={(e) => guncelle("miktar", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={1} />
-          </div>
-          <div className="col-span-2">
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Açıklama</label>
-            <input type="text" value={deger.aciklama || ""} onChange={(e) => guncelle("aciklama", e.target.value)} className={KUCUK_INPUT + " w-full"} placeholder="Opsiyonel not..." />
-          </div>
-        </div>
-      );
+      return <UrunSecimFormu deger={deger} guncelle={guncelle} baslik="Hediye Edilecek Ürünler" renk="emerald" />;
 
     case "paket_indirimi":
+      return <PaketIndirimiFormu deger={deger} guncelle={guncelle} />;
+
+    case "periyot_indirim":
       return (
         <div className="space-y-3">
-          <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Birlikte Alınacak Ürünler</label>
-            <input type="text" value={deger.birlikte_urunler || ""} onChange={(e) => guncelle("birlikte_urunler", e.target.value)} className={KUCUK_INPUT + " w-full"} placeholder="Örn: E-Fatura, E-Arşiv" />
+          <div className="flex items-center gap-6">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="periyot_tip" checked={deger.tip === "aylik"} onChange={() => guncelle("tip", "aylik")}
+                className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500" />
+              <span className="text-xs text-gray-600 dark:text-slate-400">Aylık</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="periyot_tip" checked={deger.tip === "yillik"} onChange={() => guncelle("tip", "yillik")}
+                className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500" />
+              <span className="text-xs text-gray-600 dark:text-slate-400">Yıllık</span>
+            </label>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">İndirim Oranı (%)</label>
-              <input type="number" value={deger.indirim_orani || 0} onChange={(e) => guncelle("indirim_orani", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={0} max={100} />
-            </div>
-            <div>
-              <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Açıklama</label>
-              <input type="text" value={deger.aciklama || ""} onChange={(e) => guncelle("aciklama", e.target.value)} className={KUCUK_INPUT + " w-full"} />
-            </div>
-          </div>
-        </div>
-      );
-
-    case "yillik_indirim":
-      return (
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">İndirim Oranı (%)</label>
+          <div className="w-48">
+            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">
+              {deger.tip === "yillik" ? "Yıllık" : "Aylık"} İndirim Oranı (%)
+            </label>
             <input type="number" value={deger.oran || 0} onChange={(e) => guncelle("oran", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={0} max={100} />
-          </div>
-          <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Açıklama</label>
-            <input type="text" value={deger.aciklama || ""} onChange={(e) => guncelle("aciklama", e.target.value)} className={KUCUK_INPUT + " w-full"} />
           </div>
         </div>
       );
 
     case "gecis_fiyati":
-      return (
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Kaynak Ürün</label>
-            <input type="text" value={deger.kaynak_urun || ""} onChange={(e) => guncelle("kaynak_urun", e.target.value)} className={KUCUK_INPUT + " w-full"} placeholder="Geçiş yapılacak ürün" />
-          </div>
-          <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Geçiş Fiyatı</label>
-            <input type="number" value={deger.fiyat || 0} onChange={(e) => guncelle("fiyat", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={0} step="0.01" />
-          </div>
-          <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Açıklama</label>
-            <input type="text" value={deger.aciklama || ""} onChange={(e) => guncelle("aciklama", e.target.value)} className={KUCUK_INPUT + " w-full"} />
-          </div>
-        </div>
-      );
+      return <GecisFiyatiFormu deger={deger} guncelle={guncelle} />;
 
     case "kullanici_sayisi":
       return (
@@ -1064,123 +1055,20 @@ function OzellikFormu({ tip, deger, guncelle }) {
     case "domain_fiyat":
       return <DomainFiyatFormu deger={deger} guncelle={guncelle} />;
 
-    case "kdv":
-      return (
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">KDV Oranı (%)</label>
-            <input type="number" value={deger.oran ?? 20} onChange={(e) => guncelle("oran", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={0} max={100} />
-          </div>
-          <div className="flex items-end">
-            <label className="flex items-center gap-2 cursor-pointer pb-2">
-              <input type="checkbox" checked={deger.dahil || false} onChange={(e) => guncelle("dahil", e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-              <span className="text-xs text-gray-600 dark:text-slate-400">KDV Dahil</span>
-            </label>
-          </div>
-        </div>
-      );
-
-    case "sure":
-      return (
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Süre Tipi</label>
-            <select value={deger.tip || "yillik"} onChange={(e) => guncelle("tip", e.target.value)} className={KUCUK_INPUT + " w-full"}>
-              <option value="yillik">Yıllık</option>
-              <option value="aylik">Aylık</option>
-              <option value="adet">Adet</option>
-              <option value="sinirsiz">Sınırsız</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Değer</label>
-            <input type="number" value={deger.deger || 1} onChange={(e) => guncelle("deger", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={1} />
-          </div>
-          <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Birim</label>
-            <select value={deger.birim || "yil"} onChange={(e) => guncelle("birim", e.target.value)} className={KUCUK_INPUT + " w-full"}>
-              <option value="yil">Yıl</option>
-              <option value="ay">Ay</option>
-              <option value="gun">Gün</option>
-              <option value="adet">Adet</option>
-            </select>
-          </div>
-        </div>
-      );
-
     case "kampanya":
-      return (
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Kampanya Adı</label>
-              <input type="text" value={deger.ad || ""} onChange={(e) => guncelle("ad", e.target.value)} className={KUCUK_INPUT + " w-full"} placeholder="Örn: Yılbaşı Kampanyası" />
-            </div>
-            <div>
-              <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">İndirim Oranı (%)</label>
-              <input type="number" value={deger.indirim_orani || 0} onChange={(e) => guncelle("indirim_orani", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={0} max={100} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Koşul</label>
-              <input type="text" value={deger.kosul || ""} onChange={(e) => guncelle("kosul", e.target.value)} className={KUCUK_INPUT + " w-full"} placeholder="Opsiyonel koşul" />
-            </div>
-            <div>
-              <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Bitiş Tarihi</label>
-              <input type="date" value={deger.bitis_tarihi || ""} onChange={(e) => guncelle("bitis_tarihi", e.target.value)} className={KUCUK_INPUT + " w-full"} />
-            </div>
-          </div>
-          <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Açıklama</label>
-            <input type="text" value={deger.aciklama || ""} onChange={(e) => guncelle("aciklama", e.target.value)} className={KUCUK_INPUT + " w-full"} />
-          </div>
-        </div>
-      );
+      return <KampanyaKosulBuilder deger={deger} guncelle={guncelle} />;
 
-    case "ek_kullanici_ucret":
+    case "siparis_miktari":
       return (
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Kullanıcı Başı Fiyat</label>
-            <input type="number" value={deger.fiyat || 0} onChange={(e) => guncelle("fiyat", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={0} step="0.01" />
+            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Minimum Adet</label>
+            <input type="number" value={deger.min || 1} onChange={(e) => guncelle("min", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={1} />
           </div>
           <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Para Birimi</label>
-            <select value={deger.para_birimi || "TL"} onChange={(e) => guncelle("para_birimi", e.target.value)} className={KUCUK_INPUT + " w-full"}>
-              <option value="TL">TL</option>
-              <option value="USD">USD</option>
-              <option value="EUR">EUR</option>
-            </select>
+            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Maximum Adet</label>
+            <input type="number" value={deger.max || ""} onChange={(e) => guncelle("max", e.target.value ? Number(e.target.value) : null)} placeholder="Sınırsız" className={KUCUK_INPUT + " w-full"} min={1} />
           </div>
-        </div>
-      );
-
-    case "min_siparis":
-      return (
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Minimum Miktar</label>
-            <input type="number" value={deger.miktar || 1} onChange={(e) => guncelle("miktar", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={1} />
-          </div>
-          <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Birim</label>
-            <select value={deger.birim || "adet"} onChange={(e) => guncelle("birim", e.target.value)} className={KUCUK_INPUT + " w-full"}>
-              <option value="adet">Adet</option>
-              <option value="paket">Paket</option>
-              <option value="kullanici">Kullanıcı</option>
-            </select>
-          </div>
-        </div>
-      );
-
-    case "ozel_not":
-      return (
-        <div>
-          <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Not / Açıklama</label>
-          <textarea value={deger.metin || ""} onChange={(e) => guncelle("metin", e.target.value)}
-            className={KUCUK_INPUT + " w-full resize-none"} rows={3} placeholder="Serbest metin alanı..." />
         </div>
       );
 
@@ -1217,28 +1105,6 @@ function OzellikFormu({ tip, deger, guncelle }) {
 
     case "bagimli_urun":
       return <BagimliUrunFormu deger={deger} guncelle={guncelle} />;
-
-    case "marka":
-      return (
-        <div className="w-64">
-          <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Marka</label>
-          <input type="text" value={deger.marka || ""} onChange={(e) => guncelle("marka", e.target.value)} className={KUCUK_INPUT + " w-full"} placeholder="Örn: VEGA, PAVO, INGENICO" />
-        </div>
-      );
-
-    case "ozel_alan":
-      return (
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Alan Adı</label>
-            <input type="text" value={deger.alan_adi || ""} onChange={(e) => guncelle("alan_adi", e.target.value)} className={KUCUK_INPUT + " w-full"} placeholder="Özellik adı" />
-          </div>
-          <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Alan Değeri</label>
-            <input type="text" value={deger.alan_degeri || ""} onChange={(e) => guncelle("alan_degeri", e.target.value)} className={KUCUK_INPUT + " w-full"} placeholder="Değer" />
-          </div>
-        </div>
-      );
 
     default:
       return <p className="text-xs text-gray-400">Bilinmeyen özellik tipi: {tip}</p>;
@@ -1502,6 +1368,567 @@ function BagimliUrunFormu({ deger, guncelle }) {
         <div className="flex-1">
           <input type="text" value={deger.aciklama || ""} onChange={(e) => guncelle("aciklama", e.target.value)}
             className={KUCUK_INPUT + " w-full"} placeholder="Açıklama (opsiyonel)" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================= */
+/*  Kademeli Adet + Kapasite Kombine Formu       */
+/* ============================================= */
+
+function KademeliAdetKapasiteForm({ deger, guncelle }) {
+  const tip = deger.tip || "adet"; // "adet" veya "kapasite"
+  const kademeler = deger.kademeler || [];
+  const birimKey = tip === "adet" ? "adet" : "kapasite";
+  const birimLabel = tip === "adet" ? "Adet" : "Kapasite";
+
+  const kademeEkle = () => {
+    guncelle("kademeler", [...kademeler, { [birimKey]: "", fiyat: 0 }]);
+  };
+
+  const kademeSil = (idx) => {
+    guncelle("kademeler", kademeler.filter((_, i) => i !== idx));
+  };
+
+  const kademeGuncelle = (idx, alan, val) => {
+    const yeni = kademeler.map((k, i) => (i === idx ? { ...k, [alan]: val } : k));
+    guncelle("kademeler", yeni);
+  };
+
+  const tipDegistir = (yeniTip) => {
+    // Tip değiştiğinde kademeleri sıfırla
+    const eskiKey = tip === "adet" ? "adet" : "kapasite";
+    const yeniKey = yeniTip === "adet" ? "adet" : "kapasite";
+    const yeniKademeler = kademeler.map(k => ({
+      [yeniKey]: k[eskiKey] || "",
+      fiyat: k.fiyat || 0
+    }));
+    guncelle("tip", yeniTip);
+    guncelle("kademeler", yeniKademeler);
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Tip Seçimi */}
+      <div className="flex items-center gap-4 pb-2 border-b border-gray-100 dark:border-white/5">
+        <span className="text-[11px] font-medium text-gray-500 dark:text-slate-400">Kademeli Fiyat Tipi:</span>
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="kademeli_tip" checked={tip === "adet"} onChange={() => tipDegistir("adet")}
+              className="w-3.5 h-3.5 border-gray-300 text-blue-600 focus:ring-blue-500" />
+            <span className="text-xs text-gray-600 dark:text-slate-400">Adet Bazlı</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="kademeli_tip" checked={tip === "kapasite"} onChange={() => tipDegistir("kapasite")}
+              className="w-3.5 h-3.5 border-gray-300 text-blue-600 focus:ring-blue-500" />
+            <span className="text-xs text-gray-600 dark:text-slate-400">Kapasite Bazlı</span>
+          </label>
+        </div>
+        <div className="flex-1" />
+        <select value={deger.birim || (tip === "adet" ? "Adet" : "GB")} onChange={(e) => guncelle("birim", e.target.value)} className="text-[11px] px-2 py-1 rounded bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-slate-400">
+          {tip === "adet" ? (
+            <>
+              <option value="Adet">Adet</option>
+              <option value="Kontör">Kontör</option>
+              <option value="Paket">Paket</option>
+            </>
+          ) : (
+            <>
+              <option value="GB">GB</option>
+              <option value="TB">TB</option>
+              <option value="MB">MB</option>
+            </>
+          )}
+        </select>
+      </div>
+
+      {/* Kademeler */}
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-[11px] font-medium text-gray-500 dark:text-slate-400">{birimLabel}</span>
+        <span className="text-[11px] text-gray-400">→</span>
+        <span className="text-[11px] font-medium text-gray-500 dark:text-slate-400">Fiyat</span>
+      </div>
+      {kademeler.map((k, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <input type="text" value={k[birimKey] ?? ""} onChange={(e) => kademeGuncelle(i, birimKey, e.target.value)}
+            placeholder={birimLabel} className={KUCUK_INPUT + " w-28"} />
+          <span className="text-gray-400 text-xs">→</span>
+          <input type="number" value={k.fiyat || 0} onChange={(e) => kademeGuncelle(i, "fiyat", Number(e.target.value))}
+            className={KUCUK_INPUT + " w-32"} min={0} step="0.01" />
+          <span className="text-xs text-gray-400">TL</span>
+          <button onClick={() => kademeSil(i)}
+            className="w-7 h-7 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 flex items-center justify-center cursor-pointer transition-colors shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      ))}
+      <button onClick={kademeEkle}
+        className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 font-medium cursor-pointer mt-1">
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        Kademe Ekle
+      </button>
+    </div>
+  );
+}
+
+/* ============================================= */
+/*  Ürün Seçim Formu (Çoklu + Arama)             */
+/*  hediye_urun ve diğerlerinde kullanılır       */
+/* ============================================= */
+
+function UrunSecimFormu({ deger, guncelle, baslik, renk = "blue" }) {
+  const [arama, setArama] = useState("");
+  const [acik, setAcik] = useState(false);
+  const [tumUrunler, setTumUrunler] = useState([]);
+  const wrapRef = useRef(null);
+  const urunler = deger.urunler || [];
+
+  useEffect(() => {
+    apiGet("/urunler").then((r) => setTumUrunler(r.veri || [])).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const tiklanma = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setAcik(false); };
+    document.addEventListener("mousedown", tiklanma);
+    return () => document.removeEventListener("mousedown", tiklanma);
+  }, []);
+
+  const filtrelenmis = tumUrunler.filter((u) => {
+    const ad = u.ad || u.urun_adi || "";
+    const zatenVar = urunler.some((su) => su.id === u.id || su.ad === ad);
+    if (zatenVar) return false;
+    if (!arama) return true;
+    return ad.toLowerCase().includes(arama.toLowerCase());
+  });
+
+  const urunEkle = (urun) => {
+    const ad = urun.ad || urun.urun_adi || "";
+    guncelle("urunler", [...urunler, { id: urun.id, ad }]);
+    setArama("");
+    setAcik(false);
+  };
+
+  const elleEkle = () => {
+    if (!arama.trim()) return;
+    const zatenVar = urunler.some((u) => u.ad.toLowerCase() === arama.trim().toLowerCase());
+    if (zatenVar) return;
+    guncelle("urunler", [...urunler, { id: null, ad: arama.trim() }]);
+    setArama("");
+    setAcik(false);
+  };
+
+  const urunKaldir = (idx) => {
+    guncelle("urunler", urunler.filter((_, i) => i !== idx));
+  };
+
+  const renkler = {
+    emerald: { badge: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20" },
+    blue: { badge: "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20" },
+    violet: { badge: "bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-500/20" },
+    amber: { badge: "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20" },
+  };
+
+  return (
+    <div className="space-y-3">
+      <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400">{baslik}</label>
+      
+      {/* Seçilen ürünler */}
+      {urunler.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {urunler.map((u, i) => (
+            <span key={i} className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border font-medium ${renkler[renk]?.badge || renkler.blue.badge}`}>
+              {u.ad}
+              <button onClick={() => urunKaldir(i)} className="ml-0.5 opacity-70 hover:opacity-100 cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Arama */}
+      <div ref={wrapRef} className="relative">
+        <input
+          type="text"
+          value={arama}
+          onChange={(e) => { setArama(e.target.value); setAcik(true); }}
+          onFocus={() => setAcik(true)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); elleEkle(); } }}
+          placeholder="Ürün ara veya elle yaz + Enter..."
+          className={KUCUK_INPUT + " w-full pr-20"}
+        />
+        {arama.trim() && (
+          <button onClick={elleEkle}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 font-medium cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-500/25 transition-colors">
+            Elle Ekle
+          </button>
+        )}
+        {acik && filtrelenmis.length > 0 && (
+          <div className="absolute z-20 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 shadow-xl">
+            {filtrelenmis.slice(0, 15).map((u) => (
+              <button key={u.id} onClick={() => urunEkle(u)}
+                className="w-full text-left px-3 py-2 text-xs hover:bg-blue-50 dark:hover:bg-blue-500/10 text-gray-700 dark:text-slate-300 cursor-pointer transition-colors flex items-center justify-between">
+                <span>{u.ad || u.urun_adi}</span>
+                {u.grup && <span className="text-[10px] text-gray-400 dark:text-slate-500">{u.grup.ad}</span>}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================= */
+/*  Paket İndirimi Formu (Ürün Seçim + İndirim)  */
+/* ============================================= */
+
+function PaketIndirimiFormu({ deger, guncelle }) {
+  const [arama, setArama] = useState("");
+  const [acik, setAcik] = useState(false);
+  const [tumUrunler, setTumUrunler] = useState([]);
+  const wrapRef = useRef(null);
+  const urunler = deger.urunler || [];
+
+  useEffect(() => {
+    apiGet("/urunler").then((r) => setTumUrunler(r.veri || [])).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const tiklanma = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setAcik(false); };
+    document.addEventListener("mousedown", tiklanma);
+    return () => document.removeEventListener("mousedown", tiklanma);
+  }, []);
+
+  const filtrelenmis = tumUrunler.filter((u) => {
+    const ad = u.ad || u.urun_adi || "";
+    const zatenVar = urunler.some((su) => su.id === u.id || su.ad === ad);
+    if (zatenVar) return false;
+    if (!arama) return true;
+    return ad.toLowerCase().includes(arama.toLowerCase());
+  });
+
+  const urunEkle = (urun) => {
+    const ad = urun.ad || urun.urun_adi || "";
+    guncelle("urunler", [...urunler, { id: urun.id, ad }]);
+    setArama("");
+    setAcik(false);
+  };
+
+  const elleEkle = () => {
+    if (!arama.trim()) return;
+    const zatenVar = urunler.some((u) => u.ad.toLowerCase() === arama.trim().toLowerCase());
+    if (zatenVar) return;
+    guncelle("urunler", [...urunler, { id: null, ad: arama.trim() }]);
+    setArama("");
+    setAcik(false);
+  };
+
+  const urunKaldir = (idx) => {
+    guncelle("urunler", urunler.filter((_, i) => i !== idx));
+  };
+
+  return (
+    <div className="space-y-3">
+      <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400">Birlikte Alındığında İndirim Uygulanacak Ürünler</label>
+      
+      {/* Seçilen ürünler */}
+      {urunler.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {urunler.map((u, i) => (
+            <span key={i} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-500/20 font-medium">
+              {u.ad}
+              <button onClick={() => urunKaldir(i)} className="ml-0.5 opacity-70 hover:opacity-100 cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Arama */}
+      <div ref={wrapRef} className="relative">
+        <input
+          type="text"
+          value={arama}
+          onChange={(e) => { setArama(e.target.value); setAcik(true); }}
+          onFocus={() => setAcik(true)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); elleEkle(); } }}
+          placeholder="Ürün ara veya elle yaz + Enter..."
+          className={KUCUK_INPUT + " w-full pr-20"}
+        />
+        {arama.trim() && (
+          <button onClick={elleEkle}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] px-2 py-0.5 rounded bg-violet-100 dark:bg-violet-500/15 text-violet-600 dark:text-violet-400 font-medium cursor-pointer hover:bg-violet-200 dark:hover:bg-violet-500/25 transition-colors">
+            Elle Ekle
+          </button>
+        )}
+        {acik && filtrelenmis.length > 0 && (
+          <div className="absolute z-20 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 shadow-xl">
+            {filtrelenmis.slice(0, 15).map((u) => (
+              <button key={u.id} onClick={() => urunEkle(u)}
+                className="w-full text-left px-3 py-2 text-xs hover:bg-violet-50 dark:hover:bg-violet-500/10 text-gray-700 dark:text-slate-300 cursor-pointer transition-colors flex items-center justify-between">
+                <span>{u.ad || u.urun_adi}</span>
+                {u.grup && <span className="text-[10px] text-gray-400 dark:text-slate-500">{u.grup.ad}</span>}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* İndirim oranı */}
+      <div className="w-48">
+        <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Paket İndirim Oranı (%)</label>
+        <input type="number" value={deger.indirim_orani || 0} onChange={(e) => guncelle("indirim_orani", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={0} max={100} />
+      </div>
+    </div>
+  );
+}
+
+/* ============================================= */
+/*  Geçiş Fiyatı Formu (Hedef Ürün Arama)        */
+/* ============================================= */
+
+function GecisFiyatiFormu({ deger, guncelle }) {
+  const [arama, setArama] = useState("");
+  const [acik, setAcik] = useState(false);
+  const [tumUrunler, setTumUrunler] = useState([]);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    apiGet("/urunler").then((r) => setTumUrunler(r.veri || [])).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const tiklanma = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setAcik(false); };
+    document.addEventListener("mousedown", tiklanma);
+    return () => document.removeEventListener("mousedown", tiklanma);
+  }, []);
+
+  const filtrelenmis = tumUrunler.filter((u) => {
+    const ad = u.ad || u.urun_adi || "";
+    if (!arama) return true;
+    return ad.toLowerCase().includes(arama.toLowerCase());
+  });
+
+  const urunSec = (urun) => {
+    const ad = urun.ad || urun.urun_adi || "";
+    guncelle("hedef_urun_id", urun.id);
+    guncelle("hedef_urun_ad", ad);
+    setArama("");
+    setAcik(false);
+  };
+
+  const temizle = () => {
+    guncelle("hedef_urun_id", null);
+    guncelle("hedef_urun_ad", "");
+  };
+
+  return (
+    <div className="space-y-3">
+      <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400">Bu üründen geçiş yapılabilecek hedef ürün</label>
+      
+      {/* Seçili ürün */}
+      {deger.hedef_urun_ad ? (
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-500/20 font-medium">
+            {deger.hedef_urun_ad}
+            <button onClick={temizle} className="ml-0.5 opacity-70 hover:opacity-100 cursor-pointer">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </span>
+        </div>
+      ) : (
+        <div ref={wrapRef} className="relative">
+          <input
+            type="text"
+            value={arama}
+            onChange={(e) => { setArama(e.target.value); setAcik(true); }}
+            onFocus={() => setAcik(true)}
+            placeholder="Hedef ürün ara..."
+            className={KUCUK_INPUT + " w-full"}
+          />
+          {acik && filtrelenmis.length > 0 && (
+            <div className="absolute z-20 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 shadow-xl">
+              {filtrelenmis.slice(0, 15).map((u) => (
+                <button key={u.id} onClick={() => urunSec(u)}
+                  className="w-full text-left px-3 py-2 text-xs hover:bg-cyan-50 dark:hover:bg-cyan-500/10 text-gray-700 dark:text-slate-300 cursor-pointer transition-colors flex items-center justify-between">
+                  <span>{u.ad || u.urun_adi}</span>
+                  {u.grup && <span className="text-[10px] text-gray-400 dark:text-slate-500">{u.grup.ad}</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Fiyat */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Geçiş Fiyatı</label>
+          <input type="number" value={deger.fiyat || 0} onChange={(e) => guncelle("fiyat", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={0} step="0.01" />
+        </div>
+        <div>
+          <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Para Birimi</label>
+          <select value={deger.para_birimi || "TL"} onChange={(e) => guncelle("para_birimi", e.target.value)} className={KUCUK_INPUT + " w-full"}>
+            <option value="TL">TL</option>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================= */
+/*  Kampanya Koşul Builder (if-else style)       */
+/* ============================================= */
+
+const KOSUL_TIPLERI = [
+  { id: "urun_adedi", ad: "Ürün Adedi", tip: "sayi" },
+  { id: "toplam_tutar", ad: "Toplam Tutar", tip: "sayi" },
+  { id: "musteri_tipi", ad: "Müşteri Tipi", tip: "secim", secenekler: ["Bayi", "Son Kullanıcı", "Kurumsal"] },
+  { id: "periyot", ad: "Periyot", tip: "secim", secenekler: ["Aylık", "Yıllık"] },
+  { id: "ilk_alis", ad: "İlk Alış mı?", tip: "boolean" },
+  { id: "bitis_gunu", ad: "Kampanya Tarihi İçinde", tip: "tarih" },
+];
+
+const OPERATORLER = {
+  sayi: [
+    { id: ">=", ad: ">=" },
+    { id: "<=", ad: "<=" },
+    { id: "==", ad: "=" },
+    { id: ">", ad: ">" },
+    { id: "<", ad: "<" },
+  ],
+  secim: [
+    { id: "==", ad: "=" },
+    { id: "!=", ad: "!=" },
+  ],
+  boolean: [
+    { id: "==", ad: "=" },
+  ],
+  tarih: [
+    { id: "<=", ad: "Önce" },
+  ],
+};
+
+function KampanyaKosulBuilder({ deger, guncelle }) {
+  const kosullar = deger.kosullar || [];
+  const [acikIdx, setAcikIdx] = useState(null);
+
+  const kosulEkle = () => {
+    guncelle("kosullar", [...kosullar, { tip: "urun_adedi", operator: ">=", deger: "", mantik: "VE" }]);
+  };
+
+  const kosulSil = (idx) => {
+    guncelle("kosullar", kosullar.filter((_, i) => i !== idx));
+  };
+
+  const kosulGuncelle = (idx, alan, val) => {
+    const yeni = kosullar.map((k, i) => (i === idx ? { ...k, [alan]: val } : k));
+    guncelle("kosullar", yeni);
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Kampanya Adı & İndirim */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Kampanya Adı</label>
+          <input type="text" value={deger.ad || ""} onChange={(e) => guncelle("ad", e.target.value)} className={KUCUK_INPUT + " w-full"} placeholder="Örn: Yılbaşı Kampanyası" />
+        </div>
+        <div>
+          <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">İndirim Oranı (%)</label>
+          <input type="number" value={deger.indirim_orani || 0} onChange={(e) => guncelle("indirim_orani", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={0} max={100} />
+        </div>
+      </div>
+
+      {/* Koşullar Başlığı */}
+      <div className="flex items-center gap-2 pt-2 border-t border-gray-100 dark:border-white/5">
+        <span className="text-[11px] font-semibold text-gray-600 dark:text-slate-300">Koşullar</span>
+        <span className="text-[10px] text-gray-400 dark:text-slate-500">(Tümü sağlanmalı)</span>
+      </div>
+
+      {/* Koşul Listesi */}
+      {kosullar.map((k, idx) => {
+        const tipBilgi = KOSUL_TIPLERI.find((t) => t.id === k.tip) || KOSUL_TIPLERI[0];
+        const operatorler = OPERATORLER[tipBilgi.tip] || OPERATORLER.sayi;
+        
+        return (
+          <div key={idx} className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-500/5 border border-slate-200 dark:border-slate-500/10">
+            {idx > 0 && (
+              <span className="text-[10px] font-medium text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-500/10 px-1.5 py-0.5 rounded">VE</span>
+            )}
+            
+            {/* Koşul Tipi */}
+            <select value={k.tip} onChange={(e) => kosulGuncelle(idx, "tip", e.target.value)} className={KUCUK_INPUT + " w-32"}>
+              {KOSUL_TIPLERI.map((t) => <option key={t.id} value={t.id}>{t.ad}</option>)}
+            </select>
+
+            {/* Operator */}
+            <select value={k.operator} onChange={(e) => kosulGuncelle(idx, "operator", e.target.value)} className={KUCUK_INPUT + " w-16"}>
+              {operatorler.map((o) => <option key={o.id} value={o.id}>{o.ad}</option>)}
+            </select>
+
+            {/* Değer */}
+            {tipBilgi.tip === "sayi" && (
+              <input type="number" value={k.deger || ""} onChange={(e) => kosulGuncelle(idx, "deger", e.target.value)} className={KUCUK_INPUT + " w-24"} placeholder="Değer" />
+            )}
+            {tipBilgi.tip === "secim" && (
+              <select value={k.deger} onChange={(e) => kosulGuncelle(idx, "deger", e.target.value)} className={KUCUK_INPUT + " w-32"}>
+                <option value="">Seçin</option>
+                {tipBilgi.secenekler?.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            )}
+            {tipBilgi.tip === "boolean" && (
+              <select value={k.deger} onChange={(e) => kosulGuncelle(idx, "deger", e.target.value)} className={KUCUK_INPUT + " w-24"}>
+                <option value="true">Evet</option>
+                <option value="false">Hayır</option>
+              </select>
+            )}
+            {tipBilgi.tip === "tarih" && (
+              <input type="date" value={k.deger || ""} onChange={(e) => kosulGuncelle(idx, "deger", e.target.value)} className={KUCUK_INPUT + " w-32"} />
+            )}
+
+            <div className="flex-1" />
+            <button onClick={() => kosulSil(idx)}
+              className="w-6 h-6 rounded hover:bg-red-100 dark:hover:bg-red-500/20 flex items-center justify-center cursor-pointer transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        );
+      })}
+
+      {/* Koşul Ekle */}
+      <button onClick={kosulEkle}
+        className="inline-flex items-center gap-1.5 text-xs text-orange-600 dark:text-orange-400 hover:text-orange-700 font-medium cursor-pointer">
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        Koşul Ekle
+      </button>
+
+      {/* Bitiş Tarihi */}
+      <div className="pt-2 border-t border-gray-100 dark:border-white/5">
+        <div className="w-48">
+          <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Kampanya Bitiş Tarihi</label>
+          <input type="date" value={deger.bitis_tarihi || ""} onChange={(e) => guncelle("bitis_tarihi", e.target.value)} className={KUCUK_INPUT + " w-full"} />
         </div>
       </div>
     </div>
