@@ -874,6 +874,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
     let paketFiyat = 0;
     let ekKullaniciFiyat = 0;
     let ekKullaniciBirim = 0;
+    let ekKullaniciAdet = 0;
     let kademeFiyat = 0;
     let kademeAdi = "";
     let aktivasyonFiyat = 0;
@@ -910,11 +911,16 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
     if (kademeliOz) {
       const deger = sablonVeri[kademeliOz.id] || kademeliOz.deger || {};
       const kademeler = Array.isArray(deger.kademeler) ? deger.kademeler : [];
-      const seciliKademe = deger.secili_kademe || (kademeler.length > 0 ? kademeler[0].deger : null);
-      const kademe = kademeler.find(k => k.deger === seciliKademe);
+      const tip = deger.tip || "adet";
+      const birimKey = tip === "adet" ? "adet" : "kapasite";
+      // secili_kademe artık adet/kapasite değeri olacak
+      const ilkKademe = kademeler.length > 0 ? kademeler[0] : null;
+      const varsayilanSecim = ilkKademe ? ilkKademe[birimKey] : null;
+      const seciliKademe = deger.secili_kademe ?? varsayilanSecim;
+      const kademe = kademeler.find(k => k[birimKey] == seciliKademe);
       if (kademe) {
         kademeFiyat = Number(kademe.fiyat) || 0;
-        kademeAdi = kademe.deger || "";
+        kademeAdi = `${kademe[birimKey]} ${kademe.birim || ""}`;
       }
     }
     
@@ -944,14 +950,20 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
       paketFiyat = Number(paket.fiyati) || 0;
     }
     
-    // 6. Ek kullanıcı fiyatı
-    if (ekKullaniciSayisi > 0) {
-      const kullaniciOz = sablonData.ozellikler.find(oz => oz.ozellik_tipi === "kullanici_sayisi");
-      if (kullaniciOz) {
-        const deger = sablonVeri[kullaniciOz.id] || kullaniciOz.deger || {};
-        ekKullaniciBirim = Number(deger.ek_kullanici_fiyat) || 0;
-        ekKullaniciFiyat = Number(ekKullaniciSayisi) * ekKullaniciBirim;
-      }
+    // 6. Ek kullanıcı fiyatı - şablondan hesapla
+    const kullaniciOz = sablonData.ozellikler.find(oz => oz.ozellik_tipi === "kullanici_sayisi");
+    if (kullaniciOz) {
+      const orijinalDeger = kullaniciOz.deger || {};
+      const secilenDeger = sablonVeri[kullaniciOz.id] || orijinalDeger;
+      const orijinalMin = Number(orijinalDeger.min) || 1;
+      const secilenMin = Number(secilenDeger.min) || orijinalMin;
+      ekKullaniciBirim = Number(orijinalDeger.ek_kullanici_fiyat) || 0;
+      
+      // Ek kullanıcı = seçilen - orijinal min
+      const hesaplananEk = secilenMin - orijinalMin;
+      const toplamEk = Math.max(0, hesaplananEk) + (Number(ekKullaniciSayisi) || 0);
+      ekKullaniciFiyat = toplamEk * ekKullaniciBirim;
+      ekKullaniciAdet = toplamEk;
     }
     
     // Toplam hesapla (aktivasyon_yenileme varsa aktivasyon fiyatı, yoksa temel fiyat)
@@ -962,7 +974,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
       temelFiyat,
       paketFiyat,
       ekKullaniciFiyat,
-      ekKullaniciAdet: Number(ekKullaniciSayisi) || 0,
+      ekKullaniciAdet,
       ekKullaniciBirim,
       kademeFiyat,
       kademeAdi,
@@ -1472,25 +1484,29 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                           const rawKademeler = deger.kademeler;
                           const kademeler = Array.isArray(rawKademeler) ? rawKademeler : [];
                           if (kademeler.length === 0) return null;
-                          const seciliKademe = deger.secili_kademe || kademeler[0]?.deger || null;
+                          const tip = deger.tip || "adet";
+                          const birimKey = tip === "adet" ? "adet" : "kapasite";
+                          const ilkKademe = kademeler[0] || {};
+                          const seciliKademe = deger.secili_kademe ?? ilkKademe[birimKey];
                           return (
                             <div key={oz.id}>
                               <label className={LABEL_STIL}>{oz.baslik || "Paket Tipi"} <span className="text-red-500">*</span></label>
                               <div className="grid grid-cols-3 gap-2 mt-1">
                                 {kademeler.map((kademe, idx) => {
-                                  const secili = seciliKademe === kademe.deger;
+                                  const kademeValue = kademe[birimKey];
+                                  const secili = seciliKademe == kademeValue;
                                   return (
                                     <button
                                       key={idx}
                                       type="button"
-                                      onClick={() => sablonGuncelle("secili_kademe", kademe.deger)}
+                                      onClick={() => sablonGuncelle("secili_kademe", kademeValue)}
                                       className={`p-3 rounded-lg border text-center transition-all cursor-pointer ${
                                         secili 
                                           ? "border-blue-500 bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400" 
                                           : "border-gray-200 dark:border-white/10 hover:border-gray-300 text-gray-700 dark:text-slate-300"
                                       }`}
                                     >
-                                      <p className="text-sm font-semibold">{kademe.deger}</p>
+                                      <p className="text-sm font-semibold">{kademeValue} {kademe.birim || ""}</p>
                                       <p className="text-xs mt-1 font-bold">₺{Number(kademe.fiyat || 0).toLocaleString("tr-TR")}</p>
                                     </button>
                                   );

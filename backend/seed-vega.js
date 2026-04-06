@@ -16,16 +16,21 @@ async function main() {
   
   // Sıralı silme (foreign key ilişkileri nedeniyle)
   const silmeSirasi = [
-    { model: "lisansDetay", ad: "Lisans Detayları" },
-    { model: "pakettekiOzellik", ad: "Paketteki Özellikler" },
-    { model: "musteriPaketi", ad: "Müşteri Paketleri" },
+    { model: "lisans", ad: "Lisanslar" },
+    { model: "paket", ad: "Paketler" },
+    { model: "surum", ad: "Sürümler" },
+    { model: "bayiUrun", ad: "Bayi Ürünleri" },
+    { model: "urun", ad: "Ürünler" },
     { model: "sablonOzellik", ad: "Şablon Özellikleri" },
-    { model: "urunPaketi", ad: "Ürün Paketleri" },
+    { model: "urunSablon", ad: "Ürün Şablonları" },
     { model: "uygulamaTipi", ad: "Uygulama Tipleri" },
     { model: "urunTipi", ad: "Ürün Tipleri" },
     { model: "iletisimKisi", ad: "İletişim Kişileri" },
-    { model: "iletisim", ad: "İletişimler" },
-    { model: "musteriCopKutusu", ad: "Müşteri Çöp Kutusu" },
+    { model: "iletisimKaydi", ad: "İletişim Kayıtları" },
+    { model: "noti", ad: "Notlar" },
+    { model: "musteriDosya", ad: "Müşteri Dosyaları" },
+    { model: "musteriAdres", ad: "Müşteri Adresleri" },
+    { model: "musteriTelefon", ad: "Müşteri Telefonları" },
     { model: "musteri", ad: "Müşteriler" },
     { model: "urunGrubu", ad: "Ürün Grupları" },
   ];
@@ -35,7 +40,7 @@ async function main() {
       const count = await prisma[item.model].deleteMany({});
       console.log(`   ✓ ${item.ad}: ${count.count} kayıt silindi`);
     } catch (e) {
-      console.log(`   ⚠ ${item.ad}: Atlandı (${e.message.slice(0, 50)}...)`);
+      console.log(`   ⚠ ${item.ad}: Atlandı`);
     }
   }
   console.log("\n✅ Temizlik tamamlandı");
@@ -98,28 +103,23 @@ async function main() {
   console.log("\n💻 Uygulama Tipleri oluşturuluyor...");
   
   const uygulamaTipleri = [
-    // VEGA Yazılım
     { ad: "Masaüstü", tip: "VEGA-Yazılım" },
     { ad: "Web", tip: "VEGA-Yazılım" },
-    // GIB
     { ad: "Web Portal", tip: "GIB-E-Fatura" },
     { ad: "Entegrasyon", tip: "GIB-E-Fatura" },
     { ad: "Web Portal", tip: "GIB-E-Arşiv" },
     { ad: "Entegrasyon", tip: "GIB-E-Arşiv" },
     { ad: "Web Portal", tip: "GIB-E-İrsaliye" },
     { ad: "Web Portal", tip: "GIB-E-Defter" },
-    // ÖKC
     { ad: "GMU", tip: "PAVO-ÖKC" },
     { ad: "TSM", tip: "PAVO-ÖKC" },
     { ad: "GMU", tip: "INPOS-ÖKC" },
     { ad: "TSM", tip: "INPOS-ÖKC" },
     { ad: "GMU", tip: "INGENICO-ÖKC" },
     { ad: "TSM", tip: "INGENICO-ÖKC" },
-    // Hosting & Domain
     { ad: "Panel", tip: "METUNIC-Domain" },
     { ad: "Panel", tip: "GUZELNET-Hosting" },
     { ad: "Panel", tip: "GUZELNET-E-Posta" },
-    // Arctos
     { ad: "Masaüstü", tip: "ARCTOS-Paket Program" },
   ];
 
@@ -128,23 +128,23 @@ async function main() {
     const tipId = tipMap[u.tip];
     if (!tipId) continue;
     const created = await prisma.uygulamaTipi.create({
-      data: { ad: u.ad, tip_id: tipId }
+      data: { ad: u.ad, urun_tipi_id: tipId }
     });
     uygulamaMap[`${u.tip}-${u.ad}`] = created.id;
   }
   console.log(`   ✓ ${Object.keys(uygulamaMap).length} uygulama tipi oluşturuldu`);
 
   // =============================================
-  // 5. ÜRÜN PAKETLERİ + ŞABLON ÖZELLİKLERİ
+  // 5. ÜRÜN ŞABLONLARI + ŞABLON ÖZELLİKLERİ
   // =============================================
-  console.log("\n📋 Ürün Paketleri ve Şablonları oluşturuluyor...");
+  console.log("\n📋 Ürün Şablonları oluşturuluyor...");
 
   // Helper: Şablon özelliği oluştur
-  const ozellikOlustur = async (paketId, ozellikler) => {
+  const ozellikOlustur = async (sablonId, ozellikler) => {
     for (let i = 0; i < ozellikler.length; i++) {
       await prisma.sablonOzellik.create({
         data: {
-          paket_id: paketId,
+          sablon_id: sablonId,
           ozellik_tipi: ozellikler[i].tip,
           baslik: ozellikler[i].baslik || "",
           deger: ozellikler[i].deger,
@@ -154,7 +154,7 @@ async function main() {
     }
   };
 
-  let paketSayisi = 0;
+  let sablonSayisi = 0;
 
   // -----------------------------------------
   // VEGA YAZILIM - VegaPos & VegaCari
@@ -163,13 +163,14 @@ async function main() {
   const vegaMasaustu = uygulamaMap["VEGA-Yazılım-Masaüstü"];
   
   // VegaPos Masaüstü
-  const vegaPos = await prisma.urunPaketi.create({
+  const vegaPos = await prisma.urunSablon.create({
     data: {
       ad: "VegaPos",
       aciklama: "Satış ve stok yönetim yazılımı",
-      tip_id: vegaYazilimTip,
+      grup_id: grupMap["VEGA"],
+      urun_tipi_id: vegaYazilimTip,
       uygulama_tipi_id: vegaMasaustu,
-      aktif: true,
+      aktif: 1,
     }
   });
   await ozellikOlustur(vegaPos.id, [
@@ -177,16 +178,17 @@ async function main() {
     { tip: "kullanici_sayisi", baslik: "Kullanıcı", deger: { min: 1, max: 50, ek_kullanici_fiyat: 500 } },
     { tip: "demo_suresi", baslik: "Deneme", deger: { gun: 30 } },
   ]);
-  paketSayisi++;
+  sablonSayisi++;
 
   // VegaCari
-  const vegaCari = await prisma.urunPaketi.create({
+  const vegaCari = await prisma.urunSablon.create({
     data: {
       ad: "VegaCari",
       aciklama: "Cari hesap ve muhasebe takip yazılımı",
-      tip_id: vegaYazilimTip,
+      grup_id: grupMap["VEGA"],
+      urun_tipi_id: vegaYazilimTip,
       uygulama_tipi_id: vegaMasaustu,
-      aktif: true,
+      aktif: 1,
     }
   });
   await ozellikOlustur(vegaCari.id, [
@@ -194,7 +196,7 @@ async function main() {
     { tip: "kullanici_sayisi", baslik: "Kullanıcı", deger: { min: 1, max: 20, ek_kullanici_fiyat: 350 } },
     { tip: "demo_suresi", baslik: "Deneme", deger: { gun: 15 } },
   ]);
-  paketSayisi++;
+  sablonSayisi++;
 
   // -----------------------------------------
   // GIB E-Fatura Paketleri
@@ -203,56 +205,56 @@ async function main() {
   const gibWebPortal = uygulamaMap["GIB-E-Fatura-Web Portal"];
 
   // E-Fatura Başlangıç
-  const efaturaBaslangic = await prisma.urunPaketi.create({
+  const efaturaBaslangic = await prisma.urunSablon.create({
     data: {
       ad: "E-Fatura Başlangıç",
       aciklama: "Küçük işletmeler için e-fatura paketi",
-      tip_id: gibFaturaTip,
+      grup_id: grupMap["GIB"],
+      urun_tipi_id: gibFaturaTip,
       uygulama_tipi_id: gibWebPortal,
-      aktif: true,
+      aktif: 1,
     }
   });
   await ozellikOlustur(efaturaBaslangic.id, [
     { tip: "temel_fiyat", baslik: "Temel Ücret", deger: { fiyat: 0, para_birimi: "TL" } },
     { tip: "aktivasyon_yenileme", baslik: "Fiyatlandırma", deger: { aktivasyon_fiyat: 1500, yenileme_fiyat: 1200, para_birimi: "TL" } },
-    { tip: "kademeli_fiyat", baslik: "Fatura Paketi", deger: { 
+    { tip: "kademeli_fiyat", baslik: "Kontör Paketi", deger: { 
       tip: "adet", 
-      birim: "Fatura",
       kademeler: [
-        { deger: "500 Fatura", fiyat: 0 },
-        { deger: "1000 Fatura", fiyat: 300 },
-        { deger: "2500 Fatura", fiyat: 600 },
+        { adet: 500, birim: "Kontör", fiyat: 0 },
+        { adet: 1000, birim: "Kontör", fiyat: 300 },
+        { adet: 2500, birim: "Kontör", fiyat: 600 },
       ]
     }},
     { tip: "sicil_domain", baslik: "VKN/TCKN", deger: { alan_tipi: "sicil_no", zorunlu: true } },
   ]);
-  paketSayisi++;
+  sablonSayisi++;
 
   // E-Fatura Profesyonel
-  const efaturaPro = await prisma.urunPaketi.create({
+  const efaturaPro = await prisma.urunSablon.create({
     data: {
       ad: "E-Fatura Profesyonel",
       aciklama: "Orta ölçekli işletmeler için e-fatura paketi",
-      tip_id: gibFaturaTip,
+      grup_id: grupMap["GIB"],
+      urun_tipi_id: gibFaturaTip,
       uygulama_tipi_id: gibWebPortal,
-      aktif: true,
+      aktif: 1,
     }
   });
   await ozellikOlustur(efaturaPro.id, [
     { tip: "temel_fiyat", baslik: "Temel Ücret", deger: { fiyat: 0, para_birimi: "TL" } },
     { tip: "aktivasyon_yenileme", baslik: "Fiyatlandırma", deger: { aktivasyon_fiyat: 2500, yenileme_fiyat: 2000, para_birimi: "TL" } },
-    { tip: "kademeli_fiyat", baslik: "Fatura Paketi", deger: { 
+    { tip: "kademeli_fiyat", baslik: "Kontör Paketi", deger: { 
       tip: "adet", 
-      birim: "Fatura",
       kademeler: [
-        { deger: "5000 Fatura", fiyat: 0 },
-        { deger: "10000 Fatura", fiyat: 500 },
-        { deger: "25000 Fatura", fiyat: 1000 },
+        { adet: 5000, birim: "Kontör", fiyat: 0 },
+        { adet: 10000, birim: "Kontör", fiyat: 500 },
+        { adet: 25000, birim: "Kontör", fiyat: 1000 },
       ]
     }},
     { tip: "sicil_domain", baslik: "VKN/TCKN", deger: { alan_tipi: "sicil_no", zorunlu: true } },
   ]);
-  paketSayisi++;
+  sablonSayisi++;
 
   // -----------------------------------------
   // GIB E-Arşiv Paketi
@@ -260,30 +262,30 @@ async function main() {
   const gibArsivTip = tipMap["GIB-E-Arşiv"];
   const gibArsivPortal = uygulamaMap["GIB-E-Arşiv-Web Portal"];
 
-  const earsiv = await prisma.urunPaketi.create({
+  const earsiv = await prisma.urunSablon.create({
     data: {
       ad: "E-Arşiv Fatura",
       aciklama: "E-Arşiv fatura çözümü",
-      tip_id: gibArsivTip,
+      grup_id: grupMap["GIB"],
+      urun_tipi_id: gibArsivTip,
       uygulama_tipi_id: gibArsivPortal,
-      aktif: true,
+      aktif: 1,
     }
   });
   await ozellikOlustur(earsiv.id, [
     { tip: "temel_fiyat", baslik: "Temel Ücret", deger: { fiyat: 0, para_birimi: "TL" } },
     { tip: "aktivasyon_yenileme", baslik: "Fiyatlandırma", deger: { aktivasyon_fiyat: 1000, yenileme_fiyat: 800, para_birimi: "TL" } },
-    { tip: "kademeli_fiyat", baslik: "Fatura Paketi", deger: { 
+    { tip: "kademeli_fiyat", baslik: "Kontör Paketi", deger: { 
       tip: "adet", 
-      birim: "Fatura",
       kademeler: [
-        { deger: "1000 Fatura", fiyat: 0 },
-        { deger: "5000 Fatura", fiyat: 400 },
-        { deger: "10000 Fatura", fiyat: 750 },
+        { adet: 1000, birim: "Kontör", fiyat: 0 },
+        { adet: 5000, birim: "Kontör", fiyat: 400 },
+        { adet: 10000, birim: "Kontör", fiyat: 750 },
       ]
     }},
     { tip: "sicil_domain", baslik: "VKN/TCKN", deger: { alan_tipi: "sicil_no", zorunlu: true } },
   ]);
-  paketSayisi++;
+  sablonSayisi++;
 
   // -----------------------------------------
   // PAVO ÖKC
@@ -291,20 +293,21 @@ async function main() {
   const pavoOkcTip = tipMap["PAVO-ÖKC"];
   const pavoGmu = uygulamaMap["PAVO-ÖKC-GMU"];
 
-  const pavoPos = await prisma.urunPaketi.create({
+  const pavoPos = await prisma.urunSablon.create({
     data: {
       ad: "PAVO Pos",
       aciklama: "PAVO marka yeni nesil ÖKC",
-      tip_id: pavoOkcTip,
+      grup_id: grupMap["PAVO"],
+      urun_tipi_id: pavoOkcTip,
       uygulama_tipi_id: pavoGmu,
-      aktif: true,
+      aktif: 1,
     }
   });
   await ozellikOlustur(pavoPos.id, [
     { tip: "temel_fiyat", baslik: "Cihaz Bedeli", deger: { fiyat: 8500, para_birimi: "TL" } },
     { tip: "sicil_domain", baslik: "Sicil No", deger: { alan_tipi: "sicil_no", zorunlu: true } },
   ]);
-  paketSayisi++;
+  sablonSayisi++;
 
   // -----------------------------------------
   // METUNIC DOMAIN
@@ -312,13 +315,14 @@ async function main() {
   const domainTip = tipMap["METUNIC-Domain"];
   const domainPanel = uygulamaMap["METUNIC-Domain-Panel"];
 
-  const domainPaketi = await prisma.urunPaketi.create({
+  const domainPaketi = await prisma.urunSablon.create({
     data: {
       ad: "Domain Kaydı",
       aciklama: "Domain tescil ve yenileme hizmeti",
-      tip_id: domainTip,
+      grup_id: grupMap["METUNIC"],
+      urun_tipi_id: domainTip,
       uygulama_tipi_id: domainPanel,
-      aktif: true,
+      aktif: 1,
     }
   });
   await ozellikOlustur(domainPaketi.id, [
@@ -335,7 +339,7 @@ async function main() {
     }},
     { tip: "sicil_domain", baslik: "Domain Adı", deger: { alan_tipi: "domain", zorunlu: true } },
   ]);
-  paketSayisi++;
+  sablonSayisi++;
 
   // -----------------------------------------
   // GUZELNET HOSTING
@@ -343,13 +347,14 @@ async function main() {
   const hostingTip = tipMap["GUZELNET-Hosting"];
   const hostingPanel = uygulamaMap["GUZELNET-Hosting-Panel"];
 
-  const hostingPaketi = await prisma.urunPaketi.create({
+  const hostingPaketi = await prisma.urunSablon.create({
     data: {
       ad: "Web Hosting",
       aciklama: "SSD tabanlı web hosting hizmeti",
-      tip_id: hostingTip,
+      grup_id: grupMap["GUZELNET"],
+      urun_tipi_id: hostingTip,
       uygulama_tipi_id: hostingPanel,
-      aktif: true,
+      aktif: 1,
     }
   });
   await ozellikOlustur(hostingPaketi.id, [
@@ -357,17 +362,16 @@ async function main() {
     { tip: "aktivasyon_yenileme", baslik: "Fiyatlandırma", deger: { aktivasyon_fiyat: 500, yenileme_fiyat: 450, para_birimi: "TL" } },
     { tip: "kademeli_fiyat", baslik: "Disk Alanı", deger: { 
       tip: "kapasite", 
-      birim: "GB",
       kademeler: [
-        { deger: "5 GB", fiyat: 0 },
-        { deger: "10 GB", fiyat: 150 },
-        { deger: "25 GB", fiyat: 350 },
-        { deger: "50 GB", fiyat: 600 },
+        { kapasite: 5, birim: "GB", fiyat: 0 },
+        { kapasite: 10, birim: "GB", fiyat: 150 },
+        { kapasite: 25, birim: "GB", fiyat: 350 },
+        { kapasite: 50, birim: "GB", fiyat: 600 },
       ]
     }},
     { tip: "sicil_domain", baslik: "Domain", deger: { alan_tipi: "domain", zorunlu: true } },
   ]);
-  paketSayisi++;
+  sablonSayisi++;
 
   // -----------------------------------------
   // ARCTOS PAKET PROGRAM
@@ -375,13 +379,14 @@ async function main() {
   const arctosTip = tipMap["ARCTOS-Paket Program"];
   const arctosMasaustu = uygulamaMap["ARCTOS-Paket Program-Masaüstü"];
 
-  const arctosPro = await prisma.urunPaketi.create({
+  const arctosPro = await prisma.urunSablon.create({
     data: {
       ad: "Arctos Pro",
       aciklama: "Profesyonel ön muhasebe yazılımı",
-      tip_id: arctosTip,
+      grup_id: grupMap["ARCTOS"],
+      urun_tipi_id: arctosTip,
       uygulama_tipi_id: arctosMasaustu,
-      aktif: true,
+      aktif: 1,
     }
   });
   await ozellikOlustur(arctosPro.id, [
@@ -389,9 +394,9 @@ async function main() {
     { tip: "kullanici_sayisi", baslik: "Kullanıcı", deger: { min: 1, max: 10, ek_kullanici_fiyat: 450 } },
     { tip: "demo_suresi", baslik: "Deneme", deger: { gun: 14 } },
   ]);
-  paketSayisi++;
+  sablonSayisi++;
 
-  console.log(`   ✓ ${paketSayisi} ürün paketi oluşturuldu (şablonlarla birlikte)`);
+  console.log(`   ✓ ${sablonSayisi} ürün şablonu oluşturuldu`);
 
   // =============================================
   // 6. ÖRNEK MÜŞTERİ
@@ -400,61 +405,40 @@ async function main() {
 
   const ornekMusteri = await prisma.musteri.create({
     data: {
-      firma_adi: "Demo Ticaret A.Ş.",
+      tur: "tuzel",
+      sirket_adi: "Demo Ticaret A.Ş.",
+      yetkili_kisi: "Ahmet Yılmaz",
       vergi_no: "1234567890",
       vergi_dairesi: "Kadıköy",
-      telefon: "0216 555 1234",
       eposta: "bilgi@demoticaret.com",
-      adres: "Kadıköy, İstanbul",
-      il: "İstanbul",
-      ilce: "Kadıköy",
-      yetkili_kisi: "Ahmet Yılmaz",
-      aktif: true,
-      notlar: "Seed ile oluşturulmuş demo müşteri",
+      durum: "aktif",
     }
   });
 
-  // Müşteriye iletişim ekle
-  await prisma.iletisim.create({
+  // Telefon ekle
+  await prisma.musteriTelefon.create({
+    data: { musteri_id: ornekMusteri.id, telefon: "0216 555 1234" }
+  });
+
+  // Adres ekle
+  await prisma.musteriAdres.create({
+    data: { musteri_id: ornekMusteri.id, adres: "Kadıköy, İstanbul" }
+  });
+
+  // İletişim kaydı ekle
+  await prisma.iletisimKaydi.create({
     data: {
       musteri_id: ornekMusteri.id,
       tur: "ARAMA",
       konu: "İlk Görüşme",
       notlar: "Ürünler hakkında bilgi alındı, demo talep edildi.",
       tarih: new Date(),
-      tamamlandi: true,
+      tamamlandi: 1,
     }
   });
 
-  // Müşteriye bir paket ekle (VegaPos)
-  const bugun = new Date();
-  const birYilSonra = new Date(bugun);
-  birYilSonra.setFullYear(birYilSonra.getFullYear() + 1);
-
-  await prisma.musteriPaketi.create({
-    data: {
-      musteri_id: ornekMusteri.id,
-      paket_id: vegaPos.id,
-      lisans_tipi: "YILLIK",
-      baslangic_tarihi: bugun,
-      bitis_tarihi: birYilSonra,
-      kullanim_gunu: 365,
-      kullanici_sayisi: 3,
-      ek_kullanici: 2,
-      fiyat: 6000,
-      indirim_orani: 0,
-      indirim_tutari: 0,
-      net_tutar: 6000,
-      odeme_yontemi: "HAVALE",
-      odeme_durumu: "ODENDI",
-      aktif: true,
-      notlar: "Seed ile oluşturulmuş örnek paket",
-    }
-  });
-
-  console.log(`   ✓ Müşteri oluşturuldu: ${ornekMusteri.firma_adi}`);
+  console.log(`   ✓ Müşteri oluşturuldu: Demo Ticaret A.Ş.`);
   console.log(`   ✓ İletişim kaydı eklendi`);
-  console.log(`   ✓ Müşteri paketi eklendi: VegaPos (1 yıllık)`);
 
   // =============================================
   // ÖZET
@@ -467,7 +451,7 @@ async function main() {
    • Ürün Grupları: ${gruplar.length}
    • Ürün Tipleri: ${Object.keys(tipMap).length}
    • Uygulama Tipleri: ${Object.keys(uygulamaMap).length}
-   • Ürün Paketleri: ${paketSayisi}
+   • Ürün Şablonları: ${sablonSayisi}
    • Müşteriler: 1 (Demo Ticaret A.Ş.)
 `);
 }
