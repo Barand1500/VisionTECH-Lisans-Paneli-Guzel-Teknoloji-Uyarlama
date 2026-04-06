@@ -1453,34 +1453,16 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
 
                           case "sicil_domain":
                           return (
-                            <div key={oz.id} className="p-4 rounded-xl bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-500/10 dark:to-amber-500/10 border border-orange-200 dark:border-orange-500/20">
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center">
-                                  {deger.alan_tipi === "domain" ? (
-                                    <svg className="w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                                    </svg>
-                                  ) : (
-                                    <svg className="w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                  )}
-                                </div>
-                                <div>
-                                  <label className="text-sm font-semibold text-orange-800 dark:text-orange-300">
-                                    {oz.baslik || (deger.alan_tipi === "domain" ? "Alan Adı (Domain)" : "Sicil Numarası")} 
-                                    {deger.zorunlu && <span className="text-red-500 ml-1">*</span>}
-                                  </label>
-                                  <p className="text-xs text-orange-600 dark:text-orange-500">
-                                    {deger.alan_tipi === "domain" ? "Müşterinin kullanacağı domain" : "Müşterinin TC/Vergi sicil numarası"}
-                                  </p>
-                                </div>
-                              </div>
+                            <div key={oz.id}>
+                              <label className={LABEL_STIL}>
+                                {oz.baslik || (deger.alan_tipi === "domain" ? "Alan Adı" : "Sicil No")} 
+                                {deger.zorunlu && <span className="text-red-500 ml-1">*</span>}
+                              </label>
                               <input 
                                 type="text" 
                                 value={deger.deger || ""} 
                                 onChange={(e) => { sablonGuncelle("deger", e.target.value); guncelle("domain", e.target.value); }} 
-                                className={`${INPUT_STIL} bg-white dark:bg-slate-800 border-orange-300 dark:border-orange-500/30 focus:border-orange-500 focus:ring-orange-500`}
+                                className={INPUT_STIL}
                                 placeholder={deger.alan_tipi === "domain" ? "ornek.com" : "Sicil numarasını girin"} 
                               />
                             </div>
@@ -1491,46 +1473,25 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                           const kademeler = Array.isArray(rawKademeler) ? rawKademeler : [];
                           if (kademeler.length === 0) return null;
                           const seciliKademe = deger.secili_kademe || kademeler[0]?.deger || null;
-                          const kademeRenkler = ["emerald", "blue", "violet", "amber", "rose"];
                           return (
                             <div key={oz.id}>
                               <label className={LABEL_STIL}>{oz.baslik || "Paket Tipi"} <span className="text-red-500">*</span></label>
-                              <div className="grid grid-cols-3 gap-3 mt-2">
+                              <div className="grid grid-cols-3 gap-2 mt-1">
                                 {kademeler.map((kademe, idx) => {
                                   const secili = seciliKademe === kademe.deger;
-                                  const renk = kademeRenkler[idx % kademeRenkler.length];
                                   return (
                                     <button
                                       key={idx}
                                       type="button"
                                       onClick={() => sablonGuncelle("secili_kademe", kademe.deger)}
-                                      className={`relative overflow-hidden p-4 rounded-2xl border-2 text-center transition-all cursor-pointer ${
+                                      className={`p-3 rounded-lg border text-center transition-all cursor-pointer ${
                                         secili 
-                                          ? `border-${renk}-500 bg-gradient-to-br from-${renk}-50 to-${renk}-100 dark:from-${renk}-500/20 dark:to-${renk}-500/10 ring-2 ring-${renk}-500/30 shadow-lg` 
-                                          : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20 hover:shadow-md"
+                                          ? "border-blue-500 bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400" 
+                                          : "border-gray-200 dark:border-white/10 hover:border-gray-300 text-gray-700 dark:text-slate-300"
                                       }`}
                                     >
-                                      {secili && (
-                                        <div className={`absolute top-2 right-2 w-5 h-5 rounded-full bg-${renk}-500 flex items-center justify-center`}>
-                                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                          </svg>
-                                        </div>
-                                      )}
-                                      <div className={`text-2xl mb-2 ${idx === 0 ? "text-emerald-500" : idx === 1 ? "text-blue-500" : "text-violet-500"}`}>
-                                        {idx === 0 ? "👤" : idx === 1 ? "🏢" : "🚀"}
-                                      </div>
-                                      <p className={`text-base font-bold ${secili ? `text-${renk}-700 dark:text-${renk}-400` : "text-gray-700 dark:text-slate-300"}`}>
-                                        {kademe.deger}
-                                      </p>
-                                      {deger.birim && (
-                                        <p className={`text-xs mt-0.5 ${secili ? `text-${renk}-600 dark:text-${renk}-500` : "text-gray-500"}`}>
-                                          {deger.birim}
-                                        </p>
-                                      )}
-                                      <p className={`text-lg font-bold mt-2 ${secili ? `text-${renk}-600 dark:text-${renk}-400` : "text-gray-600 dark:text-slate-400"}`}>
-                                        ₺{Number(kademe.fiyat || 0).toLocaleString("tr-TR")}
-                                      </p>
+                                      <p className="text-sm font-semibold">{kademe.deger}</p>
+                                      <p className="text-xs mt-1 font-bold">₺{Number(kademe.fiyat || 0).toLocaleString("tr-TR")}</p>
                                     </button>
                                   );
                                 })}
@@ -1547,7 +1508,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                           return (
                             <div key={oz.id}>
                               <label className={LABEL_STIL}>{oz.baslik || "Domain Uzantısı"} <span className="text-red-500">*</span></label>
-                              <div className="space-y-2 mt-2">
+                              <div className="space-y-1.5 mt-1">
                                 {uzantilar.map((uzanti, idx) => {
                                   const secili = seciliUzanti === uzanti.uzanti;
                                   return (
@@ -1555,35 +1516,18 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                                       key={idx}
                                       type="button"
                                       onClick={() => sablonGuncelle("secili_uzanti", uzanti.uzanti)}
-                                      className={`w-full p-4 rounded-xl border-2 flex items-center justify-between transition-all cursor-pointer ${
+                                      className={`w-full px-3 py-2 rounded-lg border flex items-center justify-between transition-all cursor-pointer ${
                                         secili 
-                                          ? "border-cyan-500 bg-gradient-to-r from-cyan-50 to-teal-50 dark:from-cyan-500/15 dark:to-teal-500/10 shadow-lg ring-2 ring-cyan-500/30" 
-                                          : "border-gray-200 dark:border-white/10 hover:border-gray-300 hover:shadow-md"
+                                          ? "border-blue-500 bg-blue-50 dark:bg-blue-500/15" 
+                                          : "border-gray-200 dark:border-white/10 hover:border-gray-300"
                                       }`}
                                     >
-                                      <div className="flex items-center gap-3">
-                                        {secili && (
-                                          <div className="w-5 h-5 rounded-full bg-cyan-500 flex items-center justify-center shrink-0">
-                                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                            </svg>
-                                          </div>
-                                        )}
-                                        <span className={`font-mono text-lg font-bold ${secili ? "text-cyan-700 dark:text-cyan-400" : "text-gray-700 dark:text-slate-300"}`}>
-                                          {uzanti.uzanti}
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center gap-4 text-sm">
-                                        <div className={`px-3 py-1.5 rounded-lg ${secili ? "bg-emerald-100 dark:bg-emerald-500/20" : "bg-gray-100 dark:bg-white/5"}`}>
-                                          <span className={`font-medium ${secili ? "text-emerald-700 dark:text-emerald-400" : "text-gray-600 dark:text-slate-400"}`}>
-                                            Aktivasyon: ₺{Number(uzanti.aktivasyon || 0).toLocaleString("tr-TR")}
-                                          </span>
-                                        </div>
-                                        <div className={`px-3 py-1.5 rounded-lg ${secili ? "bg-blue-100 dark:bg-blue-500/20" : "bg-gray-100 dark:bg-white/5"}`}>
-                                          <span className={`font-medium ${secili ? "text-blue-700 dark:text-blue-400" : "text-gray-600 dark:text-slate-400"}`}>
-                                            Yenileme: ₺{Number(uzanti.yenileme || 0).toLocaleString("tr-TR")}
-                                          </span>
-                                        </div>
+                                      <span className={`font-mono font-semibold text-sm ${secili ? "text-blue-700 dark:text-blue-400" : "text-gray-700 dark:text-slate-300"}`}>
+                                        {uzanti.uzanti}
+                                      </span>
+                                      <div className="flex items-center gap-3 text-xs">
+                                        <span className={secili ? "text-blue-600" : "text-gray-500"}>Akt: ₺{uzanti.aktivasyon}</span>
+                                        <span className={secili ? "text-blue-600" : "text-gray-500"}>Yen: ₺{uzanti.yenileme}</span>
                                       </div>
                                     </button>
                                   );
@@ -1662,173 +1606,74 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
               )}
 
               {/* Fiyat Bilgileri */}
-              <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-500/5 dark:to-gray-500/5 border border-gray-200 dark:border-white/10">
-                <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                  Fiyat Hesaplama Detayı
-                </h4>
+              <div className="p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-3">Fiyat Detayı</h4>
                 
-                {/* Gelişmiş Fiyat Breakdown */}
-                <div className="mb-4 p-4 rounded-xl bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-white/10 shadow-sm">
-                  <div className="space-y-3">
-                    {/* Temel Fiyat veya Aktivasyon */}
-                    {fiyatBreakdown.aktivasyonFiyat > 0 ? (
-                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center">
-                            <svg className="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-amber-800 dark:text-amber-300">Aktivasyon Bedeli</span>
-                            <p className="text-xs text-amber-600 dark:text-amber-500">İlk kurulum ücreti</p>
-                          </div>
-                        </div>
-                        <span className="text-base font-bold text-amber-700 dark:text-amber-400">₺{fiyatBreakdown.aktivasyonFiyat.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
-                      </div>
-                    ) : fiyatBreakdown.temelFiyat > 0 && (
-                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
-                            <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-blue-800 dark:text-blue-300">Ürün Temel Fiyat</span>
-                            <p className="text-xs text-blue-600 dark:text-blue-500">{seciliUrun?.ad || "Ürün"} lisans bedeli</p>
-                          </div>
-                        </div>
-                        <span className="text-base font-bold text-blue-700 dark:text-blue-400">₺{fiyatBreakdown.temelFiyat.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
-                      </div>
-                    )}
-
-                    {/* Kademeli Fiyat (Bireysel/Kurumsal/Profesyonel) */}
-                    {fiyatBreakdown.kademeFiyat > 0 && (
-                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg bg-violet-100 dark:bg-violet-500/20 flex items-center justify-center">
-                            <svg className="w-4 h-4 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                            </svg>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-violet-800 dark:text-violet-300">Paket: {fiyatBreakdown.kademeAdi}</span>
-                            <p className="text-xs text-violet-600 dark:text-violet-500">Seçilen paket fiyatı</p>
-                          </div>
-                        </div>
-                        <span className="text-base font-bold text-violet-700 dark:text-violet-400">₺{fiyatBreakdown.kademeFiyat.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
-                      </div>
-                    )}
-
-                    {/* Domain Fiyat */}
-                    {fiyatBreakdown.domainFiyat > 0 && (
-                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 border border-cyan-200 dark:border-cyan-500/20">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg bg-cyan-100 dark:bg-cyan-500/20 flex items-center justify-center">
-                            <svg className="w-4 h-4 text-cyan-600 dark:text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                            </svg>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-cyan-800 dark:text-cyan-300">Domain: {fiyatBreakdown.domainUzanti}</span>
-                            <p className="text-xs text-cyan-600 dark:text-cyan-500">Domain aktivasyon bedeli</p>
-                          </div>
-                        </div>
-                        <span className="text-base font-bold text-cyan-700 dark:text-cyan-400">₺{fiyatBreakdown.domainFiyat.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
-                      </div>
-                    )}
-
-                    {/* Paket Fiyat */}
-                    {fiyatBreakdown.paketFiyat > 0 && (
-                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center">
-                            <svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                            </svg>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-indigo-800 dark:text-indigo-300">Ürün Paketi</span>
-                            <p className="text-xs text-indigo-600 dark:text-indigo-500">{seciliPaket?.adi || "Seçilen paket"}</p>
-                          </div>
-                        </div>
-                        <span className="text-base font-bold text-indigo-700 dark:text-indigo-400">₺{fiyatBreakdown.paketFiyat.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
-                      </div>
-                    )}
-
-                    {/* Ek Kullanıcı */}
-                    {fiyatBreakdown.ekKullaniciFiyat > 0 && (
-                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-teal-50 dark:bg-teal-500/10 border border-teal-200 dark:border-teal-500/20">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg bg-teal-100 dark:bg-teal-500/20 flex items-center justify-center">
-                            <svg className="w-4 h-4 text-teal-600 dark:text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-teal-800 dark:text-teal-300">Ek Kullanıcı</span>
-                            <p className="text-xs text-teal-600 dark:text-teal-500">{fiyatBreakdown.ekKullaniciAdet} kullanıcı × ₺{fiyatBreakdown.ekKullaniciBirim.toLocaleString("tr-TR")}</p>
-                          </div>
-                        </div>
-                        <span className="text-base font-bold text-teal-700 dark:text-teal-400">₺{fiyatBreakdown.ekKullaniciFiyat.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
-                      </div>
-                    )}
-
-                    {/* Yenileme Bilgisi (sadece gösterim için) */}
-                    {fiyatBreakdown.yenilemeFiyat > 0 && (
-                      <div className="flex items-center justify-between p-2 rounded-lg bg-gray-100 dark:bg-gray-500/10 border border-dashed border-gray-300 dark:border-gray-500/30">
-                        <div className="flex items-center gap-2">
-                          <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span className="text-xs text-gray-600 dark:text-slate-400">Sonraki yenileme: ₺{fiyatBreakdown.yenilemeFiyat.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Toplam */}
-                    <div className="pt-3 border-t border-gray-200 dark:border-white/10">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-gray-700 dark:text-slate-300">Ara Toplam:</span>
-                        <span className="text-lg font-bold text-gray-900 dark:text-white">₺{fiyatBreakdown.toplam.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
-                      </div>
+                {/* Sade Fiyat Breakdown */}
+                <div className="mb-4 space-y-2 text-sm">
+                  {fiyatBreakdown.aktivasyonFiyat > 0 && (
+                    <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-white/10">
+                      <span className="text-gray-600 dark:text-slate-400">Aktivasyon</span>
+                      <span className="font-medium">₺{fiyatBreakdown.aktivasyonFiyat.toLocaleString("tr-TR")}</span>
                     </div>
-
-                    {/* İndirim varsa */}
-                    {(Number(form.indirimOrani) > 0 || Number(form.indirimTutari) > 0) && (
-                      <>
-                        <div className="flex items-center justify-between p-2.5 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-500/20 flex items-center justify-center">
-                              <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                              </svg>
-                            </div>
-                            <div>
-                              <span className="text-sm font-medium text-red-800 dark:text-red-300">İndirim</span>
-                              {Number(form.indirimOrani) > 0 && <p className="text-xs text-red-600 dark:text-red-500">%{form.indirimOrani} indirim uygulandı</p>}
-                            </div>
-                          </div>
-                          <span className="text-base font-bold text-red-600 dark:text-red-400">-₺{Number(form.indirimTutari).toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
-                        </div>
-                        <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-emerald-100 to-green-100 dark:from-emerald-500/20 dark:to-green-500/20 border border-emerald-300 dark:border-emerald-500/30">
-                          <span className="text-base font-bold text-emerald-800 dark:text-emerald-300">Net Tutar:</span>
-                          <span className="text-xl font-bold text-emerald-700 dark:text-emerald-400">₺{Number(form.netTutar).toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
-                        </div>
-                      </>
-                    )}
-
-                    {/* Eğer hiç fiyat yoksa bilgi mesajı */}
-                    {fiyatBreakdown.toplam === 0 && (
-                      <div className="text-center py-4 text-gray-400 dark:text-slate-500 text-sm">
-                        Ürün ve seçeneklere göre fiyat otomatik hesaplanacak
+                  )}
+                  {fiyatBreakdown.temelFiyat > 0 && !fiyatBreakdown.aktivasyonFiyat && (
+                    <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-white/10">
+                      <span className="text-gray-600 dark:text-slate-400">Temel Fiyat</span>
+                      <span className="font-medium">₺{fiyatBreakdown.temelFiyat.toLocaleString("tr-TR")}</span>
+                    </div>
+                  )}
+                  {fiyatBreakdown.kademeFiyat > 0 && (
+                    <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-white/10">
+                      <span className="text-gray-600 dark:text-slate-400">Paket ({fiyatBreakdown.kademeAdi})</span>
+                      <span className="font-medium">₺{fiyatBreakdown.kademeFiyat.toLocaleString("tr-TR")}</span>
+                    </div>
+                  )}
+                  {fiyatBreakdown.domainFiyat > 0 && (
+                    <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-white/10">
+                      <span className="text-gray-600 dark:text-slate-400">Domain ({fiyatBreakdown.domainUzanti})</span>
+                      <span className="font-medium">₺{fiyatBreakdown.domainFiyat.toLocaleString("tr-TR")}</span>
+                    </div>
+                  )}
+                  {fiyatBreakdown.paketFiyat > 0 && (
+                    <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-white/10">
+                      <span className="text-gray-600 dark:text-slate-400">Ürün Paketi</span>
+                      <span className="font-medium">₺{fiyatBreakdown.paketFiyat.toLocaleString("tr-TR")}</span>
+                    </div>
+                  )}
+                  {fiyatBreakdown.ekKullaniciFiyat > 0 && (
+                    <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-white/10">
+                      <span className="text-gray-600 dark:text-slate-400">Ek Kullanıcı ({fiyatBreakdown.ekKullaniciAdet}×₺{fiyatBreakdown.ekKullaniciBirim})</span>
+                      <span className="font-medium">₺{fiyatBreakdown.ekKullaniciFiyat.toLocaleString("tr-TR")}</span>
+                    </div>
+                  )}
+                  {fiyatBreakdown.yenilemeFiyat > 0 && (
+                    <div className="flex justify-between py-1 text-xs text-gray-400 dark:text-slate-500">
+                      <span>Sonraki yenileme</span>
+                      <span>₺{fiyatBreakdown.yenilemeFiyat.toLocaleString("tr-TR")}</span>
+                    </div>
+                  )}
+                  {fiyatBreakdown.toplam > 0 && (
+                    <div className="flex justify-between pt-2 border-t border-gray-300 dark:border-white/20">
+                      <span className="font-semibold text-gray-700 dark:text-slate-300">Toplam</span>
+                      <span className="font-bold text-gray-900 dark:text-white">₺{fiyatBreakdown.toplam.toLocaleString("tr-TR")}</span>
+                    </div>
+                  )}
+                  {(Number(form.indirimOrani) > 0 || Number(form.indirimTutari) > 0) && (
+                    <>
+                      <div className="flex justify-between py-1 text-red-600 dark:text-red-400">
+                        <span>İndirim {form.indirimOrani > 0 ? `(%${form.indirimOrani})` : ""}</span>
+                        <span>-₺{Number(form.indirimTutari).toLocaleString("tr-TR")}</span>
                       </div>
-                    )}
-                  </div>
+                      <div className="flex justify-between pt-2 border-t border-emerald-300 dark:border-emerald-500/30">
+                        <span className="font-bold text-emerald-700 dark:text-emerald-400">Net Tutar</span>
+                        <span className="font-bold text-emerald-700 dark:text-emerald-400">₺{Number(form.netTutar).toLocaleString("tr-TR")}</span>
+                      </div>
+                    </>
+                  )}
+                  {fiyatBreakdown.toplam === 0 && (
+                    <p className="text-center py-2 text-gray-400 text-xs">Fiyat seçeneklere göre hesaplanacak</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-4 gap-3">
