@@ -12,9 +12,12 @@ function guvenliSayi(val, def = 0) {
    URUN TIPLERI
    ============================================================ */
 
-router.get("/tipler", hataYakala(async (_req, res) => {
+router.get("/tipler", hataYakala(async (req, res) => {
+  const { grup_id } = req.query;
+  const where = { silinme_tarihi: null };
+  if (grup_id) where.grup_id = Number(grup_id);
   const veriler = await prisma.urunTipi.findMany({
-    where: { silinme_tarihi: null },
+    where,
     include: { grup: { select: { ad: true } } },
     orderBy: { ad: "asc" },
   });
@@ -52,9 +55,12 @@ router.delete("/tipler/:id", hataYakala(async (req, res) => {
    UYGULAMA TIPLERI
    ============================================================ */
 
-router.get("/uygulama-tipler", hataYakala(async (_req, res) => {
+router.get("/uygulama-tipler", hataYakala(async (req, res) => {
+  const { urun_tipi_id } = req.query;
+  const where = { silinme_tarihi: null };
+  if (urun_tipi_id) where.urun_tipi_id = Number(urun_tipi_id);
   const veriler = await prisma.uygulamaTipi.findMany({
-    where: { silinme_tarihi: null },
+    where,
     include: { urunTipi: { select: { ad: true } } },
     orderBy: { ad: "asc" },
   });

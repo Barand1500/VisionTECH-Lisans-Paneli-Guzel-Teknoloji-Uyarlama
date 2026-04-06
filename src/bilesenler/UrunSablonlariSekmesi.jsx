@@ -1246,26 +1246,30 @@ function OzellikFormu({ tip, deger, guncelle }) {
           <div>
             <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Min Kullanıcı</label>
             <input 
-              type="number" 
+              type="text" 
               inputMode="numeric"
+              pattern="[0-9]*"
               value={deger.min || 1} 
-              onChange={(e) => guncelle("min", Number(e.target.value))} 
-              onKeyDown={(e) => { if (["e", "E", "+", "-", "."].includes(e.key)) e.preventDefault(); }}
+              onChange={(e) => {
+                const val = e.target.value.replace(/[^0-9]/g, '');
+                guncelle("min", val ? Number(val) : 1);
+              }}
               className={KUCUK_INPUT + " w-full"} 
-              min={1} 
             />
           </div>
           <div>
             <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Max Kullanıcı</label>
             <input 
-              type="number" 
+              type="text" 
               inputMode="numeric"
+              pattern="[0-9]*"
               value={deger.max ?? ""} 
-              onChange={(e) => guncelle("max", e.target.value ? Number(e.target.value) : null)} 
-              onKeyDown={(e) => { if (["e", "E", "+", "-", "."].includes(e.key)) e.preventDefault(); }}
+              onChange={(e) => {
+                const val = e.target.value.replace(/[^0-9]/g, '');
+                guncelle("max", val ? Number(val) : null);
+              }}
               placeholder="Sınırsız" 
               className={KUCUK_INPUT + " w-full"} 
-              min={1} 
             />
           </div>
           <div>
@@ -1309,26 +1313,30 @@ function OzellikFormu({ tip, deger, guncelle }) {
           <div>
             <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Minimum Adet</label>
             <input 
-              type="number" 
+              type="text" 
               inputMode="numeric"
+              pattern="[0-9]*"
               value={deger.min || 1} 
-              onChange={(e) => guncelle("min", Number(e.target.value))} 
-              onKeyDown={(e) => { if (["e", "E", "+", "-", "."].includes(e.key)) e.preventDefault(); }}
+              onChange={(e) => {
+                const val = e.target.value.replace(/[^0-9]/g, '');
+                guncelle("min", val ? Number(val) : 1);
+              }}
               className={KUCUK_INPUT + " w-full"} 
-              min={1} 
             />
           </div>
           <div>
             <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Maximum Adet</label>
             <input 
-              type="number" 
+              type="text" 
               inputMode="numeric"
+              pattern="[0-9]*"
               value={deger.max ?? ""} 
-              onChange={(e) => guncelle("max", e.target.value ? Number(e.target.value) : null)} 
-              onKeyDown={(e) => { if (["e", "E", "+", "-", "."].includes(e.key)) e.preventDefault(); }}
+              onChange={(e) => {
+                const val = e.target.value.replace(/[^0-9]/g, '');
+                guncelle("max", val ? Number(val) : null);
+              }}
               placeholder="Sınırsız" 
               className={KUCUK_INPUT + " w-full"} 
-              min={1} 
             />
           </div>
         </div>
@@ -1640,14 +1648,20 @@ function BagimliUrunFormu({ deger, guncelle }) {
 /*  Kademeli Adet + Kapasite Kombine Formu       */
 /* ============================================= */
 
+const BIRIM_SECENEKLERI = {
+  adet: ["Adet", "Kontör", "Paket", "Kullanıcı", "Lisans"],
+  kapasite: ["GB", "TB", "MB", "KB"],
+};
+
 function KademeliAdetKapasiteForm({ deger, guncelle }) {
   const tip = deger.tip || "adet"; // "adet" veya "kapasite"
   const kademeler = deger.kademeler || [];
   const birimKey = tip === "adet" ? "adet" : "kapasite";
   const birimLabel = tip === "adet" ? "Adet" : "Kapasite";
+  const varsayilanBirim = tip === "adet" ? "Adet" : "GB";
 
   const kademeEkle = () => {
-    guncelle("kademeler", [...kademeler, { [birimKey]: "", fiyat: 0 }]);
+    guncelle("kademeler", [...kademeler, { [birimKey]: "", fiyat: 0, birim: varsayilanBirim }]);
   };
 
   const kademeSil = (idx) => {
@@ -1660,12 +1674,14 @@ function KademeliAdetKapasiteForm({ deger, guncelle }) {
   };
 
   const tipDegistir = (yeniTip) => {
-    // Tip değiştiğinde kademeleri sıfırla
+    // Tip değiştiğinde kademelerin birimlerini de güncelle
     const eskiKey = tip === "adet" ? "adet" : "kapasite";
     const yeniKey = yeniTip === "adet" ? "adet" : "kapasite";
+    const yeniBirim = yeniTip === "adet" ? "Adet" : "GB";
     const yeniKademeler = kademeler.map(k => ({
       [yeniKey]: k[eskiKey] || "",
-      fiyat: k.fiyat || 0
+      fiyat: k.fiyat || 0,
+      birim: yeniBirim
     }));
     guncelle("tip", yeniTip);
     guncelle("kademeler", yeniKademeler);
@@ -1688,49 +1704,40 @@ function KademeliAdetKapasiteForm({ deger, guncelle }) {
             <span className="text-xs text-gray-600 dark:text-slate-400">Kapasite Bazlı</span>
           </label>
         </div>
-        <div className="flex-1" />
-        <select value={deger.birim || (tip === "adet" ? "Adet" : "GB")} onChange={(e) => guncelle("birim", e.target.value)} className="text-[11px] px-2 py-1 rounded bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-slate-400">
-          {tip === "adet" ? (
-            <>
-              <option value="Adet">Adet</option>
-              <option value="Kontör">Kontör</option>
-              <option value="Paket">Paket</option>
-            </>
-          ) : (
-            <>
-              <option value="GB">GB</option>
-              <option value="TB">TB</option>
-              <option value="MB">MB</option>
-            </>
-          )}
-        </select>
       </div>
 
       {/* Kademeler */}
       <div className="flex items-center gap-2 mb-1">
         <span className="text-[11px] font-medium text-gray-500 dark:text-slate-400">{birimLabel}</span>
-        <span className="text-[11px] text-gray-400">→</span>
+        <span className="text-[11px] text-gray-400 ml-16">Birim</span>
+        <span className="text-[11px] text-gray-400 ml-10">→</span>
         <span className="text-[11px] font-medium text-gray-500 dark:text-slate-400">Fiyat</span>
       </div>
       {kademeler.map((k, i) => {
-        const birimDeger = deger.birim || (tip === "adet" ? "Adet" : "GB");
+        const satirBirim = k.birim || varsayilanBirim;
         return (
           <div key={i} className="flex items-center gap-2">
-            <div className="flex items-center gap-1">
-              <input 
-                type="number" 
-                inputMode="numeric"
-                value={k[birimKey] ?? ""} 
-                onChange={(e) => kademeGuncelle(i, birimKey, e.target.value ? Number(e.target.value) : "")}
-                onKeyDown={(e) => { if (["e", "E", "+", "-", "."].includes(e.key)) e.preventDefault(); }}
-                placeholder={birimLabel} 
-                className={KUCUK_INPUT + " w-20"} 
-                min={0}
-              />
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-400 font-medium whitespace-nowrap">
-                {birimDeger}
-              </span>
-            </div>
+            <input 
+              type="text" 
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={k[birimKey] ?? ""} 
+              onChange={(e) => {
+                const val = e.target.value.replace(/[^0-9]/g, '');
+                kademeGuncelle(i, birimKey, val ? Number(val) : "");
+              }}
+              placeholder={birimLabel} 
+              className={KUCUK_INPUT + " w-20"} 
+            />
+            <select 
+              value={satirBirim} 
+              onChange={(e) => kademeGuncelle(i, "birim", e.target.value)} 
+              className="text-[11px] px-2 py-1.5 rounded bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-slate-400 w-20"
+            >
+              {BIRIM_SECENEKLERI[tip].map(b => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
             <span className="text-gray-400 text-xs">→</span>
             <input type="number" value={k.fiyat || 0} onChange={(e) => kademeGuncelle(i, "fiyat", Number(e.target.value))}
               className={KUCUK_INPUT + " w-28"} min={0} step="0.01" />
