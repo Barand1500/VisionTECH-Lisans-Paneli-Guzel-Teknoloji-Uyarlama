@@ -178,31 +178,56 @@ const OZELLIK_TIPLERI = [
     // Mantık: Bu ürün verilirken bağımlı ürünler yoksa uyarı verilir
   },
   {
-    id: "domain_yonetimi",
-    ad: "Domain Yönetimi",
-    ikon: "🔄",
+    id: "urun_yonetimi",
+    ad: "Ürün Yönetimi",
+    ikon: "📦",
     renk: "fuchsia",
-    aciklama: "Domain transfer ve geri alma ayarları",
-    varsayilan: { transfer_aktif: true, geri_alma_aktif: true, yenileme_hatirlatma_gun: 30 },
-    // Mantık: Domain içeren lisanslarda transfer/geri alma butonları aktifleşir
+    aciklama: "Ürün/paket transfer, durdurma, askıya alma ve ücretlendirme ayarları",
+    varsayilan: {
+      transfer_edilebilir: true,
+      transfer_ucreti: 0,
+      transfer_ucreti_birimi: "TL",
+      durdurulabilir: true,
+      durdurma_suresi_gun: 90,
+      askiya_alinabilir: true,
+      askiya_alma_suresi_gun: 30,
+      iptal_edilebilir: true,
+      iptal_iade_orani: 0,
+      devir_edilebilir: false,
+      not: "",
+    },
   },
   {
     id: "garanti_suresi",
     ad: "Garanti Süresi",
     ikon: "🛡️",
     renk: "slate",
-    aciklama: "Ürün garanti süresi ve kapsamı",
-    varsayilan: { gun: 365, kapsam: "" },
-    // Mantık: Bilgi modalında garanti bilgisi gösterilir
+    aciklama: "Ürünün garanti süresi — her ürün için varsayılan 2 yıl, şablonla değiştirilebilir",
+    varsayilan: {
+      sure_ay: 24,
+      kapsam: "standart",
+      uzatilabilir: true,
+      uzatma_ucreti: 0,
+      uzatma_ucreti_birimi: "TL",
+      uzatma_suresi_ay: 12,
+      garanti_notu: "",
+    },
   },
   {
     id: "guvenlik",
     ad: "Güvenlik Ayarları",
     ikon: "🔒",
     renk: "lime",
-    aciklama: "MAC/IP kontrolü ve cihaz limiti",
-    varsayilan: { mac_kontrolu: false, ip_kisitlama: false, max_cihaz: 1 },
-    // Mantık: Bilgi modalında güvenlik ayarları gösterilir
+    aciklama: "MAC/IP kontrolü, cihaz limiti ve lisans güvenlik politikaları",
+    varsayilan: {
+      mac_kontrolu: false,
+      ip_kisitlama: false,
+      max_cihaz: 1,
+      cihaz_degisim_hakki: 2,
+      cihaz_degisim_periyot: "yillik",
+      online_dogrulama: false,
+      dogrulama_periyot_gun: 30,
+    },
   },
 ];
 
@@ -1724,6 +1749,172 @@ function OzellikFormu({ tip, deger: rawDeger, guncelle }) {
 
     case "bagimli_urun":
       return <BagimliUrunFormu deger={deger} guncelle={guncelle} />;
+
+    case "urun_yonetimi":
+      return (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={deger.transfer_edilebilir ?? true} onChange={(e) => guncelle("transfer_edilebilir", e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-fuchsia-600 focus:ring-fuchsia-500" />
+              <span className="text-xs text-gray-600 dark:text-slate-400">Transfer Edilebilir</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={deger.durdurulabilir ?? true} onChange={(e) => guncelle("durdurulabilir", e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-fuchsia-600 focus:ring-fuchsia-500" />
+              <span className="text-xs text-gray-600 dark:text-slate-400">Durdurulabilir</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={deger.askiya_alinabilir ?? true} onChange={(e) => guncelle("askiya_alinabilir", e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-fuchsia-600 focus:ring-fuchsia-500" />
+              <span className="text-xs text-gray-600 dark:text-slate-400">Askıya Alınabilir</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={deger.iptal_edilebilir ?? true} onChange={(e) => guncelle("iptal_edilebilir", e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-fuchsia-600 focus:ring-fuchsia-500" />
+              <span className="text-xs text-gray-600 dark:text-slate-400">İptal Edilebilir</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={deger.devir_edilebilir ?? false} onChange={(e) => guncelle("devir_edilebilir", e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-fuchsia-600 focus:ring-fuchsia-500" />
+              <span className="text-xs text-gray-600 dark:text-slate-400">Devir Edilebilir (Başka Bayiye)</span>
+            </label>
+          </div>
+          {deger.transfer_edilebilir && (
+            <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-fuchsia-50 dark:bg-fuchsia-500/5 border border-fuchsia-200 dark:border-fuchsia-500/20">
+              <div>
+                <label className="block text-[11px] font-medium text-fuchsia-600 dark:text-fuchsia-400 mb-1">Transfer Ücreti</label>
+                <input type="number" value={deger.transfer_ucreti || 0} onChange={(e) => guncelle("transfer_ucreti", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={0} step="0.01" />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-fuchsia-600 dark:text-fuchsia-400 mb-1">Birim</label>
+                <select value={deger.transfer_ucreti_birimi || "TL"} onChange={(e) => guncelle("transfer_ucreti_birimi", e.target.value)} className={KUCUK_INPUT + " w-full"}>
+                  <option value="TL">TL</option><option value="USD">USD</option><option value="EUR">EUR</option>
+                </select>
+              </div>
+            </div>
+          )}
+          {deger.durdurulabilir && (
+            <div className="w-48">
+              <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Max Durdurma Süresi (Gün)</label>
+              <input type="number" value={deger.durdurma_suresi_gun || 90} onChange={(e) => guncelle("durdurma_suresi_gun", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={1} />
+            </div>
+          )}
+          {deger.askiya_alinabilir && (
+            <div className="w-48">
+              <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Max Askı Süresi (Gün)</label>
+              <input type="number" value={deger.askiya_alma_suresi_gun || 30} onChange={(e) => guncelle("askiya_alma_suresi_gun", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={1} />
+            </div>
+          )}
+          {deger.iptal_edilebilir && (
+            <div className="w-48">
+              <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">İptal İade Oranı (%)</label>
+              <input type="number" value={deger.iptal_iade_orani || 0} onChange={(e) => guncelle("iptal_iade_orani", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={0} max={100} />
+            </div>
+          )}
+          <div>
+            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Ek Not</label>
+            <input type="text" value={deger.not || ""} onChange={(e) => guncelle("not", e.target.value)} className={KUCUK_INPUT + " w-full"} placeholder="Opsiyonel açıklama..." />
+          </div>
+        </div>
+      );
+
+    case "garanti_suresi":
+      return (
+        <div className="space-y-4">
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Süre (Ay)</label>
+              <input type="number" value={deger.sure_ay ?? 24} onChange={(e) => guncelle("sure_ay", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={1} />
+            </div>
+            <div>
+              <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Kapsam</label>
+              <select value={deger.kapsam || "standart"} onChange={(e) => guncelle("kapsam", e.target.value)} className={KUCUK_INPUT + " w-full"}>
+                <option value="standart">Standart</option>
+                <option value="genisletilmis">Genişletilmiş</option>
+                <option value="premium">Premium</option>
+                <option value="sinirli">Sınırlı</option>
+              </select>
+            </div>
+            <div className="flex items-end">
+              <label className="flex items-center gap-2 cursor-pointer pb-2">
+                <input type="checkbox" checked={deger.uzatilabilir ?? true} onChange={(e) => guncelle("uzatilabilir", e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300 text-slate-600 focus:ring-slate-500" />
+                <span className="text-xs text-gray-600 dark:text-slate-400">Uzatılabilir</span>
+              </label>
+            </div>
+          </div>
+          {deger.uzatilabilir && (
+            <div className="grid grid-cols-3 gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-500/5 border border-slate-200 dark:border-slate-500/20">
+              <div>
+                <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">Uzatma Süresi (Ay)</label>
+                <input type="number" value={deger.uzatma_suresi_ay || 12} onChange={(e) => guncelle("uzatma_suresi_ay", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={1} />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">Uzatma Ücreti</label>
+                <input type="number" value={deger.uzatma_ucreti || 0} onChange={(e) => guncelle("uzatma_ucreti", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={0} step="0.01" />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">Birim</label>
+                <select value={deger.uzatma_ucreti_birimi || "TL"} onChange={(e) => guncelle("uzatma_ucreti_birimi", e.target.value)} className={KUCUK_INPUT + " w-full"}>
+                  <option value="TL">TL</option><option value="USD">USD</option><option value="EUR">EUR</option>
+                </select>
+              </div>
+            </div>
+          )}
+          <div>
+            <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Garanti Notu</label>
+            <input type="text" value={deger.garanti_notu || ""} onChange={(e) => guncelle("garanti_notu", e.target.value)} className={KUCUK_INPUT + " w-full"} placeholder="Garanti ile ilgili ek bilgi..." />
+          </div>
+        </div>
+      );
+
+    case "guvenlik":
+      return (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={deger.mac_kontrolu ?? false} onChange={(e) => guncelle("mac_kontrolu", e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-lime-600 focus:ring-lime-500" />
+              <span className="text-xs text-gray-600 dark:text-slate-400">MAC Adresi Kontrolü</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={deger.ip_kisitlama ?? false} onChange={(e) => guncelle("ip_kisitlama", e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-lime-600 focus:ring-lime-500" />
+              <span className="text-xs text-gray-600 dark:text-slate-400">IP Kısıtlama</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={deger.online_dogrulama ?? false} onChange={(e) => guncelle("online_dogrulama", e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-lime-600 focus:ring-lime-500" />
+              <span className="text-xs text-gray-600 dark:text-slate-400">Online Doğrulama</span>
+            </label>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Max Cihaz</label>
+              <input type="number" value={deger.max_cihaz || 1} onChange={(e) => guncelle("max_cihaz", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={1} />
+            </div>
+            <div>
+              <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Cihaz Değişim Hakkı</label>
+              <input type="number" value={deger.cihaz_degisim_hakki ?? 2} onChange={(e) => guncelle("cihaz_degisim_hakki", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={0} />
+            </div>
+            <div>
+              <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Değişim Periyodu</label>
+              <select value={deger.cihaz_degisim_periyot || "yillik"} onChange={(e) => guncelle("cihaz_degisim_periyot", e.target.value)} className={KUCUK_INPUT + " w-full"}>
+                <option value="aylik">Aylık</option>
+                <option value="yillik">Yıllık</option>
+                <option value="sinirsiz">Sınırsız</option>
+              </select>
+            </div>
+          </div>
+          {deger.online_dogrulama && (
+            <div className="w-48">
+              <label className="block text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-1">Doğrulama Periyodu (Gün)</label>
+              <input type="number" value={deger.dogrulama_periyot_gun || 30} onChange={(e) => guncelle("dogrulama_periyot_gun", Number(e.target.value))} className={KUCUK_INPUT + " w-full"} min={1} />
+            </div>
+          )}
+        </div>
+      );
 
     default:
       return <p className="text-xs text-gray-400">Bilinmeyen özellik tipi: {tip}</p>;

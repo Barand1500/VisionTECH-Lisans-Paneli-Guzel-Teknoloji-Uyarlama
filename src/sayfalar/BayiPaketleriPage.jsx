@@ -949,12 +949,22 @@ export default function BayiPaketleriPage() {
                       <div className="p-4 space-y-2">
                         {bilgiDetay.sablon_ozellikleri.map((oz) => {
                           const deger = typeof oz.deger === "string" ? (() => { try { return JSON.parse(oz.deger); } catch { return oz.deger; } })() : oz.deger;
+                          const etiketler = { transfer_edilebilir: "Transfer", durdurulabilir: "Durdurma", askiya_alinabilir: "Askıya Alma", iptal_edilebilir: "İptal", devir_edilebilir: "Devir", transfer_ucreti: "Transfer Ücreti", durdurma_suresi_gun: "Max Durdurma (gün)", askiya_alma_suresi_gun: "Max Askı (gün)", iptal_iade_orani: "İade Oranı (%)", sure_ay: "Süre (Ay)", kapsam: "Kapsam", uzatilabilir: "Uzatılabilir", uzatma_ucreti: "Uzatma Ücreti", uzatma_suresi_ay: "Uzatma (Ay)", mac_kontrolu: "MAC Kontrol", ip_kisitlama: "IP Kısıtlama", max_cihaz: "Max Cihaz", cihaz_degisim_hakki: "Değişim Hakkı", online_dogrulama: "Online Doğrulama", dogrulama_periyot_gun: "Doğrulama Periyodu (gün)", cihaz_degisim_periyot: "Değişim Periyodu" };
+                          const degerGoster = (k, v) => { if (typeof v === "boolean") return v ? "✅" : "❌"; if (k.includes("birimi") || k === "not" || k === "garanti_notu") return v || "-"; return String(v); };
                           return (
-                            <div key={oz.id} className="flex items-start gap-3 p-2.5 rounded-lg bg-gray-50 dark:bg-white/5">
-                              <span className="text-sm">{oz.baslik || oz.ozellik_tipi}</span>
-                              <span className="ml-auto text-xs text-gray-500 dark:text-slate-400 text-right">
-                                {typeof deger === "object" ? Object.entries(deger).map(([k, v]) => <span key={k} className="block">{k}: {String(v)}</span>) : String(deger)}
-                              </span>
+                            <div key={oz.id} className="p-2.5 rounded-lg bg-gray-50 dark:bg-white/5">
+                              <p className="text-sm font-medium mb-1.5">{oz.baslik || oz.ozellik_tipi}</p>
+                              {typeof deger === "object" ? (
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                  {Object.entries(deger).filter(([k]) => !k.includes("birimi") && k !== "not" && k !== "garanti_notu").map(([k, v]) => (
+                                    <div key={k} className="flex items-center justify-between">
+                                      <span className="text-[11px] text-gray-400 dark:text-slate-500">{etiketler[k] || k.replace(/_/g, " ")}</span>
+                                      <span className="text-[11px] font-medium text-gray-700 dark:text-slate-300">{degerGoster(k, v)}{deger[k + "_birimi"] ? ` ${deger[k + "_birimi"]}` : ""}</span>
+                                    </div>
+                                  ))}
+                                  {(deger.not || deger.garanti_notu) && <p className="col-span-2 text-[11px] text-gray-400 dark:text-slate-500 mt-1 italic">{deger.not || deger.garanti_notu}</p>}
+                                </div>
+                              ) : <span className="text-xs text-gray-500 dark:text-slate-400">{String(deger)}</span>}
                             </div>
                           );
                         })}
