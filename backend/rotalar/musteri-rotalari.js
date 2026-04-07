@@ -148,4 +148,25 @@ router.delete("/:id", hataYakala(async (req, res) => {
   res.json({ basarili: true, mesaj: "Musteri basariyla silindi." });
 }));
 
+/* ---- Musteri Telefonlari ---- */
+router.get("/:id/telefonlar", hataYakala(async (req, res) => {
+  const musteriId = Number(req.params.id);
+  const telefonlar = await prisma.musteriTelefon.findMany({ where: { musteri_id: musteriId } });
+  res.json({ basarili: true, veri: temizle(telefonlar) });
+}));
+
+/* ---- Musteri Adresleri ---- */
+router.get("/:id/adresler", hataYakala(async (req, res) => {
+  const musteriId = Number(req.params.id);
+  const adresler = await prisma.musteriAdres.findMany({ where: { musteri_id: musteriId } });
+  res.json({ basarili: true, veri: temizle(adresler) });
+}));
+
+/* ---- Musteri Dosyalari ---- */
+router.get("/:id/dosyalar", hataYakala(async (req, res) => {
+  const musteriId = Number(req.params.id);
+  const dosyalar = await prisma.musteriDosya.findMany({ where: { musteri_id: musteriId } });
+  res.json({ basarili: true, veri: temizle(dosyalar) });
+}));
+
 module.exports = router;

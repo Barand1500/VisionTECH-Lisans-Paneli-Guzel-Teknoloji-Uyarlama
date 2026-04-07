@@ -33,13 +33,20 @@ router.get("/ozet", hataYakala(async (_req, res) => {
   });
 }));
 
-/* ---- Musteri Dagilimi (Sektore gore) ---- */
+/* ---- Musteri Dagilimi (Ture gore) ---- */
 router.get("/musteri-dagilimi", hataYakala(async (_req, res) => {
   const rows = await prisma.$queryRawUnsafe(`
-    SELECT COALESCE(s.ad, 'Belirtilmemiş') as ad, COUNT(*) as deger
-    FROM musteriler m LEFT JOIN sektorler s ON m.sektor_id = s.id
+    SELECT
+      CASE m.tur
+        WHEN 'gercek' THEN 'Gerçek Kişi'
+        WHEN 'tuzel' THEN 'Tüzel Kişi'
+        WHEN 'yabanci' THEN 'Yabancı'
+        ELSE 'Belirtilmemiş'
+      END as ad,
+      COUNT(*) as deger
+    FROM musteriler m
     WHERE m.silinme_tarihi IS NULL
-    GROUP BY s.ad ORDER BY deger DESC LIMIT 10
+    GROUP BY m.tur ORDER BY deger DESC
   `);
   res.json({ basarili: true, veri: temizle(rows) });
 }));

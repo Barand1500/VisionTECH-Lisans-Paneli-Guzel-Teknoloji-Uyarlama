@@ -132,13 +132,16 @@ router.delete("/:id", hataYakala(async (req, res) => {
   res.json({ basarili: true, mesaj: "Bayi basariyla silindi." });
 }));
 
-/* ---- Bayinin Musterilerini Getir ---- */
+/* ---- Bayinin Musterilerini Getir (lisanslar uzerinden) ---- */
 router.get("/:id/musteriler", hataYakala(async (req, res) => {
   const bayiId = Number(req.params.id);
-  const musteriler = await prisma.musteri.findMany({
-    where: { bayi_id: bayiId, silinme_tarihi: null },
-    orderBy: { id: "desc" },
-  });
+  const musteriler = await prisma.$queryRawUnsafe(`
+    SELECT DISTINCT m.*
+    FROM musteriler m
+    INNER JOIN lisanslar l ON l.musteri_id = m.id
+    WHERE l.bayi_id = ? AND m.silinme_tarihi IS NULL
+    ORDER BY m.id DESC
+  `, bayiId);
   res.json({ basarili: true, veri: temizle(musteriler) });
 }));
 

@@ -489,7 +489,7 @@ export default function DashboardHome() {
             </div>
           </div>
           <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <BarChart data={grafikTuru === "musteriler" ? aylikMusteriler : aylikBayiler} barSize={28}>
                 <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-gray-200 dark:text-white/10" />
                 <XAxis
@@ -518,7 +518,7 @@ export default function DashboardHome() {
             Müşteri Dağılımı
           </h2>
           <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <PieChart>
                 <Pie
                   data={musteriDagilimi}
