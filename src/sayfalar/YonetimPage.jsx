@@ -671,14 +671,14 @@ function PaketlerModal({ urun, kapat, paketler, setPaketler, tumUrunler, paketle
           <table className="w-full">
             <thead className="sticky top-0 z-10">
               <tr className="bg-gray-50 dark:bg-white/[0.03]">
-                {["Ürün Adı", "Tipi", "Adı", "Kullanım Günü", "Fiyatı", "Kullanıcı Sayısı", "Aktif", "İşlemler"].map((h) => (
+                {["Ürün Adı", "Tipi", "Adı", "Fiyatı", "Kullanıcı Sayısı", "Aktif", "İşlemler"].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-white/5">
               {sayfaPaketler.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400 dark:text-slate-500">Bu ürüne ait paket bulunamadı.</td></tr>
+                <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-400 dark:text-slate-500">Bu ürüne ait paket bulunamadı.</td></tr>
               ) : sayfaPaketler.map((p) => (
                 <tr key={p.id} className={`hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors ${!p.aktif ? "opacity-50" : ""}`}>
                   <td className="px-4 py-3 font-medium text-gray-900 dark:text-white text-sm">{p.urunAdi}</td>
@@ -686,7 +686,6 @@ function PaketlerModal({ urun, kapat, paketler, setPaketler, tumUrunler, paketle
                     <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400">{p.tipi}</span>
                   </td>
                   <td className="px-4 py-3 text-gray-600 dark:text-slate-400 text-sm">{p.adi}</td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-slate-400 text-sm text-center">{p.kullanimGunu}</td>
                   <td className="px-4 py-3 text-gray-600 dark:text-slate-400 text-sm">{Number(p.fiyati).toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</td>
                   <td className="px-4 py-3 text-gray-600 dark:text-slate-400 text-sm text-center">{p.kullaniciSayisi || "-"}</td>
                   <td className="px-4 py-3 text-center">
@@ -763,7 +762,7 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
     urunId: duzenle ? modal.urunId : urun.id,
     tipi: duzenle ? modal.tipi : "",
     adi: duzenle ? modal.adi : "",
-    kullanimGunu: duzenle ? modal.kullanimGunu : 365,
+    kullanimGunu: duzenle ? modal.kullanimGunu : 0,
     fiyati: duzenle ? modal.fiyati : 0,
     kullaniciSayisi: duzenle ? modal.kullaniciSayisi : 0,
     aktif: duzenle ? modal.aktif : true,
@@ -1468,6 +1467,9 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
     temelFiyat: duzenle ? (modal.temelFiyat || 0) : 0,
     versiyon: duzenle ? (modal.versiyon || "") : "",
     sablonId: duzenle ? (modal.sablonId || null) : null,
+    // Opsiyonel bölüm toggle'ları
+    kullaniciLimitiAktif: duzenle ? !!(modal.minKullanici > 1 || modal.maxKullanici) : false,
+    sureFiyatAktif: duzenle ? !!(modal.demoGun || modal.temelFiyat) : false,
   });
   const [aktifSekme, setAktifSekme] = useState("temel"); // "temel" | "gelismis"
   const [mevcutSurumler, setMevcutSurumler] = useState([]);
@@ -1823,25 +1825,19 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                       </p>
                     </div>
                   )}
-                </div>
 
-                {/* Şablon Seçimi */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
-                    Lisans Şablonu
-                    <span className="text-[10px] text-gray-400 dark:text-slate-500 ml-1">(Form alanlarını belirler)</span>
-                  </label>
-                  <select 
-                    value={form.sablonId || ""} 
-                    onChange={(e) => guncelle("sablonId", e.target.value ? Number(e.target.value) : null)} 
-                    className={INPUT_STIL}
-                  >
-                    <option value="">Şablon Yok</option>
-                    {(sablonlar || []).map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
-                  </select>
-                  <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">
-                    Şablon seçilirse paket ekleme formunda dinamik alanlar görünür
-                  </p>
+                  {/* Otomatik sürüm oluşturma bilgilendirme */}
+                  {form.versiyon && (
+                    <div className="mt-2 p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
+                      <div className="flex items-start gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                        <p className="text-[11px] text-emerald-700 dark:text-emerald-400">
+                          Kaydettiğinizde <span className="font-mono font-bold">{form.versiyon}</span> versiyonu için otomatik olarak <strong>Sürüm kaydı</strong> oluşturulacaktır.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Özel Proje & Durum */}
@@ -1878,48 +1874,69 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                   </div>
                 )}
 
-                {/* Kullanıcı Limitleri */}
-                <div className="p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-                  <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                    Kullanıcı Limitleri
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Minimum Kullanıcı</label>
-                      <input type="number" value={form.minKullanici} onChange={(e) => guncelle("minKullanici", Number(e.target.value))} className={INPUT_STIL} min={1} />
+                {/* Kullanıcı Limitleri - Toggle */}
+                <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                  <button type="button" onClick={() => guncelle("kullaniciLimitiAktif", !form.kullaniciLimitiAktif)}
+                    className="w-full p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                    <div className="flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                      <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300">Kullanıcı Limitleri</h4>
+                      <span className="text-[10px] text-gray-400 dark:text-slate-500">(Opsiyonel)</span>
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Maksimum Kullanıcı</label>
-                      <input type="number" value={form.maxKullanici} onChange={(e) => guncelle("maxKullanici", e.target.value ? Number(e.target.value) : "")} placeholder="Sınırsız" className={INPUT_STIL} min={1} />
+                    <div className={`w-10 h-5 rounded-full transition-colors flex items-center ${form.kullaniciLimitiAktif ? "bg-blue-500 justify-end" : "bg-gray-300 dark:bg-white/20 justify-start"}`}>
+                      <div className="w-4 h-4 rounded-full bg-white shadow mx-0.5"></div>
                     </div>
-                  </div>
+                  </button>
+                  {form.kullaniciLimitiAktif && (
+                    <div className="px-4 pb-4 pt-0 bg-gray-50 dark:bg-white/5">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Minimum Kullanıcı</label>
+                          <input type="number" value={form.minKullanici} onChange={(e) => guncelle("minKullanici", Number(e.target.value))} className={INPUT_STIL} min={1} />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Maksimum Kullanıcı</label>
+                          <input type="number" value={form.maxKullanici} onChange={(e) => guncelle("maxKullanici", e.target.value ? Number(e.target.value) : "")} placeholder="Sınırsız" className={INPUT_STIL} min={1} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Süre & Fiyat */}
-                <div className="p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-                  <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Süre ve Fiyat Ayarları
-                  </h4>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Varsayılan Gün</label>
-                      <input type="number" value={form.varsayilanGun} onChange={(e) => guncelle("varsayilanGun", Number(e.target.value))} className={INPUT_STIL} min={1} />
+                {/* Demo & Fiyat - Toggle */}
+                <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                  <button type="button" onClick={() => guncelle("sureFiyatAktif", !form.sureFiyatAktif)}
+                    className="w-full p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                    <div className="flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300">Demo & Fiyat Ayarları</h4>
+                      <span className="text-[10px] text-gray-400 dark:text-slate-500">(Opsiyonel)</span>
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Demo Süresi (Gün)</label>
-                      <input type="number" value={form.demoGun} onChange={(e) => guncelle("demoGun", Number(e.target.value))} className={INPUT_STIL} min={0} />
+                    <div className={`w-10 h-5 rounded-full transition-colors flex items-center ${form.sureFiyatAktif ? "bg-emerald-500 justify-end" : "bg-gray-300 dark:bg-white/20 justify-start"}`}>
+                      <div className="w-4 h-4 rounded-full bg-white shadow mx-0.5"></div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Temel Fiyat (₺)</label>
-                      <input type="number" value={form.temelFiyat} onChange={(e) => guncelle("temelFiyat", Number(e.target.value))} className={INPUT_STIL} min={0} step="0.01" />
+                  </button>
+                  {form.sureFiyatAktif && (
+                    <div className="px-4 pb-4 pt-0 bg-gray-50 dark:bg-white/5">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Demo Süresi (Gün)</label>
+                          <input type="number" value={form.demoGun} onChange={(e) => guncelle("demoGun", Number(e.target.value))} className={INPUT_STIL} min={0} />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Temel Fiyat (₺)</label>
+                          <input type="number" value={form.temelFiyat} onChange={(e) => guncelle("temelFiyat", Number(e.target.value))} className={INPUT_STIL} min={0} step="0.01" />
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-2">
+                        Bu değerler ürünün varsayılan demo süresi ve temel fiyatıdır. Lisans oluştururken lisans tipinden gün bilgisi alınır.
+                      </p>
                     </div>
-                  </div>
+                  )}
                 </div>
               </>
             )}
@@ -4095,7 +4112,7 @@ function LisansTipleriSekmesi() {
   const [tipler, setTipler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [modal, setModal] = useState(null); // null | "yeni" | tipObjesi
-  const [form, setForm] = useState({ ad: "", kod: "", renk: "blue", gun: 365, sira: 0, aktif: true });
+  const [form, setForm] = useState({ ad: "", kod: "", renk: "blue", gun: 365, sira: 0, aktif: true, suresiz: false });
   const [kaydediyor, setKaydediyor] = useState(false);
   const [sallan, setSallan] = useState(false);
 
@@ -4112,10 +4129,10 @@ function LisansTipleriSekmesi() {
 
   const modalAc = (tip) => {
     if (tip === "yeni") {
-      setForm({ ad: "", kod: "", renk: "blue", gun: 365, sira: 0, aktif: true });
+      setForm({ ad: "", kod: "", renk: "blue", gun: 365, sira: 0, aktif: true, suresiz: false });
       setModal("yeni");
     } else {
-      setForm({ ad: tip.ad, kod: tip.kod, renk: tip.renk, gun: tip.gun, sira: tip.sira, aktif: !!tip.aktif });
+      setForm({ ad: tip.ad, kod: tip.kod, renk: tip.renk, gun: tip.gun, sira: tip.sira, aktif: !!tip.aktif, suresiz: !!tip.suresiz });
       setModal(tip);
     }
   };
@@ -4197,7 +4214,7 @@ function LisansTipleriSekmesi() {
                   <td className="px-4 py-3">
                     <span className={`inline-block w-6 h-6 rounded-full bg-${t.renk}-500`} title={t.renk} />
                   </td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-slate-300">{t.gun} gün</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-slate-300">{t.suresiz ? <span className="text-xs font-medium text-purple-600 dark:text-purple-400">♾ Süresiz</span> : `${t.gun} gün`}</td>
                   <td className="px-4 py-3 text-center">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${t.aktif ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" : "bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-slate-400"}`}>
                       {t.aktif ? "Aktif" : "Pasif"}
@@ -4239,6 +4256,23 @@ function LisansTipleriSekmesi() {
                 <input value={form.kod} onChange={(e) => setForm({ ...form, kod: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "") })} className={INPUT_STIL} placeholder="Ör: profesyonel" />
                 <p className="text-xs text-gray-400 mt-1">Benzersiz kod (küçük harf, rakam, tire)</p>
               </div>
+              {/* Süresiz Toggle */}
+              <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/20">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">♾</span>
+                    <div>
+                      <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Süresiz Lisans</span>
+                      <p className="text-xs text-purple-500 dark:text-purple-400">Bu tip bitiş tarihi olmayan lisanslar için kullanılır</p>
+                    </div>
+                  </div>
+                  <div onClick={() => setForm({ ...form, suresiz: !form.suresiz, gun: !form.suresiz ? 0 : 365 })}
+                    className={`w-10 h-5 rounded-full transition-colors flex items-center cursor-pointer ${form.suresiz ? "bg-purple-500 justify-end" : "bg-gray-300 dark:bg-white/20 justify-start"}`}>
+                    <div className="w-4 h-4 rounded-full bg-white shadow mx-0.5"></div>
+                  </div>
+                </label>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Renk</label>
@@ -4249,10 +4283,12 @@ function LisansTipleriSekmesi() {
                     ))}
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Varsayılan Gün</label>
-                  <input type="number" value={form.gun} onChange={(e) => setForm({ ...form, gun: parseInt(e.target.value) || 0 })} className={INPUT_STIL} />
-                </div>
+                {!form.suresiz && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Varsayılan Gün</label>
+                    <input type="number" value={form.gun} onChange={(e) => setForm({ ...form, gun: parseInt(e.target.value) || 0 })} className={INPUT_STIL} />
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -4273,7 +4309,7 @@ function LisansTipleriSekmesi() {
                 <p className="text-xs text-gray-400 mb-2">Önizleme</p>
                 <button className={`p-3 rounded-lg border text-center transition-all border-${form.renk}-500 bg-${form.renk}-50 dark:bg-${form.renk}-500/10`}>
                   <p className={`text-sm font-medium text-${form.renk}-700 dark:text-${form.renk}-400`}>{form.ad || "Tip Adı"}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{form.gun} gün</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{form.suresiz ? "♾ Süresiz" : `${form.gun} gün`}</p>
                 </button>
               </div>
             </div>

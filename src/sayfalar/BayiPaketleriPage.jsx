@@ -145,6 +145,7 @@ export default function BayiPaketleriPage() {
           paketId: l.paket_id,
           bayiAdi: l.bayi_adi || "",
           lisansTipi: l.lisans_tipi || "standart",
+          suresiz: !!l.suresiz,
           domain: l.domain || "",
           faturaNo: l.fatura_no || "",
           faturaTarihi: l.fatura_tarihi ? l.fatura_tarihi.slice(0, 10) : "",
@@ -307,7 +308,8 @@ export default function BayiPaketleriPage() {
   const sallanma = () => { if (modalRef.current) { modalRef.current.classList.remove("sallan"); void modalRef.current.offsetWidth; modalRef.current.classList.add("sallan"); } };
 
   /* ---- Kalan gün hesapla ---- */
-  const kalanGun = (bitisTarihi) => {
+  const kalanGun = (bitisTarihi, suresiz) => {
+    if (suresiz) return "Süresiz";
     if (!bitisTarihi) return "-";
     const fark = Math.ceil((new Date(bitisTarihi) - new Date()) / (1000 * 60 * 60 * 24));
     return fark;
@@ -336,13 +338,14 @@ export default function BayiPaketleriPage() {
       case "paket": return <td key={key} className="px-4 py-3.5 text-gray-600 dark:text-slate-400">{p.paket}</td>;
       case "domain": return <td key={key} className="px-4 py-3.5 text-gray-600 dark:text-slate-400 max-w-[220px] truncate text-xs"><span className="inline-flex items-center group">{p.domain || "-"}<KopyalaButonu metin={p.domain} /></span></td>;
       case "baslangic": return <td key={key} className="px-4 py-3.5 text-gray-600 dark:text-slate-400 whitespace-nowrap">{tarihGosterTR(p.baslangicTarihi)}</td>;
-      case "bitis": return <td key={key} className={`px-4 py-3.5 whitespace-nowrap font-medium ${gecmis ? "text-red-600 dark:text-red-400" : "text-gray-600 dark:text-slate-400"}`}>{tarihGosterTR(p.bitisTarihi)}</td>;
-      case "gun": return <td key={key} className="px-4 py-3.5 text-gray-600 dark:text-slate-400 text-center">{p.kullanimGunu}</td>;
+      case "bitis": return <td key={key} className={`px-4 py-3.5 whitespace-nowrap font-medium ${p.suresiz ? "text-emerald-600 dark:text-emerald-400" : gecmis ? "text-red-600 dark:text-red-400" : "text-gray-600 dark:text-slate-400"}`}>{p.suresiz ? "♾ Süresiz" : tarihGosterTR(p.bitisTarihi)}</td>;
+      case "gun": return <td key={key} className="px-4 py-3.5 text-gray-600 dark:text-slate-400 text-center">{p.suresiz ? "♾" : p.kullanimGunu}</td>;
       case "kalan": {
-        const kalan = kalanGun(p.bitisTarihi);
+        const kalan = kalanGun(p.bitisTarihi, p.suresiz);
+        const suresizMi = kalan === "Süresiz";
         const kalanNegatif = typeof kalan === "number" && kalan < 0;
         const kalanAz = typeof kalan === "number" && kalan >= 0 && kalan <= 30;
-        return <td key={key} className={`px-4 py-3.5 text-center font-medium whitespace-nowrap ${kalanNegatif ? "text-red-600 dark:text-red-400" : kalanAz ? "text-amber-600 dark:text-amber-400" : "text-gray-600 dark:text-slate-400"}`}>{typeof kalan === "number" ? (kalan < 0 ? `${Math.abs(kalan)} gün geçti` : `${kalan} gün`) : kalan}</td>;
+        return <td key={key} className={`px-4 py-3.5 text-center font-medium whitespace-nowrap ${suresizMi ? "text-emerald-600 dark:text-emerald-400" : kalanNegatif ? "text-red-600 dark:text-red-400" : kalanAz ? "text-amber-600 dark:text-amber-400" : "text-gray-600 dark:text-slate-400"}`}>{suresizMi ? "♾ Süresiz" : typeof kalan === "number" ? (kalan < 0 ? `${Math.abs(kalan)} gün geçti` : `${kalan} gün`) : kalan}</td>;
       }
       case "kullanici": return <td key={key} className="px-4 py-3.5 text-gray-600 dark:text-slate-400 text-center">{p.kullanici}</td>;
       case "fiyat": return <td key={key} className="px-4 py-3.5 text-gray-600 dark:text-slate-400">{Number(p.fiyat).toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</td>;
@@ -850,6 +853,7 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
     paketId: "",
     /* Adım 2: Lisans Bilgileri */
     lisansTipi: "standart",
+    suresiz: false,
     baslangicTarihi: new Date().toISOString().slice(0, 10),
     kullanimGunu: 365,
     bitisTarihi: tarihEkle(new Date().toISOString().slice(0, 10), 365),
@@ -1013,32 +1017,25 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
       if (alan === "lisansTipi") {
         const tip = lisansTipleri.find((t) => t.id === deger);
         if (tip) {
-          /* Eğer paket seçiliyse, paket gün değeri korunur */
-          if (!o.paketId) {
-            yeni.kullanimGunu = tip.gun;
-            yeni.bitisTarihi = tarihEkle(o.baslangicTarihi, tip.gun);
-          }
+          /* Lisans tipi her zaman süreyi belirler */
+          yeni.kullanimGunu = tip.gun;
+          yeni.bitisTarihi = tarihEkle(o.baslangicTarihi, tip.gun);
         }
       }
       
       if (alan === "paketId" && deger) {
         const paket = paketler.find((p) => p.id === Number(deger));
         if (paket) {
-          /* Paket gün değeri öncelikli - lisans tipi günü override eder */
-          yeni.kullanimGunu = paket.kullanimGunu || 365;
+          /* Sadece kullanıcı sayısı paketten alınır - süre lisans tipinden gelir */
           yeni.kullaniciSayisi = paket.kullaniciSayisi || 1;
-          yeni.bitisTarihi = tarihEkle(o.baslangicTarihi, paket.kullanimGunu || 365);
           /* Fiyat hesaplaması useEffect'te yapılacak */
         }
       }
       
-      /* Paket kaldırılırsa lisans tipi günü uygula */
+      /* Paket kaldırılırsa varsayılan değerlere dön */
       if (alan === "paketId" && !deger) {
-        const tip = lisansTipleri.find((t) => t.id === o.lisansTipi);
-        if (tip) {
-          yeni.kullanimGunu = tip.gun;
-          yeni.bitisTarihi = tarihEkle(o.baslangicTarihi, tip.gun);
-        }
+        yeni.kullaniciSayisi = 1;
+        /* Süre zaten lisans tipinden geliyor - ek işlem gerekmez */
         /* Fiyat hesaplaması useEffect'te yapılacak */
       }
       
@@ -1105,7 +1102,7 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
   const adimGecerliMi = (a) => {
     switch (a) {
       case 1: return !!form.urunId;
-      case 2: return !!form.baslangicTarihi && !!form.bitisTarihi;
+      case 2: return !!form.baslangicTarihi && (form.suresiz || !!form.bitisTarihi);
       case 3: return true;
       default: return true;
     }
@@ -1122,9 +1119,10 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
         paket_id: form.paketId ? Number(form.paketId) : null,
         bayi_id: form.bayiId ? Number(form.bayiId) : null,
         lisans_tipi: form.lisansTipi,
+        suresiz: form.suresiz,
         baslangic_tarihi: form.baslangicTarihi,
-        bitis_tarihi: form.bitisTarihi,
-        kullanim_gunu: Number(form.kullanimGunu),
+        bitis_tarihi: form.suresiz ? null : form.bitisTarihi,
+        kullanim_gunu: form.suresiz ? 0 : Number(form.kullanimGunu),
         domain: form.domain || null,
         kullanici_sayisi: Number(form.kullaniciSayisi) || 1,
         ek_kullanici: Number(form.ekKullanici) || 0,
@@ -1330,13 +1328,19 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
                     return (
                       <button
                         key={t.id}
-                        onClick={() => guncelle("lisansTipi", t.id)}
+                        onClick={() => {
+                          if (t.suresiz) {
+                            setForm(o => ({ ...o, lisansTipi: t.id, suresiz: true, kullanimGunu: 0 }));
+                          } else {
+                            setForm(o => ({ ...o, lisansTipi: t.id, suresiz: false, kullanimGunu: t.gun, bitisTarihi: tarihEkle(o.baslangicTarihi, t.gun) }));
+                          }
+                        }}
                         className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
                           secili ? renkler[t.renk] : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
                         }`}
                       >
                         <p className={`text-sm font-semibold ${secili ? `text-${t.renk}-700 dark:text-${t.renk}-400` : "text-gray-700 dark:text-slate-300"}`}>{t.ad}</p>
-                        <p className={`text-[11px] mt-0.5 ${secili ? `text-${t.renk}-600 dark:text-${t.renk}-500` : "text-gray-400"}`}>{t.gun} gün</p>
+                        <p className={`text-[11px] mt-0.5 ${secili ? `text-${t.renk}-600 dark:text-${t.renk}-500` : "text-gray-400"}`}>{t.suresiz ? "♾ Süresiz" : `${t.gun} gün`}</p>
                       </button>
                     );
                   })}
@@ -1344,25 +1348,45 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
               </div>
 
               {/* Başlangıç Tarihi ve Hesaplanan Bitiş */}
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <label className={LABEL_STIL}>Başlangıç Tarihi <span className="text-red-500">*</span></label>
-                  <input type="date" value={form.baslangicTarihi} onChange={(e) => guncelle("baslangicTarihi", e.target.value)} className={INPUT_STIL} />
+              {!form.suresiz ? (
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <label className={LABEL_STIL}>Başlangıç Tarihi <span className="text-red-500">*</span></label>
+                    <input type="date" value={form.baslangicTarihi} onChange={(e) => guncelle("baslangicTarihi", e.target.value)} className={INPUT_STIL} />
+                  </div>
+                  <div className="flex items-end gap-2 text-sm text-gray-500 dark:text-slate-400 pb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                    <span className="font-medium">{form.kullanimGunu} gün</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <label className={LABEL_STIL}>Bitiş Tarihi</label>
+                    <input type="date" value={form.bitisTarihi} className={`${INPUT_STIL} bg-gray-50 dark:bg-white/5 cursor-not-allowed`} readOnly />
+                  </div>
                 </div>
-                <div className="flex items-end gap-2 text-sm text-gray-500 dark:text-slate-400 pb-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                  <span className="font-medium">{form.kullanimGunu} gün</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
+              ) : (
+                <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">♾ Süresiz Lisans</p>
+                      <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70 mt-1">Bu lisans süresiz olarak tanımlanacaktır. Bitiş tarihi olmadan geçerli kalacaktır.</p>
+                      <div className="mt-3">
+                        <label className={`${LABEL_STIL} text-emerald-700 dark:text-emerald-400`}>Başlangıç Tarihi</label>
+                        <input type="date" value={form.baslangicTarihi} onChange={(e) => guncelle("baslangicTarihi", e.target.value)} className={`${INPUT_STIL} border-emerald-300 dark:border-emerald-500/30 max-w-[160px]`} />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <label className={LABEL_STIL}>Bitiş Tarihi</label>
-                  <input type="date" value={form.bitisTarihi} className={`${INPUT_STIL} bg-gray-50 dark:bg-white/5 cursor-not-allowed`} readOnly />
-                </div>
-              </div>
+              )}
 
               {/* Şablon Özellikleri (Ürüne özel alanlar) */}
               {sablon && sablon.ozellikler && sablon.ozellikler.length > 0 && (() => {

@@ -1116,32 +1116,25 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
       if (alan === "lisansTipi") {
         const tip = lisansTipleri.find((t) => t.id === deger);
         if (tip) {
-          /* Eğer paket seçiliyse, paket gün değeri korunur */
-          if (!o.paketId) {
-            yeni.kullanimGunu = tip.gun;
-            yeni.bitisTarihi = tarihEkle(o.baslangicTarihi, tip.gun);
-          }
+          /* Lisans tipi her zaman süreyi belirler */
+          yeni.kullanimGunu = tip.gun;
+          yeni.bitisTarihi = tarihEkle(o.baslangicTarihi, tip.gun);
         }
       }
       
       if (alan === "paketId" && deger) {
         const paket = paketler.find((p) => p.id === Number(deger));
         if (paket) {
-          /* Paket gün değeri öncelikli - lisans tipi günü override eder */
-          yeni.kullanimGunu = paket.kullanimGunu || 365;
+          /* Sadece kullanıcı sayısı paketten alınır - süre lisans tipinden gelir */
           yeni.kullaniciSayisi = paket.kullaniciSayisi || 1;
-          yeni.bitisTarihi = tarihEkle(o.baslangicTarihi, paket.kullanimGunu || 365);
           /* Fiyat hesaplaması useEffect'te yapılacak */
         }
       }
       
-      /* Paket kaldırılırsa lisans tipi günü uygula */
+      /* Paket kaldırılırsa varsayılan değerlere dön */
       if (alan === "paketId" && !deger) {
-        const tip = lisansTipleri.find((t) => t.id === o.lisansTipi);
-        if (tip) {
-          yeni.kullanimGunu = tip.gun;
-          yeni.bitisTarihi = tarihEkle(o.baslangicTarihi, tip.gun);
-        }
+        yeni.kullaniciSayisi = 1;
+        /* Süre zaten lisans tipinden geliyor - ek işlem gerekmez */
         /* Fiyat hesaplaması useEffect'te yapılacak */
       }
       
@@ -1208,7 +1201,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
   const adimGecerliMi = (a) => {
     switch (a) {
       case 1: return !!form.urunId;
-      case 2: return !!form.baslangicTarihi && !!form.bitisTarihi;
+      case 2: return !!form.baslangicTarihi && (form.suresiz || !!form.bitisTarihi);
       case 3: return true;
       default: return true;
     }
@@ -1225,9 +1218,10 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
         paket_id: form.paketId ? Number(form.paketId) : null,
         bayi_id: form.bayiId ? Number(form.bayiId) : null,
         lisans_tipi: form.lisansTipi,
+        suresiz: form.suresiz,
         baslangic_tarihi: form.baslangicTarihi,
-        bitis_tarihi: form.bitisTarihi,
-        kullanim_gunu: Number(form.kullanimGunu),
+        bitis_tarihi: form.suresiz ? null : form.bitisTarihi,
+        kullanim_gunu: form.suresiz ? 0 : Number(form.kullanimGunu),
         domain: form.domain || null,
         kullanici_sayisi: Number(form.kullaniciSayisi) || 1,
         ek_kullanici: Number(form.ekKullanici) || 0,
@@ -1501,13 +1495,20 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                     return (
                       <button
                         key={t.id}
-                        onClick={() => guncelle("lisansTipi", t.id)}
+                        onClick={() => {
+                          guncelle("lisansTipi", t.id);
+                          if (t.suresiz) {
+                            setForm(o => ({ ...o, lisansTipi: t.id, suresiz: true, kullanimGunu: 0 }));
+                          } else {
+                            setForm(o => ({ ...o, lisansTipi: t.id, suresiz: false, kullanimGunu: t.gun, bitisTarihi: tarihEkle(o.baslangicTarihi, t.gun) }));
+                          }
+                        }}
                         className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
                           secili ? renkler[t.renk] : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
                         }`}
                       >
                         <p className={`text-sm font-semibold ${secili ? `text-${t.renk}-700 dark:text-${t.renk}-400` : "text-gray-700 dark:text-slate-300"}`}>{t.ad}</p>
-                        <p className={`text-[11px] mt-0.5 ${secili ? `text-${t.renk}-600 dark:text-${t.renk}-500` : "text-gray-400"}`}>{t.gun} gün</p>
+                        <p className={`text-[11px] mt-0.5 ${secili ? `text-${t.renk}-600 dark:text-${t.renk}-500` : "text-gray-400"}`}>{t.suresiz ? "♾ Süresiz" : `${t.gun} gün`}</p>
                       </button>
                     );
                   })}

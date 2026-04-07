@@ -24,7 +24,7 @@ router.get("/:id", hataYakala(async (req, res) => {
 
 /* ---- Lisans Tipi Ekle ---- */
 router.post("/", hataYakala(async (req, res) => {
-  const { ad, kod, renk, gun, sira, aktif } = req.body;
+  const { ad, kod, renk, gun, sira, aktif, suresiz } = req.body;
   if (!ad || !kod) return dogrulamaHatasi(res, "Ad ve kod zorunludur.");
 
   const mevcut = await prisma.lisansTipi.findUnique({ where: { kod } });
@@ -34,7 +34,8 @@ router.post("/", hataYakala(async (req, res) => {
     data: {
       ad, kod,
       renk: renk || "blue",
-      gun: parseInt(gun) || 365,
+      gun: suresiz ? 0 : (parseInt(gun) || 365),
+      suresiz: suresiz ? 1 : 0,
       sira: parseInt(sira) || 0,
       aktif: aktif !== undefined ? (aktif ? 1 : 0) : 1,
     },
@@ -48,7 +49,7 @@ router.put("/:id", hataYakala(async (req, res) => {
   const mevcut = await prisma.lisansTipi.findUnique({ where: { id } });
   if (!mevcut) return bulunamadiHatasi(res, "Lisans tipi bulunamadi.");
 
-  const { ad, kod, renk, gun, sira, aktif } = req.body;
+  const { ad, kod, renk, gun, sira, aktif, suresiz } = req.body;
 
   if (kod) {
     const ayniKod = await prisma.lisansTipi.findFirst({ where: { kod, id: { not: id } } });
@@ -61,7 +62,8 @@ router.put("/:id", hataYakala(async (req, res) => {
       ad: ad || undefined,
       kod: kod || undefined,
       renk: renk || undefined,
-      gun: gun !== undefined ? parseInt(gun) : undefined,
+      gun: suresiz ? 0 : (gun !== undefined ? parseInt(gun) : undefined),
+      suresiz: suresiz !== undefined ? (suresiz ? 1 : 0) : undefined,
       sira: sira !== undefined ? parseInt(sira) : undefined,
       aktif: aktif !== undefined ? (aktif ? 1 : 0) : undefined,
     },

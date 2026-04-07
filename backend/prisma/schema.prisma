@@ -458,6 +458,7 @@ model LisansTipi {
   kod              String   @unique @db.VarChar(50)
   renk             String   @default("blue") @db.VarChar(50)
   gun              Int      @default(365)
+  suresiz          Int      @default(0) @db.TinyInt
   sira             Int      @default(0)
   aktif            Int      @default(1) @db.TinyInt
   durum            String   @default("aktif") @db.VarChar(50)
@@ -485,8 +486,9 @@ model Lisans {
   surum_id          Int?
   lisans_anahtari   String?   @unique @db.VarChar(100)
   lisans_tipi       String    @default("standart") @db.VarChar(100)
+  suresiz           Int       @default(0) @db.TinyInt
   baslangic_tarihi  DateTime  @db.Date
-  bitis_tarihi      DateTime  @db.Date
+  bitis_tarihi      DateTime? @db.Date
   kullanim_gunu     Int       @default(365)
   durum             String    @default("aktif") @db.VarChar(50)
   domain            String?   @db.VarChar(255)

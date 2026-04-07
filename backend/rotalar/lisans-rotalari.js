@@ -96,11 +96,13 @@ router.post("/", hataYakala(async (req, res) => {
     kullanim_gunu, durum, domain, fatura_no, fatura_tarihi, fatura_geldi,
     fiyat, indirim_orani, indirim_tutari, net_tutar,
     odeme_yontemi, odeme_durumu, odenen_tutar, kullanici_sayisi, ek_kullanici,
-    mac_adresi, ip_adresi, moduller, sablon_verileri, otomatik_yenileme, bildirim_gun, notlar
+    mac_adresi, ip_adresi, moduller, sablon_verileri, otomatik_yenileme, bildirim_gun, notlar,
+    suresiz
   } = req.body;
 
   if (!musteri_id) return dogrulamaHatasi(res, "Musteri zorunludur.");
-  if (!baslangic_tarihi || !bitis_tarihi) return dogrulamaHatasi(res, "Baslangic ve bitis tarihi zorunludur.");
+  if (!baslangic_tarihi) return dogrulamaHatasi(res, "Baslangic tarihi zorunludur.");
+  if (!suresiz && !bitis_tarihi) return dogrulamaHatasi(res, "Bitis tarihi zorunludur (suresiz degilse).");
 
   const brut = Number(fiyat) || 0;
   const indOran = Number(indirim_orani) || 0;
@@ -121,9 +123,10 @@ router.post("/", hataYakala(async (req, res) => {
       bayi_id: bayi_id ? Number(bayi_id) : null,
       lisans_anahtari: rastgeleLisansAnahtari(),
       lisans_tipi: lisans_tipi || "standart",
+      suresiz: suresiz ? 1 : 0,
       baslangic_tarihi: new Date(baslangic_tarihi),
-      bitis_tarihi: new Date(bitis_tarihi),
-      kullanim_gunu: Number(kullanim_gunu) || 365,
+      bitis_tarihi: suresiz ? null : new Date(bitis_tarihi),
+      kullanim_gunu: suresiz ? 0 : (Number(kullanim_gunu) || 365),
       durum: durum || "aktif",
       domain: domain || null,
       fatura_no: fatura_no || null,
@@ -160,7 +163,8 @@ router.put("/:id", hataYakala(async (req, res) => {
     kullanim_gunu, durum, domain, fatura_no, fatura_tarihi, fatura_geldi,
     fiyat, indirim_orani, indirim_tutari, net_tutar,
     odeme_yontemi, odeme_durumu, odenen_tutar, kullanici_sayisi, ek_kullanici,
-    mac_adresi, ip_adresi, moduller, sablon_verileri, otomatik_yenileme, bildirim_gun, notlar
+    mac_adresi, ip_adresi, moduller, sablon_verileri, otomatik_yenileme, bildirim_gun, notlar,
+    suresiz
   } = req.body;
 
   const data = { guncelleme_tarihi: new Date() };
@@ -169,9 +173,10 @@ router.put("/:id", hataYakala(async (req, res) => {
   if (paket_id !== undefined) data.paket_id = paket_id ? Number(paket_id) : null;
   if (bayi_id !== undefined) data.bayi_id = bayi_id ? Number(bayi_id) : null;
   if (lisans_tipi !== undefined) data.lisans_tipi = lisans_tipi;
+  if (suresiz !== undefined) data.suresiz = suresiz ? 1 : 0;
   if (baslangic_tarihi !== undefined) data.baslangic_tarihi = new Date(baslangic_tarihi);
-  if (bitis_tarihi !== undefined) data.bitis_tarihi = new Date(bitis_tarihi);
-  if (kullanim_gunu !== undefined) data.kullanim_gunu = Number(kullanim_gunu) || 365;
+  if (bitis_tarihi !== undefined) data.bitis_tarihi = bitis_tarihi ? new Date(bitis_tarihi) : null;
+  if (kullanim_gunu !== undefined) data.kullanim_gunu = Number(kullanim_gunu) || 0;
   if (durum !== undefined) data.durum = durum;
   if (domain !== undefined) data.domain = domain || null;
   if (fatura_no !== undefined) data.fatura_no = fatura_no || null;
@@ -241,8 +246,8 @@ router.put("/:id/yeni-anahtar", hataYakala(async (req, res) => {
 
 /* ---- Toplu Durum Guncelle ---- */
 router.put("/durum-guncelle", hataYakala(async (_req, res) => {
-  await prisma.$executeRawUnsafe(`UPDATE lisanslar SET durum = 'suresi-dolmus' WHERE bitis_tarihi < CURDATE() AND durum = 'aktif' AND silinme_tarihi IS NULL`);
-  await prisma.$executeRawUnsafe(`UPDATE lisanslar SET durum = 'aktif' WHERE baslangic_tarihi <= CURDATE() AND bitis_tarihi >= CURDATE() AND durum = 'suresi-dolmus' AND silinme_tarihi IS NULL`);
+  await prisma.$executeRawUnsafe(`UPDATE lisanslar SET durum = 'suresi-dolmus' WHERE bitis_tarihi < CURDATE() AND bitis_tarihi IS NOT NULL AND suresiz = 0 AND durum = 'aktif' AND silinme_tarihi IS NULL`);
+  await prisma.$executeRawUnsafe(`UPDATE lisanslar SET durum = 'aktif' WHERE baslangic_tarihi <= CURDATE() AND (bitis_tarihi >= CURDATE() OR suresiz = 1) AND durum = 'suresi-dolmus' AND silinme_tarihi IS NULL`);
   res.json({ basarili: true, mesaj: "Lisans durumlari guncellendi." });
 }));
 

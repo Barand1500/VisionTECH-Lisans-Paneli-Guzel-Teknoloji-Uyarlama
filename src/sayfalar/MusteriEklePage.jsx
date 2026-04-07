@@ -8,10 +8,10 @@
 /* ============================================= */
 
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useMusteriler } from "../baglam/MusteriContext";
 import { useAktiviteLog } from "../baglam/AktiviteLogContext";
-import { apiGet, apiPost } from "../yardimcilar/api";
+import { apiGet, apiPost, apiPut } from "../yardimcilar/api";
 
 /* ============================================= */
 /*  Sabit Tanımlamalar                            */
@@ -110,9 +110,12 @@ const HATA_INPUT_STIL =
 
 export default function MusteriEklePage() {
   const git = useNavigate();
-  const { musteriler, musteriEkle } = useMusteriler();
+  const { id } = useParams(); // Düzenleme modu için id
+  const duzenleModu = !!id;
+  const { musteriler, musteriEkle, musteriGuncelle } = useMusteriler();
   const { logEkle } = useAktiviteLog();
 
+  const [yukleniyor, setYukleniyor] = useState(duzenleModu);
   const [aktifSekme, setAktifSekme] = useState("gercek");
   const [form, setForm] = useState(bosFormOlustur());
   const [hatalar, setHatalar] = useState({});
@@ -124,6 +127,49 @@ export default function MusteriEklePage() {
   const [dosyaYukleniyor, setDosyaYukleniyor] = useState(false);
   const dosyaInputRef = useRef(null);
   const bayiRef = useRef(null);
+
+  /* ---- Düzenleme modunda mevcut müşteriyi yükle ---- */
+  useEffect(() => {
+    if (duzenleModu) {
+      const musteriYukle = async () => {
+        try {
+          const yanit = await apiGet(`/musteriler/${id}`);
+          const m = yanit.veri;
+          if (m) {
+            setAktifSekme(m.tur || "gercek");
+            setForm({
+              sirketAdi: m.sirket_adi || "",
+              yetkiliKisi: m.yetkili_kisi || "",
+              adSoyad: m.ad_soyad || "",
+              eposta: m.eposta || "",
+              telefon: "",
+              sektor: m.sektor_id ? String(m.sektor_id) : "",
+              sektorDiger: "",
+              vergiDairesi: m.vergi_dairesi || "",
+              vergiNo: m.vergi_no || "",
+              tcKimlikNo: m.tc_kimlik_no || "",
+              pasaportNo: m.pasaport_no || "",
+              bayi: m.bayi_id ? String(m.bayi_id) : "",
+              bayiAdi: "",
+              bayiArama: "",
+              adres: m.adres || (m.adresler && m.adresler[0]) || "",
+              kisiler: m.kisiler || [],
+              notlar: m.notlar || "",
+              etiketler: m.etiketler || [],
+              yeniEtiket: "",
+              durum: (m.durum || "").toLowerCase() === "aktif",
+            });
+          }
+        } catch (e) {
+          console.error("Müşteri yüklenemedi:", e);
+          git("/dashboard/musteriler");
+        } finally {
+          setYukleniyor(false);
+        }
+      };
+      musteriYukle();
+    }
+  }, [id, duzenleModu, git]);
 
   /* ---- Sektörleri ve Bayileri API'den Çek ---- */
   useEffect(() => {
@@ -279,17 +325,28 @@ export default function MusteriEklePage() {
     };
 
     console.log("📦 Müşteri verisi (backend'e gönderilecek):", veri);
-    const sonuc = await musteriEkle(veri);
+    
+    let sonuc;
+    if (duzenleModu) {
+      /* Düzenleme modu - PUT isteği */
+      sonuc = await musteriGuncelle(id, veri);
+      logEkle("musteri_guncelleme", `"${veri.adSoyad || veri.sirketAdi || 'Müşteri'}" adlı müşteri güncellendi.`);
+    } else {
+      /* Ekleme modu - POST isteği */
+      sonuc = await musteriEkle(veri);
+      logEkle("musteri_ekleme", `"${veri.adSoyad || veri.sirketAdi || 'Yeni Müşteri'}" adlı müşteri eklendi.`);
+    }
 
     /* Dosya varsa yükle */
-    if (dosyalar.length > 0 && sonuc?.id) {
+    const musteriId = duzenleModu ? id : sonuc?.id;
+    if (dosyalar.length > 0 && musteriId) {
       setDosyaYukleniyor(true);
       for (const dosya of dosyalar) {
         const fd = new FormData();
         fd.append("dosyalar", dosya);
         try {
           const token = localStorage.getItem("gt_token");
-          await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/musteriler/${sonuc.id}/dosyalar`, {
+          await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/musteriler/${musteriId}/dosyalar`, {
             method: "POST",
             headers: token ? { Authorization: `Bearer ${token}` } : {},
             body: fd,
@@ -301,10 +358,8 @@ export default function MusteriEklePage() {
       setDosyaYukleniyor(false);
     }
 
-    logEkle("musteri_ekleme", `"${veri.adSoyad || veri.sirketAdi || 'Yeni Müşteri'}" adlı müşteri eklendi.`);
-
     setBasarili(true);
-    setTimeout(() => git("/dashboard/musteriler"), 2000);
+    setTimeout(() => git(duzenleModu ? `/dashboard/musteri/${id}` : "/dashboard/musteriler"), 2000);
   };
 
   /* ============================================= */
@@ -320,8 +375,31 @@ export default function MusteriEklePage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Müşteri Başarıyla Kaydedildi!</h2>
-          <p className="text-gray-500 dark:text-slate-400">Müşteriler sayfasına yönlendiriliyorsunuz...</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            {duzenleModu ? "Müşteri Başarıyla Güncellendi!" : "Müşteri Başarıyla Kaydedildi!"}
+          </h2>
+          <p className="text-gray-500 dark:text-slate-400">
+            {duzenleModu ? "Müşteri detay sayfasına yönlendiriliyorsunuz..." : "Müşteriler sayfasına yönlendiriliyorsunuz..."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================= */
+  /*  Yükleniyor Ekranı (Düzenleme modu)           */
+  /* ============================================= */
+
+  if (yukleniyor) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-500/20 mb-4 animate-pulse">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </div>
+          <p className="text-gray-500 dark:text-slate-400">Müşteri bilgileri yükleniyor...</p>
         </div>
       </div>
     );
@@ -338,16 +416,20 @@ export default function MusteriEklePage() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <button
-            onClick={() => git("/dashboard/musteriler")}
+            onClick={() => git(duzenleModu ? `/dashboard/musteri/${id}` : "/dashboard/musteriler")}
             className="inline-flex items-center gap-2 text-sm text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors mb-2 cursor-pointer"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Müşterilere Dön
+            {duzenleModu ? "Müşteri Detayına Dön" : "Müşterilere Dön"}
           </button>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Yeni Müşteri Kaydı</h1>
-          <p className="text-gray-500 dark:text-slate-400 mt-1">Müşteri bilgilerini doldurun ve kaydedin.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            {duzenleModu ? "Müşteri Düzenle" : "Yeni Müşteri Kaydı"}
+          </h1>
+          <p className="text-gray-500 dark:text-slate-400 mt-1">
+            {duzenleModu ? "Müşteri bilgilerini güncelleyin." : "Müşteri bilgilerini doldurun ve kaydedin."}
+          </p>
         </div>
       </div>
 
