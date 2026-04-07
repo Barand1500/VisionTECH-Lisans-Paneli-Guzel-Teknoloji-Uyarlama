@@ -190,6 +190,7 @@ function UrunlerSekmesi() {
         fiyati: p.fiyat || 0,
         kullaniciSayisi: p.kullanici_sayisi || 0,
         aktif: !!p.aktif,
+        ozellikler: p.ozellikler || null,
       })));
     } catch (e) {
       console.error("Urun verileri yuklenemedi:", e);
