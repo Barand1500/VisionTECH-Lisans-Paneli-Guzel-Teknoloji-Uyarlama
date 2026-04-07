@@ -837,6 +837,13 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
     indirim: { renk: "amber", icon: "🏷️", baslik: "İndirim" },
     ozel_not: { renk: "purple", icon: "📝", baslik: "Özel Not" },
     ek_sure: { renk: "cyan", icon: "⏱️", baslik: "Ek Süre" },
+    temel_fiyat: { renk: "emerald", icon: "💰", baslik: "Temel Fiyat" },
+    aktivasyon_yenileme: { renk: "amber", icon: "🔄", baslik: "Aktivasyon & Yenileme" },
+    kullanici_sayisi: { renk: "blue", icon: "👤", baslik: "Kullanıcı Sayısı" },
+    sicil_domain: { renk: "cyan", icon: "🌐", baslik: "Sicil / Domain" },
+    kademeli_fiyat: { renk: "purple", icon: "📊", baslik: "Kademeli Fiyat" },
+    domain_fiyat: { renk: "teal", icon: "🔗", baslik: "Domain Uzantı Fiyat" },
+    demo_suresi: { renk: "rose", icon: "⏰", baslik: "Demo Süresi" },
   };
 
   const gonder = (e) => {
@@ -1022,22 +1029,39 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
                     amber: "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400",
                     purple: "bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20 text-purple-700 dark:text-purple-400",
                     cyan: "bg-cyan-50 dark:bg-cyan-500/10 border-cyan-200 dark:border-cyan-500/20 text-cyan-700 dark:text-cyan-400",
+                    teal: "bg-teal-50 dark:bg-teal-500/10 border-teal-200 dark:border-teal-500/20 text-teal-700 dark:text-teal-400",
+                    rose: "bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20 text-rose-700 dark:text-rose-400",
                     gray: "bg-gray-50 dark:bg-gray-500/10 border-gray-200 dark:border-gray-500/20 text-gray-700 dark:text-gray-400",
                   };
                   const renkSinif = renkler[stil.renk] || renkler.gray;
+                  
+                  // Özellik değerini formatlı göster
+                  const degerGoster = () => {
+                    const d = oz.deger;
+                    switch (oz.tip) {
+                      case "hediye_urun": return oz.urunAdi || "Ürün seçildi";
+                      case "ek_kullanici_fiyat": return `${Number(d).toLocaleString("tr-TR")} ₺`;
+                      case "indirim": return `%${d}`;
+                      case "ozel_not": return d;
+                      case "ek_sure": return `+${d} gün`;
+                      case "temel_fiyat": return d?.fiyat ? `${Number(d.fiyat).toLocaleString("tr-TR")} ₺` : "";
+                      case "aktivasyon_yenileme": return d ? `Akt: ${Number(d.aktivasyon_fiyat || 0).toLocaleString("tr-TR")}₺ / Yen: ${Number(d.yenileme_fiyat || 0).toLocaleString("tr-TR")}₺` : "";
+                      case "kullanici_sayisi": return d ? `${d.min || 1}${d.max ? `-${d.max}` : "+"} kişi${d.ek_kullanici_fiyat ? `, +${Number(d.ek_kullanici_fiyat).toLocaleString("tr-TR")}₺/ek` : ""}` : "";
+                      case "sicil_domain": return d ? `${d.alan_tipi === "domain" ? "Domain" : "Sicil"}${d.zorunlu ? " (Zorunlu)" : ""}` : "";
+                      case "kademeli_fiyat": return d?.kademeler?.length ? `${d.kademeler.length} kademe` : "";
+                      case "domain_fiyat": return d?.uzantilar?.length ? `${d.uzantilar.length} uzantı` : "";
+                      case "demo_suresi": return d?.gun ? `${d.gun} gün` : "";
+                      default: return typeof d === "object" ? JSON.stringify(d) : d;
+                    }
+                  };
+                  
                   return (
                     <div key={oz.id} className={`flex items-center justify-between p-2.5 rounded-lg border ${renkSinif.split(" ").slice(0, 4).join(" ")}`}>
                       <div className="flex items-center gap-2">
                         <span className="text-base">{stil.icon}</span>
                         <div>
                           <p className={`text-xs font-medium ${renkSinif.split(" ").slice(4).join(" ")}`}>{stil.baslik}</p>
-                          <p className="text-xs text-gray-600 dark:text-slate-400">
-                            {oz.tip === "hediye_urun" && `${oz.urunAdi || "Ürün seçildi"}`}
-                            {oz.tip === "ek_kullanici_fiyat" && `${Number(oz.deger).toLocaleString("tr-TR")} ₺`}
-                            {oz.tip === "indirim" && `%${oz.deger}`}
-                            {oz.tip === "ozel_not" && oz.deger}
-                            {oz.tip === "ek_sure" && `+${oz.deger} gün`}
-                          </p>
+                          <p className="text-xs text-gray-600 dark:text-slate-400">{degerGoster()}</p>
                         </div>
                       </div>
                       <button type="button" onClick={() => ozellikSil(oz.id)}
@@ -1088,6 +1112,20 @@ function OzellikEkleModal({ kapat, ekle, tumUrunler }) {
   const [tip, setTip] = useState("");
   const [deger, setDeger] = useState("");
   const [seciliUrun, setSeciliUrun] = useState(null);
+  // Kademeli fiyat için state
+  const [kademeler, setKademeler] = useState([{ adet: "", fiyat: "", birim: "" }]);
+  // Domain fiyat için state
+  const [uzantilar, setUzantilar] = useState([{ uzanti: "", aktivasyon: "", yenileme: "" }]);
+  // Aktivasyon/Yenileme için state
+  const [aktivasyonFiyat, setAktivasyonFiyat] = useState("");
+  const [yenilemeFiyat, setYenilemeFiyat] = useState("");
+  // Kullanıcı sayısı için state
+  const [minKullanici, setMinKullanici] = useState("");
+  const [maxKullanici, setMaxKullanici] = useState("");
+  const [ekKullaniciFiyat, setEkKullaniciFiyat] = useState("");
+  // sicil_domain için state
+  const [alanTipi, setAlanTipi] = useState("domain");
+  const [zorunlu, setZorunlu] = useState(true);
 
   const ozellikTipleri = [
     { kod: "hediye_urun", baslik: "Hediye Ürün", icon: "🎁", aciklama: "Bu pakete hediye ürün ekle" },
@@ -1095,16 +1133,75 @@ function OzellikEkleModal({ kapat, ekle, tumUrunler }) {
     { kod: "indirim", baslik: "İndirim", icon: "🏷️", aciklama: "Yüzde indirim oranı" },
     { kod: "ek_sure", baslik: "Ek Süre", icon: "⏱️", aciklama: "Ek kullanım günü" },
     { kod: "ozel_not", baslik: "Özel Not", icon: "📝", aciklama: "Pakete özel not ekle" },
+    { kod: "temel_fiyat", baslik: "Temel Fiyat", icon: "💰", aciklama: "Ürünün temel fiyatı" },
+    { kod: "aktivasyon_yenileme", baslik: "Aktivasyon & Yenileme", icon: "🔄", aciklama: "Aktivasyon ve yenileme fiyatları" },
+    { kod: "kullanici_sayisi", baslik: "Kullanıcı Sayısı", icon: "👤", aciklama: "Min-max kullanıcı ve ek fiyat" },
+    { kod: "sicil_domain", baslik: "Sicil / Domain", icon: "🌐", aciklama: "Sicil no veya domain alanı" },
+    { kod: "kademeli_fiyat", baslik: "Kademeli Fiyat", icon: "📊", aciklama: "Adet/kapasite bazlı fiyatlandırma" },
+    { kod: "domain_fiyat", baslik: "Domain Uzantı Fiyat", icon: "🔗", aciklama: "Domain uzantılarına göre fiyat" },
+    { kod: "demo_suresi", baslik: "Demo Süresi", icon: "⏰", aciklama: "Demo/deneme süresi (gün)" },
   ];
 
   const kaydet = () => {
     if (!tip) return;
-    const yeniOzellik = { tip, deger };
-    if (tip === "hediye_urun" && seciliUrun) {
-      yeniOzellik.urunId = seciliUrun.id;
-      yeniOzellik.urunAdi = seciliUrun.adi;
+    let yeniOzellik = { tip };
+
+    switch (tip) {
+      case "hediye_urun":
+        if (!seciliUrun) return;
+        yeniOzellik.urunId = seciliUrun.id;
+        yeniOzellik.urunAdi = seciliUrun.adi;
+        break;
+      case "ek_kullanici_fiyat":
+      case "indirim":
+      case "ek_sure":
+      case "ozel_not":
+        yeniOzellik.deger = deger;
+        break;
+      case "temel_fiyat":
+        yeniOzellik.deger = { fiyat: Number(deger) || 0, para_birimi: "TL" };
+        break;
+      case "aktivasyon_yenileme":
+        yeniOzellik.deger = { aktivasyon_fiyat: Number(aktivasyonFiyat) || 0, yenileme_fiyat: Number(yenilemeFiyat) || 0 };
+        break;
+      case "kullanici_sayisi":
+        yeniOzellik.deger = { min: Number(minKullanici) || 1, max: Number(maxKullanici) || 0, ek_kullanici_fiyat: Number(ekKullaniciFiyat) || 0 };
+        break;
+      case "sicil_domain":
+        yeniOzellik.deger = { alan_tipi: alanTipi, zorunlu: zorunlu };
+        break;
+      case "kademeli_fiyat":
+        yeniOzellik.deger = { tip: "adet", kademeler: kademeler.filter(k => k.adet && k.fiyat !== "") };
+        break;
+      case "domain_fiyat":
+        yeniOzellik.deger = { uzantilar: uzantilar.filter(u => u.uzanti) };
+        break;
+      case "demo_suresi":
+        yeniOzellik.deger = { gun: Number(deger) || 30 };
+        break;
+      default:
+        yeniOzellik.deger = deger;
     }
+
     ekle(yeniOzellik);
+  };
+
+  // Kademe ekleme/silme
+  const kademeEkle = () => setKademeler([...kademeler, { adet: "", fiyat: "", birim: "" }]);
+  const kademeSil = (idx) => setKademeler(kademeler.filter((_, i) => i !== idx));
+  const kademeGuncelle = (idx, alan, val) => {
+    const yeni = [...kademeler];
+    yeni[idx][alan] = val;
+    setKademeler(yeni);
+  };
+
+  // Uzantı ekleme/silme
+  const uzantiEkle = () => setUzantilar([...uzantilar, { uzanti: "", aktivasyon: "", yenileme: "" }]);
+  const uzantiSil = (idx) => setUzantilar(uzantilar.filter((_, i) => i !== idx));
+  const uzantiGuncelle = (idx, alan, val) => {
+    const yeni = [...uzantilar];
+    yeni[idx][alan] = val;
+    setUzantilar(yeni);
   };
 
   return (
@@ -1135,18 +1232,18 @@ function OzellikEkleModal({ kapat, ekle, tumUrunler }) {
               ))}
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
               {/* Seçili Tip Göster */}
               <div className="flex items-center gap-2 p-3 rounded-lg bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20">
                 <span className="text-xl">{ozellikTipleri.find(t => t.kod === tip)?.icon}</span>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-violet-700 dark:text-violet-400">{ozellikTipleri.find(t => t.kod === tip)?.baslik}</p>
                 </div>
-                <button type="button" onClick={() => { setTip(""); setDeger(""); setSeciliUrun(null); }}
+                <button type="button" onClick={() => { setTip(""); setDeger(""); setSeciliUrun(null); setKademeler([{ adet: "", fiyat: "", birim: "" }]); setUzantilar([{ uzanti: "", aktivasyon: "", yenileme: "" }]); }}
                   className="text-xs text-violet-600 dark:text-violet-400 hover:underline cursor-pointer">Değiştir</button>
               </div>
 
-              {/* Değer Girişi */}
+              {/* Değer Girişi - Hediye Ürün */}
               {tip === "hediye_urun" && (
                 <div>
                   <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Hediye Ürün Seç</label>
@@ -1157,6 +1254,7 @@ function OzellikEkleModal({ kapat, ekle, tumUrunler }) {
                 </div>
               )}
 
+              {/* Ek Kullanıcı Fiyatı */}
               {tip === "ek_kullanici_fiyat" && (
                 <div>
                   <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ek Kullanıcı Fiyatı (₺)</label>
@@ -1164,6 +1262,7 @@ function OzellikEkleModal({ kapat, ekle, tumUrunler }) {
                 </div>
               )}
 
+              {/* İndirim */}
               {tip === "indirim" && (
                 <div>
                   <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">İndirim Oranı (%)</label>
@@ -1171,6 +1270,7 @@ function OzellikEkleModal({ kapat, ekle, tumUrunler }) {
                 </div>
               )}
 
+              {/* Ek Süre */}
               {tip === "ek_sure" && (
                 <div>
                   <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ek Süre (Gün)</label>
@@ -1178,10 +1278,124 @@ function OzellikEkleModal({ kapat, ekle, tumUrunler }) {
                 </div>
               )}
 
+              {/* Özel Not */}
               {tip === "ozel_not" && (
                 <div>
                   <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Not</label>
                   <textarea value={deger} onChange={(e) => setDeger(e.target.value)} className={INPUT_STIL + " min-h-[80px]"} placeholder="Pakete özel notunuz..." />
+                </div>
+              )}
+
+              {/* Temel Fiyat */}
+              {tip === "temel_fiyat" && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Temel Fiyat (₺)</label>
+                  <input type="number" value={deger} onChange={(e) => setDeger(e.target.value)} className={INPUT_STIL} min={0} step="0.01" placeholder="1000" />
+                </div>
+              )}
+
+              {/* Aktivasyon & Yenileme */}
+              {tip === "aktivasyon_yenileme" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Aktivasyon Fiyatı (₺)</label>
+                    <input type="number" value={aktivasyonFiyat} onChange={(e) => setAktivasyonFiyat(e.target.value)} className={INPUT_STIL} min={0} step="0.01" placeholder="500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Yenileme Fiyatı (₺)</label>
+                    <input type="number" value={yenilemeFiyat} onChange={(e) => setYenilemeFiyat(e.target.value)} className={INPUT_STIL} min={0} step="0.01" placeholder="300" />
+                  </div>
+                </div>
+              )}
+
+              {/* Kullanıcı Sayısı */}
+              {tip === "kullanici_sayisi" && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Min Kullanıcı</label>
+                      <input type="number" value={minKullanici} onChange={(e) => setMinKullanici(e.target.value)} className={INPUT_STIL} min={1} placeholder="1" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Max Kullanıcı (0=sınırsız)</label>
+                      <input type="number" value={maxKullanici} onChange={(e) => setMaxKullanici(e.target.value)} className={INPUT_STIL} min={0} placeholder="0" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ek Kullanıcı Fiyatı (₺)</label>
+                    <input type="number" value={ekKullaniciFiyat} onChange={(e) => setEkKullaniciFiyat(e.target.value)} className={INPUT_STIL} min={0} step="0.01" placeholder="100" />
+                  </div>
+                </div>
+              )}
+
+              {/* Sicil / Domain */}
+              {tip === "sicil_domain" && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Alan Tipi</label>
+                    <div className="flex gap-2">
+                      <label className={`flex-1 p-3 rounded-lg border text-center cursor-pointer transition-all ${alanTipi === "domain" ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10" : "border-gray-200 dark:border-white/10"}`}>
+                        <input type="radio" name="alanTipi" value="domain" checked={alanTipi === "domain"} onChange={(e) => setAlanTipi(e.target.value)} className="sr-only" />
+                        <span className={`text-sm font-medium ${alanTipi === "domain" ? "text-blue-700 dark:text-blue-400" : "text-gray-700 dark:text-slate-300"}`}>🌐 Domain</span>
+                      </label>
+                      <label className={`flex-1 p-3 rounded-lg border text-center cursor-pointer transition-all ${alanTipi === "sicil" ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10" : "border-gray-200 dark:border-white/10"}`}>
+                        <input type="radio" name="alanTipi" value="sicil" checked={alanTipi === "sicil"} onChange={(e) => setAlanTipi(e.target.value)} className="sr-only" />
+                        <span className={`text-sm font-medium ${alanTipi === "sicil" ? "text-blue-700 dark:text-blue-400" : "text-gray-700 dark:text-slate-300"}`}>📋 Sicil No</span>
+                      </label>
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={zorunlu} onChange={(e) => setZorunlu(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-blue-600" />
+                    <span className="text-sm text-gray-700 dark:text-slate-300">Bu alan zorunlu olsun</span>
+                  </label>
+                </div>
+              )}
+
+              {/* Kademeli Fiyat */}
+              {tip === "kademeli_fiyat" && (
+                <div className="space-y-3">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-slate-300">Kademeler</label>
+                  {kademeler.map((k, idx) => (
+                    <div key={idx} className="flex gap-2 items-center">
+                      <input type="number" value={k.adet} onChange={(e) => kademeGuncelle(idx, "adet", e.target.value)} className={INPUT_STIL + " w-20"} placeholder="Adet" min={1} />
+                      <input type="text" value={k.birim} onChange={(e) => kademeGuncelle(idx, "birim", e.target.value)} className={INPUT_STIL + " w-24"} placeholder="Birim" />
+                      <input type="number" value={k.fiyat} onChange={(e) => kademeGuncelle(idx, "fiyat", e.target.value)} className={INPUT_STIL + " flex-1"} placeholder="Fiyat (₺)" min={0} step="0.01" />
+                      {kademeler.length > 1 && (
+                        <button type="button" onClick={() => kademeSil(idx)} className="w-8 h-8 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 flex items-center justify-center text-red-500 cursor-pointer">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button type="button" onClick={kademeEkle} className="text-xs text-violet-600 dark:text-violet-400 hover:underline cursor-pointer">+ Kademe Ekle</button>
+                </div>
+              )}
+
+              {/* Domain Uzantı Fiyat */}
+              {tip === "domain_fiyat" && (
+                <div className="space-y-3">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-slate-300">Domain Uzantıları</label>
+                  {uzantilar.map((u, idx) => (
+                    <div key={idx} className="flex gap-2 items-center">
+                      <input type="text" value={u.uzanti} onChange={(e) => uzantiGuncelle(idx, "uzanti", e.target.value)} className={INPUT_STIL + " w-24"} placeholder=".com.tr" />
+                      <input type="number" value={u.aktivasyon} onChange={(e) => uzantiGuncelle(idx, "aktivasyon", e.target.value)} className={INPUT_STIL + " flex-1"} placeholder="Akt. (₺)" min={0} />
+                      <input type="number" value={u.yenileme} onChange={(e) => uzantiGuncelle(idx, "yenileme", e.target.value)} className={INPUT_STIL + " flex-1"} placeholder="Yen. (₺)" min={0} />
+                      {uzantilar.length > 1 && (
+                        <button type="button" onClick={() => uzantiSil(idx)} className="w-8 h-8 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 flex items-center justify-center text-red-500 cursor-pointer">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button type="button" onClick={uzantiEkle} className="text-xs text-violet-600 dark:text-violet-400 hover:underline cursor-pointer">+ Uzantı Ekle</button>
+                </div>
+              )}
+
+              {/* Demo Süresi */}
+              {tip === "demo_suresi" && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Demo Süresi (Gün)</label>
+                  <input type="number" value={deger} onChange={(e) => setDeger(e.target.value)} className={INPUT_STIL} min={1} placeholder="30" />
                 </div>
               )}
             </div>
@@ -1194,8 +1408,7 @@ function OzellikEkleModal({ kapat, ekle, tumUrunler }) {
             <button type="button" onClick={kapat}
               className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer">İptal</button>
             <button type="button" onClick={kaydet}
-              disabled={(tip === "hediye_urun" && !seciliUrun) || (tip !== "hediye_urun" && !deger)}
-              className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold cursor-pointer inline-flex items-center gap-2">
+              className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold cursor-pointer inline-flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
               Ekle
