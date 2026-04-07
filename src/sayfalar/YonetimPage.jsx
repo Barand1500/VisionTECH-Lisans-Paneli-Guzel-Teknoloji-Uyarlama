@@ -768,7 +768,7 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
     aktif: duzenle ? modal.aktif : true,
   });
   const [ozellikler, setOzellikler] = useState(mevcutOzellikler);
-  const [ozellikModal, setOzellikModal] = useState(false);
+  const [ozellikPanelAcik, setOzellikPanelAcik] = useState(false);
   const [paketTipleri, setPaketTipleri] = useState([]);
   const [yeniTipModal, setYeniTipModal] = useState(false);
   const [yeniTip, setYeniTip] = useState("");
@@ -822,7 +822,6 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
   // Özellik ekleme
   const ozellikEkle = (yeniOzellik) => {
     setOzellikler(prev => [...prev, { ...yeniOzellik, id: Date.now() }]);
-    setOzellikModal(false);
   };
 
   // Özellik silme
@@ -853,12 +852,44 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
     kaydet({ ...form, urunId: seciliUrun.id, urunAdi: seciliUrun.adi, ozellikler: ozellikler.length > 0 ? ozellikler : null });
   };
 
+  // Özellik değerini formatlı göster
+  const ozellikDegerGoster = (oz) => {
+    const d = oz.deger;
+    switch (oz.tip) {
+      case "hediye_urun": return oz.urunAdi || "Ürün seçildi";
+      case "ek_kullanici_fiyat": return `${Number(d).toLocaleString("tr-TR")} ₺`;
+      case "indirim": return `%${d}`;
+      case "ozel_not": return d;
+      case "ek_sure": return `+${d} gün`;
+      case "temel_fiyat": return d?.fiyat ? `${Number(d.fiyat).toLocaleString("tr-TR")} ₺` : "";
+      case "aktivasyon_yenileme": return d ? `Akt: ${Number(d.aktivasyon_fiyat || 0).toLocaleString("tr-TR")}₺ / Yen: ${Number(d.yenileme_fiyat || 0).toLocaleString("tr-TR")}₺` : "";
+      case "kullanici_sayisi": return d ? `${d.min || 1}${d.max ? `-${d.max}` : "+"} kişi${d.ek_kullanici_fiyat ? `, +${Number(d.ek_kullanici_fiyat).toLocaleString("tr-TR")}₺/ek` : ""}` : "";
+      case "sicil_domain": return d ? `${d.alan_tipi === "domain" ? "Domain" : "Sicil"}${d.zorunlu ? " (Zorunlu)" : ""}` : "";
+      case "kademeli_fiyat": return d?.kademeler?.length ? `${d.kademeler.length} kademe` : "";
+      case "domain_fiyat": return d?.uzantilar?.length ? `${d.uzantilar.length} uzantı` : "";
+      case "demo_suresi": return d?.gun ? `${d.gun} gün` : "";
+      default: return typeof d === "object" ? JSON.stringify(d) : d;
+    }
+  };
+
+  // Renk sınıfları (Tailwind JIT için)
+  const renkler = {
+    emerald: "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400",
+    blue: "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20 text-blue-700 dark:text-blue-400",
+    amber: "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400",
+    purple: "bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20 text-purple-700 dark:text-purple-400",
+    cyan: "bg-cyan-50 dark:bg-cyan-500/10 border-cyan-200 dark:border-cyan-500/20 text-cyan-700 dark:text-cyan-400",
+    teal: "bg-teal-50 dark:bg-teal-500/10 border-teal-200 dark:border-teal-500/20 text-teal-700 dark:text-teal-400",
+    rose: "bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20 text-rose-700 dark:text-rose-400",
+    gray: "bg-gray-50 dark:bg-gray-500/10 border-gray-200 dark:border-gray-500/20 text-gray-700 dark:text-gray-400",
+  };
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={sallanma}>
-      <div ref={ref} className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div ref={ref} className={`bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-h-[90vh] overflow-hidden flex flex-col transition-all duration-300 ${ozellikPanelAcik ? "max-w-5xl" : "max-w-lg"}`} onClick={(e) => e.stopPropagation()}>
 
         {/* Başlık */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between shrink-0">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">{duzenle ? "Paket Düzenle" : "Paket Oluştur"}</h3>
           <button onClick={kapat} className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors cursor-pointer">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -866,8 +897,21 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={gonder} className="p-6 space-y-4">
+        {/* Bilgi Kutusu */}
+        <div className="mx-6 mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20">
+          <div className="flex items-start gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <p className="text-xs text-blue-700 dark:text-blue-400">
+              Önce paket bilgilerini doldurun, ardından <strong>"Özellik Ekle"</strong> butonuyla fiyat, kullanıcı sayısı, aktivasyon fiyatı gibi özellikleri ekleyebilirsiniz.
+            </p>
+          </div>
+        </div>
+
+        {/* İçerik - Yan Yana Layout */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Sol Panel - Form */}
+          <form onSubmit={gonder} className={`p-6 space-y-4 overflow-y-auto transition-all duration-300 ${ozellikPanelAcik ? "w-1/2 border-r border-gray-200 dark:border-white/10" : "w-full"}`}>
           {/* Ürün Grubu */}
           <div>
             <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ürün Grubu</label>
@@ -980,24 +1024,6 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
             <input type="text" value={form.adi} onChange={(e) => guncelle("adi", e.target.value)} className={INPUT_STIL} required />
           </div>
 
-          {/* Kullanım Günü & Fiyatı */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Kullanım Günü</label>
-              <input type="number" value={form.kullanimGunu} onChange={(e) => guncelle("kullanimGunu", Number(e.target.value))} className={INPUT_STIL} min={0} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Fiyatı</label>
-              <input type="number" value={form.fiyati} onChange={(e) => guncelle("fiyati", Number(e.target.value))} className={INPUT_STIL} min={0} step="0.01" />
-            </div>
-          </div>
-
-          {/* Kullanıcı Sayısı */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Kullanıcı Sayısı</label>
-            <input type="number" value={form.kullaniciSayisi} onChange={(e) => guncelle("kullaniciSayisi", Number(e.target.value))} className={INPUT_STIL} min={0} />
-          </div>
-
           {/* Durum */}
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={form.aktif} onChange={(e) => guncelle("aktif", e.target.checked)}
@@ -1005,68 +1031,54 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
             <span className="text-sm text-gray-700 dark:text-slate-300">Aktif</span>
           </label>
 
-          {/* Paket Özellikleri */}
-          <div className="pt-2 border-t border-gray-200 dark:border-white/10">
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300">Paket Özellikleri</label>
-              <button type="button" onClick={() => setOzellikModal(true)}
-                className="text-xs px-2.5 py-1 rounded-lg bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-400 hover:bg-violet-200 dark:hover:bg-violet-500/30 transition-colors cursor-pointer inline-flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                Özellik Ekle
+          {/* Paket Özellikleri Özet */}
+          <div className="pt-3 border-t border-gray-200 dark:border-white/10">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300">Paket Özellikleri</label>
+                {ozellikler.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-400">{ozellikler.length}</span>
+                )}
+              </div>
+              <button type="button" onClick={() => setOzellikPanelAcik(prev => !prev)}
+                className={`text-xs px-3 py-1.5 rounded-lg transition-all cursor-pointer inline-flex items-center gap-1.5 ${ozellikPanelAcik ? "bg-violet-600 text-white hover:bg-violet-700" : "bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-400 hover:bg-violet-200 dark:hover:bg-violet-500/30"}`}>
+                {ozellikPanelAcik ? (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    Paneli Kapat
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                    Özellik Ekle
+                  </>
+                )}
               </button>
             </div>
 
-            {/* Eklenen Özellikler */}
+            {/* Eklenen Özellikler Mini Liste */}
             {ozellikler.length > 0 ? (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {ozellikler.map((oz) => {
                   const stil = ozellikStilleri[oz.tip] || { renk: "gray", icon: "⚙️", baslik: oz.tip };
-                  // Sabit renkler (Tailwind JIT için)
-                  const renkler = {
-                    emerald: "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400",
-                    blue: "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20 text-blue-700 dark:text-blue-400",
-                    amber: "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400",
-                    purple: "bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20 text-purple-700 dark:text-purple-400",
-                    cyan: "bg-cyan-50 dark:bg-cyan-500/10 border-cyan-200 dark:border-cyan-500/20 text-cyan-700 dark:text-cyan-400",
-                    teal: "bg-teal-50 dark:bg-teal-500/10 border-teal-200 dark:border-teal-500/20 text-teal-700 dark:text-teal-400",
-                    rose: "bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20 text-rose-700 dark:text-rose-400",
-                    gray: "bg-gray-50 dark:bg-gray-500/10 border-gray-200 dark:border-gray-500/20 text-gray-700 dark:text-gray-400",
-                  };
                   const renkSinif = renkler[stil.renk] || renkler.gray;
                   
-                  // Özellik değerini formatlı göster
-                  const degerGoster = () => {
-                    const d = oz.deger;
-                    switch (oz.tip) {
-                      case "hediye_urun": return oz.urunAdi || "Ürün seçildi";
-                      case "ek_kullanici_fiyat": return `${Number(d).toLocaleString("tr-TR")} ₺`;
-                      case "indirim": return `%${d}`;
-                      case "ozel_not": return d;
-                      case "ek_sure": return `+${d} gün`;
-                      case "temel_fiyat": return d?.fiyat ? `${Number(d.fiyat).toLocaleString("tr-TR")} ₺` : "";
-                      case "aktivasyon_yenileme": return d ? `Akt: ${Number(d.aktivasyon_fiyat || 0).toLocaleString("tr-TR")}₺ / Yen: ${Number(d.yenileme_fiyat || 0).toLocaleString("tr-TR")}₺` : "";
-                      case "kullanici_sayisi": return d ? `${d.min || 1}${d.max ? `-${d.max}` : "+"} kişi${d.ek_kullanici_fiyat ? `, +${Number(d.ek_kullanici_fiyat).toLocaleString("tr-TR")}₺/ek` : ""}` : "";
-                      case "sicil_domain": return d ? `${d.alan_tipi === "domain" ? "Domain" : "Sicil"}${d.zorunlu ? " (Zorunlu)" : ""}` : "";
-                      case "kademeli_fiyat": return d?.kademeler?.length ? `${d.kademeler.length} kademe` : "";
-                      case "domain_fiyat": return d?.uzantilar?.length ? `${d.uzantilar.length} uzantı` : "";
-                      case "demo_suresi": return d?.gun ? `${d.gun} gün` : "";
-                      default: return typeof d === "object" ? JSON.stringify(d) : d;
-                    }
-                  };
-                  
                   return (
-                    <div key={oz.id} className={`flex items-center justify-between p-2.5 rounded-lg border ${renkSinif.split(" ").slice(0, 4).join(" ")}`}>
-                      <div className="flex items-center gap-2">
-                        <span className="text-base">{stil.icon}</span>
-                        <div>
-                          <p className={`text-xs font-medium ${renkSinif.split(" ").slice(4).join(" ")}`}>{stil.baslik}</p>
-                          <p className="text-xs text-gray-600 dark:text-slate-400">{degerGoster()}</p>
+                    <div key={oz.id} className={`flex items-center justify-between p-2 rounded-lg border ${renkSinif.split(" ").slice(0, 4).join(" ")}`}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-sm shrink-0">{stil.icon}</span>
+                        <div className="min-w-0">
+                          <p className={`text-xs font-medium truncate ${renkSinif.split(" ").slice(4).join(" ")}`}>{stil.baslik}</p>
+                          <p className="text-[10px] text-gray-500 dark:text-slate-400 truncate">{ozellikDegerGoster(oz)}</p>
                         </div>
                       </div>
                       <button type="button" onClick={() => ozellikSil(oz.id)}
-                        className="w-6 h-6 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 flex items-center justify-center text-gray-400 hover:text-red-500 cursor-pointer transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        className="w-5 h-5 rounded hover:bg-red-100 dark:hover:bg-red-500/20 flex items-center justify-center text-gray-400 hover:text-red-500 cursor-pointer transition-colors shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
                     </div>
@@ -1074,21 +1086,12 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
                 })}
               </div>
             ) : (
-              <p className="text-xs text-gray-400 dark:text-slate-500 italic">Henüz özellik eklenmedi</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500 italic text-center py-2">Henüz özellik eklenmedi. Fiyat, kullanıcı sayısı gibi bilgileri özellik olarak ekleyebilirsiniz.</p>
             )}
           </div>
 
-          {/* Özellik Ekleme Mini Modal */}
-          {ozellikModal && (
-            <OzellikEkleModal
-              kapat={() => setOzellikModal(false)}
-              ekle={ozellikEkle}
-              tumUrunler={tumUrunler}
-            />
-          )}
-
           {/* Kaydet */}
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex justify-end gap-3 pt-3">
             <button type="button" onClick={kapat}
               className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer">İptal</button>
             <button type="submit"
@@ -1099,16 +1102,25 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
             </button>
           </div>
         </form>
+
+        {/* Sağ Panel - Özellik Ekleme */}
+        {ozellikPanelAcik && (
+          <OzellikEklePanel
+            ozellikEkle={ozellikEkle}
+            tumUrunler={tumUrunler}
+          />
+        )}
+        </div>
       </div>
     </div>
   );
 }
 
 /* ============================================= */
-/*  Özellik Ekleme Mini Modalı                   */
+/*  Özellik Ekleme Yan Paneli                    */
 /* ============================================= */
 
-function OzellikEkleModal({ kapat, ekle, tumUrunler }) {
+function OzellikEklePanel({ ozellikEkle, tumUrunler }) {
   const [tip, setTip] = useState("");
   const [deger, setDeger] = useState("");
   const [seciliUrun, setSeciliUrun] = useState(null);
@@ -1128,19 +1140,34 @@ function OzellikEkleModal({ kapat, ekle, tumUrunler }) {
   const [zorunlu, setZorunlu] = useState(true);
 
   const ozellikTipleri = [
-    { kod: "hediye_urun", baslik: "Hediye Ürün", icon: "🎁", aciklama: "Bu pakete hediye ürün ekle" },
-    { kod: "ek_kullanici_fiyat", baslik: "Ek Kullanıcı Fiyatı", icon: "👥", aciklama: "Her ek kullanıcı için fiyat" },
-    { kod: "indirim", baslik: "İndirim", icon: "🏷️", aciklama: "Yüzde indirim oranı" },
-    { kod: "ek_sure", baslik: "Ek Süre", icon: "⏱️", aciklama: "Ek kullanım günü" },
-    { kod: "ozel_not", baslik: "Özel Not", icon: "📝", aciklama: "Pakete özel not ekle" },
     { kod: "temel_fiyat", baslik: "Temel Fiyat", icon: "💰", aciklama: "Ürünün temel fiyatı" },
     { kod: "aktivasyon_yenileme", baslik: "Aktivasyon & Yenileme", icon: "🔄", aciklama: "Aktivasyon ve yenileme fiyatları" },
     { kod: "kullanici_sayisi", baslik: "Kullanıcı Sayısı", icon: "👤", aciklama: "Min-max kullanıcı ve ek fiyat" },
+    { kod: "ek_sure", baslik: "Ek Süre (Kullanım Günü)", icon: "⏱️", aciklama: "Ek kullanım günü" },
+    { kod: "hediye_urun", baslik: "Hediye Ürün", icon: "🎁", aciklama: "Bu pakete hediye ürün ekle" },
+    { kod: "ek_kullanici_fiyat", baslik: "Ek Kullanıcı Fiyatı", icon: "👥", aciklama: "Her ek kullanıcı için fiyat" },
+    { kod: "indirim", baslik: "İndirim", icon: "🏷️", aciklama: "Yüzde indirim oranı" },
+    { kod: "ozel_not", baslik: "Özel Not", icon: "📝", aciklama: "Pakete özel not ekle" },
     { kod: "sicil_domain", baslik: "Sicil / Domain", icon: "🌐", aciklama: "Sicil no veya domain alanı" },
     { kod: "kademeli_fiyat", baslik: "Kademeli Fiyat", icon: "📊", aciklama: "Adet/kapasite bazlı fiyatlandırma" },
     { kod: "domain_fiyat", baslik: "Domain Uzantı Fiyat", icon: "🔗", aciklama: "Domain uzantılarına göre fiyat" },
     { kod: "demo_suresi", baslik: "Demo Süresi", icon: "⏰", aciklama: "Demo/deneme süresi (gün)" },
   ];
+
+  const sifirla = () => {
+    setTip("");
+    setDeger("");
+    setSeciliUrun(null);
+    setKademeler([{ adet: "", fiyat: "", birim: "" }]);
+    setUzantilar([{ uzanti: "", aktivasyon: "", yenileme: "" }]);
+    setAktivasyonFiyat("");
+    setYenilemeFiyat("");
+    setMinKullanici("");
+    setMaxKullanici("");
+    setEkKullaniciFiyat("");
+    setAlanTipi("domain");
+    setZorunlu(true);
+  };
 
   const kaydet = () => {
     if (!tip) return;
@@ -1183,7 +1210,8 @@ function OzellikEkleModal({ kapat, ekle, tumUrunler }) {
         yeniOzellik.deger = deger;
     }
 
-    ekle(yeniOzellik);
+    ozellikEkle(yeniOzellik);
+    sifirla();
   };
 
   // Kademe ekleme/silme
@@ -1205,41 +1233,43 @@ function OzellikEkleModal({ kapat, ekle, tumUrunler }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50" onClick={kapat}>
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
-        <div className="px-5 py-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
-          <h4 className="text-base font-semibold text-gray-900 dark:text-white">Özellik Ekle</h4>
-          <button type="button" onClick={kapat} className="text-gray-400 hover:text-gray-600 dark:hover:text-white cursor-pointer">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
+    <div className="w-1/2 flex flex-col bg-gray-50 dark:bg-slate-800/50 overflow-hidden">
+      {/* Panel Başlığı */}
+      <div className="px-5 py-3 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-slate-900 shrink-0">
+        <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+          Özellik Ekle
+        </h4>
+      </div>
 
-        <div className="p-5 space-y-4">
-          {/* Özellik Tipi Seçimi */}
-          {!tip ? (
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-gray-500 dark:text-slate-400 mb-3">Özellik tipini seçin:</p>
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {/* Özellik Tipi Seçimi */}
+        {!tip ? (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-gray-500 dark:text-slate-400 mb-2">Eklemek istediğiniz özelliği seçin:</p>
+            <div className="grid grid-cols-2 gap-2">
               {ozellikTipleri.map((ot) => (
                 <button key={ot.kod} type="button" onClick={() => setTip(ot.kod)}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-white/10 hover:border-violet-300 dark:hover:border-violet-500/30 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-colors cursor-pointer text-left">
-                  <span className="text-xl">{ot.icon}</span>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{ot.baslik}</p>
-                    <p className="text-xs text-gray-500 dark:text-slate-400">{ot.aciklama}</p>
+                  className="flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 dark:border-white/10 hover:border-violet-300 dark:hover:border-violet-500/30 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-all cursor-pointer text-left bg-white dark:bg-slate-900">
+                  <span className="text-lg shrink-0">{ot.icon}</span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-gray-900 dark:text-white truncate">{ot.baslik}</p>
+                    <p className="text-[10px] text-gray-500 dark:text-slate-400 truncate">{ot.aciklama}</p>
                   </div>
                 </button>
               ))}
             </div>
-          ) : (
-            <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
-              {/* Seçili Tip Göster */}
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20">
-                <span className="text-xl">{ozellikTipleri.find(t => t.kod === tip)?.icon}</span>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-violet-700 dark:text-violet-400">{ozellikTipleri.find(t => t.kod === tip)?.baslik}</p>
-                </div>
-                <button type="button" onClick={() => { setTip(""); setDeger(""); setSeciliUrun(null); setKademeler([{ adet: "", fiyat: "", birim: "" }]); setUzantilar([{ uzanti: "", aktivasyon: "", yenileme: "" }]); }}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Seçili Tip Göster */}
+            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20">
+              <span className="text-lg">{ozellikTipleri.find(t => t.kod === tip)?.icon}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-violet-700 dark:text-violet-400 truncate">{ozellikTipleri.find(t => t.kod === tip)?.baslik}</p>
+              </div>
+              <button type="button" onClick={sifirla}
                   className="text-xs text-violet-600 dark:text-violet-400 hover:underline cursor-pointer">Değiştir</button>
               </div>
 
@@ -1282,7 +1312,7 @@ function OzellikEkleModal({ kapat, ekle, tumUrunler }) {
               {tip === "ozel_not" && (
                 <div>
                   <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Not</label>
-                  <textarea value={deger} onChange={(e) => setDeger(e.target.value)} className={INPUT_STIL + " min-h-[80px]"} placeholder="Pakete özel notunuz..." />
+                  <textarea value={deger} onChange={(e) => setDeger(e.target.value)} className={INPUT_STIL + " min-h-[60px]"} placeholder="Pakete özel notunuz..." />
                 </div>
               )}
 
@@ -1398,25 +1428,18 @@ function OzellikEkleModal({ kapat, ekle, tumUrunler }) {
                   <input type="number" value={deger} onChange={(e) => setDeger(e.target.value)} className={INPUT_STIL} min={1} placeholder="30" />
                 </div>
               )}
+
+              {/* Ekle Butonu */}
+              <button type="button" onClick={kaydet}
+                className="w-full mt-2 px-4 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold cursor-pointer inline-flex items-center justify-center gap-2 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                Özelliği Ekle
+              </button>
             </div>
           )}
         </div>
-
-        {/* Butonlar */}
-        {tip && (
-          <div className="px-5 py-4 border-t border-gray-200 dark:border-white/10 flex justify-end gap-2">
-            <button type="button" onClick={kapat}
-              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer">İptal</button>
-            <button type="button" onClick={kaydet}
-              className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold cursor-pointer inline-flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-              Ekle
-            </button>
-          </div>
-        )}
       </div>
-    </div>
   );
 }
 
