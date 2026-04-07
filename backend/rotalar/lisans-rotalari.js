@@ -173,10 +173,16 @@ router.put("/:id", hataYakala(async (req, res) => {
   if (paket_id !== undefined) data.paket_id = paket_id ? Number(paket_id) : null;
   if (bayi_id !== undefined) data.bayi_id = bayi_id ? Number(bayi_id) : null;
   if (lisans_tipi !== undefined) data.lisans_tipi = lisans_tipi;
-  if (suresiz !== undefined) data.suresiz = suresiz ? 1 : 0;
+  if (suresiz !== undefined) {
+    data.suresiz = suresiz ? 1 : 0;
+    if (suresiz) {
+      data.bitis_tarihi = null;
+      data.kullanim_gunu = 0;
+    }
+  }
   if (baslangic_tarihi !== undefined) data.baslangic_tarihi = new Date(baslangic_tarihi);
-  if (bitis_tarihi !== undefined) data.bitis_tarihi = bitis_tarihi ? new Date(bitis_tarihi) : null;
-  if (kullanim_gunu !== undefined) data.kullanim_gunu = Number(kullanim_gunu) || 0;
+  if (bitis_tarihi !== undefined && !data.suresiz) data.bitis_tarihi = bitis_tarihi ? new Date(bitis_tarihi) : null;
+  if (kullanim_gunu !== undefined && !data.suresiz) data.kullanim_gunu = Number(kullanim_gunu) || 0;
   if (durum !== undefined) data.durum = durum;
   if (domain !== undefined) data.domain = domain || null;
   if (fatura_no !== undefined) data.fatura_no = fatura_no || null;

@@ -9,6 +9,7 @@ import { useState, useRef, useEffect, useCallback, memo, useMemo } from "react";
 import KopyalaButonu from "../bilesenler/KopyalaButonu";
 import SilmeOnayModal from "../bilesenler/SilmeOnayModal";
 import { apiGet, apiPost, apiPut, apiDelete, apiUpload } from "../yardimcilar/api";
+import { useAktiviteLog } from "../baglam/AktiviteLogContext";
 import UrunSablonlariSekmesi from "../bilesenler/UrunSablonlariSekmesi";
 
 /* ============================================= */
@@ -126,6 +127,7 @@ export default function YonetimPage() {
 /* ============================================= */
 
 function UrunlerSekmesi() {
+  const { logEkle } = useAktiviteLog();
   const [urunler, setUrunler] = useState([]);
   const [paketler, setPaketler] = useState([]);
   const [urunGruplari, setUrunGruplari] = useState([]);
@@ -320,9 +322,11 @@ function UrunlerSekmesi() {
     if (!silinecekUrun) return;
     setSilmeYukleniyor(true);
     try {
+      const ad = silinecekUrun.adi || silinecekUrun.ad;
       await apiDelete(`/urunler/${silinecekUrun.id}`);
       await verileriYukle();
       setSilinecekUrun(null);
+      await logEkle("urun_silme", `"${ad}" ürünü silindi`);
     } catch (e) {
       console.error("Urun silme hatasi:", e);
     } finally {
@@ -585,6 +589,7 @@ function UrunlerSekmesi() {
 /* ============================================= */
 
 function PaketlerModal({ urun, kapat, paketler, setPaketler, tumUrunler, paketleriYenile, urunGruplari }) {
+  const { logEkle } = useAktiviteLog();
   const [arama, setArama] = useState("");
   const [sayfa, setSayfa] = useState(1);
   const [paketForm, setPaketForm] = useState(null); // null | "yeni" | paketObjesi
@@ -621,6 +626,7 @@ function PaketlerModal({ urun, kapat, paketler, setPaketler, tumUrunler, paketle
       }
       await paketleriYenile();
       setPaketForm(null);
+      await logEkle(veri.id ? "paket_guncelleme" : "paket_ekleme", `"${veri.adi}" paketi ${veri.id ? "güncellendi" : "eklendi"}`);
     } catch (e) {
       console.error("Paket kaydetme hatasi:", e);
     }
@@ -630,9 +636,11 @@ function PaketlerModal({ urun, kapat, paketler, setPaketler, tumUrunler, paketle
     if (!silinecekPaket) return;
     setSilmeYukleniyor(true);
     try {
+      const ad = silinecekPaket.adi || silinecekPaket.ad;
       await apiDelete(`/urunler/paketler/${silinecekPaket.id}`);
       await paketleriYenile();
       setSilinecekPaket(null);
+      await logEkle("paket_silme", `"${ad}" paketi silindi`);
     } catch (e) {
       console.error("Paket silme hatasi:", e);
     } finally {
@@ -1481,15 +1489,10 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
     bildirimGun: duzenle ? (modal.bildirimGun || 30) : 30,
     otomatikYenileme: duzenle ? !!modal.otomatikYenileme : false,
     yenilemeSuresi: duzenle ? (modal.yenilemeSuresi || 365) : 365,
-    // Lisans Güvenlik Ayarları
-    domainKilidi: duzenle ? !!modal.domainKilidi : false,
-    maxCihaz: duzenle ? (modal.maxCihaz || 1) : 1,
-    lisansTransferi: duzenle ? !!modal.lisansTransferi : true,
     // Opsiyonel bölüm toggle'ları
     kullaniciLimitiAktif: duzenle ? !!(modal.minKullanici > 1 || modal.maxKullanici) : false,
     sureFiyatAktif: duzenle ? !!(modal.demoGun || modal.temelFiyat) : false,
     bildirimAyarlariAktif: duzenle ? !!(modal.bildirimGun !== 30 || modal.otomatikYenileme) : false,
-    guvenlikAyarlariAktif: duzenle ? !!(modal.domainKilidi || modal.maxCihaz > 1 || !modal.lisansTransferi) : false,
   });
   const [aktifSekme, setAktifSekme] = useState("temel"); // "temel" | "gelismis"
   const [mevcutSurumler, setMevcutSurumler] = useState([]);
@@ -1997,43 +2000,7 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                   )}
                 </div>
 
-                {/* Lisans Güvenlik Ayarları - Toggle */}
-                <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
-                  <button type="button" onClick={() => guncelle("guvenlikAyarlariAktif", !form.guvenlikAyarlariAktif)}
-                    className="w-full p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                    <div className="flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
-                      <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300">Güvenlik Ayarları</h4>
-                      <span className="text-[10px] text-gray-400 dark:text-slate-500">(Opsiyonel)</span>
-                    </div>
-                    <div className={`w-10 h-5 rounded-full transition-colors flex items-center ${form.guvenlikAyarlariAktif ? "bg-red-500 justify-end" : "bg-gray-300 dark:bg-white/20 justify-start"}`}>
-                      <div className="w-4 h-4 rounded-full bg-white shadow mx-0.5"></div>
-                    </div>
-                  </button>
-                  {form.guvenlikAyarlariAktif && (
-                    <div className="px-4 pb-4 pt-0 bg-gray-50 dark:bg-white/5 space-y-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Maksimum Cihaz Sayısı</label>
-                        <input type="number" value={form.maxCihaz} onChange={(e) => guncelle("maxCihaz", Number(e.target.value))} className={INPUT_STIL} min={1} />
-                        <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">Bu ürün kaç cihazda aynı anda kullanılabilir</p>
-                      </div>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" checked={form.domainKilidi} onChange={(e) => guncelle("domainKilidi", e.target.checked)}
-                          className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-red-600 focus:ring-red-500" />
-                        <span className="text-sm text-gray-700 dark:text-slate-300">Domain Kilidi</span>
-                        <span className="text-[10px] text-gray-400 dark:text-slate-500">(Lisans belirli domain'e kilitlenir)</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" checked={form.lisansTransferi} onChange={(e) => guncelle("lisansTransferi", e.target.checked)}
-                          className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-red-600 focus:ring-red-500" />
-                        <span className="text-sm text-gray-700 dark:text-slate-300">Lisans Transferi İzni</span>
-                        <span className="text-[10px] text-gray-400 dark:text-slate-500">(Müşteriler arası transfer edilebilir)</span>
-                      </label>
-                    </div>
-                  )}
-                </div>
+
               </>
             )}
           </div>

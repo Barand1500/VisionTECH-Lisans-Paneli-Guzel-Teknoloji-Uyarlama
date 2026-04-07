@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "../baglam/ThemeContext";
 import { useAuth } from "../baglam/AuthContext";
+import { useAktiviteLog } from "../baglam/AktiviteLogContext";
 import GlobalArama from "./GlobalArama";
 import YedeklemeModal from "./YedeklemeModal";
 
@@ -96,6 +97,7 @@ const menuOgeleri = [
 export default function Sidebar({ daraltilmis, daraltToggle }) {
   const { karanlikMod, temaToggle } = useTheme();
   const { cikisYap } = useAuth();
+  const { logEkle } = useAktiviteLog();
   const location = useLocation();
   const yonlendirici = useNavigate();
   const [aramaAcik, setAramaAcik] = useState(false);
@@ -254,7 +256,7 @@ export default function Sidebar({ daraltilmis, daraltToggle }) {
 
         {/* ---- Çıkış Butonu ---- */}
         <button
-          onClick={() => { cikisYap(); yonlendirici("/login"); }}
+          onClick={async () => { await logEkle("cikis", "Oturum kapatıldı"); cikisYap(); yonlendirici("/login"); }}
           className={`w-full flex items-center ${daraltilmis ? "justify-center" : ""} gap-3 px-4 py-3 rounded-lg text-gray-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 dark:hover:text-red-400 transition-all duration-200 text-sm font-medium cursor-pointer`}
           title={daraltilmis ? "Çıkış Yap" : ""}
         >

@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../baglam/AuthContext";
+import { useAktiviteLog } from "../baglam/AktiviteLogContext";
 
 export default function LoginPage() {
   /* ---- Form State Tanımlamaları ---- */
@@ -25,6 +26,7 @@ export default function LoginPage() {
 
   const yonlendirici = useNavigate();
   const { girisYap } = useAuth();
+  const { logEkle } = useAktiviteLog();
 
   /* ---- Giriş Formu Gönderme İşlemi ---- */
   const girisIsle = async (e) => {
@@ -34,6 +36,7 @@ export default function LoginPage() {
 
     try {
       await girisYap(epostaAdresi, sifre);
+      await logEkle("giris", `${epostaAdresi} ile giriş yapıldı`);
       yonlendirici("/dashboard");
     } catch (hata) {
       const yeniSayi = basarisizSayi + 1;

@@ -44,7 +44,7 @@ router.get("/satislar", hataYakala(async (req, res) => {
 /* ---- Aktif Paketler ---- */
 router.get("/aktif-paketler", hataYakala(async (_req, res) => {
   const rows = await prisma.$queryRawUnsafe(`
-    SELECT l.id, l.baslangic_tarihi, l.bitis_tarihi, l.kullanici_sayisi, l.domain,
+    SELECT l.id, l.baslangic_tarihi, l.bitis_tarihi, l.kullanici_sayisi, l.domain, l.suresiz,
            DATEDIFF(l.bitis_tarihi, CURDATE()) as kalan_gun,
            m.ad_soyad as musteri_adi, m.sirket_adi,
            u.ad as urun_adi, p.ad as paket_adi
@@ -53,7 +53,7 @@ router.get("/aktif-paketler", hataYakala(async (_req, res) => {
     LEFT JOIN urunler u ON l.urun_id = u.id
     LEFT JOIN paketler p ON l.paket_id = p.id
     WHERE l.durum = 'aktif' AND (l.bitis_tarihi IS NULL OR l.bitis_tarihi >= CURDATE())
-    ORDER BY l.bitis_tarihi ASC
+    ORDER BY l.suresiz ASC, l.bitis_tarihi ASC
   `);
   const mapped = temizle(rows).map((r) => ({
     id: r.id,
@@ -61,8 +61,9 @@ router.get("/aktif-paketler", hataYakala(async (_req, res) => {
     urun: r.urun_adi || "-",
     paketAdi: r.paket_adi || "-",
     baslangic: r.baslangic_tarihi ? new Date(r.baslangic_tarihi).toLocaleDateString("tr-TR") : "-",
-    bitis: r.bitis_tarihi ? new Date(r.bitis_tarihi).toLocaleDateString("tr-TR") : "-",
-    kalanGun: r.kalan_gun != null ? Number(r.kalan_gun) : 0,
+    bitis: Number(r.suresiz) ? "Süresiz" : (r.bitis_tarihi ? new Date(r.bitis_tarihi).toLocaleDateString("tr-TR") : "-"),
+    kalanGun: Number(r.suresiz) ? -1 : (r.kalan_gun != null ? Number(r.kalan_gun) : 0),
+    suresiz: !!Number(r.suresiz),
     kullaniciSayisi: r.kullanici_sayisi ? Number(r.kullanici_sayisi) : 0,
   }));
   res.json({ basarili: true, veri: mapped });
@@ -111,7 +112,7 @@ router.get("/suresi-yaklasanlar", hataYakala(async (req, res) => {
     LEFT JOIN urunler u ON l.urun_id = u.id
     LEFT JOIN paketler p ON l.paket_id = p.id
     LEFT JOIN bayiler b ON l.bayi_id = b.id
-    WHERE l.durum = 'aktif' AND l.bitis_tarihi BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? DAY)
+    WHERE l.durum = 'aktif' AND l.suresiz = 0 AND l.bitis_tarihi BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? DAY)
     ORDER BY l.bitis_tarihi ASC
   `, gun);
   const mapped = temizle(rows).map((r) => ({

@@ -304,16 +304,20 @@ function AktifPaketlerSekmesi() {
   const toplamSayfa = Math.ceil(filtrelenmis.length / sayfaBasi);
   const sayfaVeriler = filtrelenmis.slice((sayfa - 1) * sayfaBasi, sayfa * sayfaBasi);
   const toplamKullanici = veri.reduce((t, p) => t + Number(p.kullaniciSayisi || 0), 0);
+  const suresiOlanlar = veri.filter((p) => !p.suresiz);
+  const suresizSayisi = veri.filter((p) => p.suresiz).length;
 
   return (
     <div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <OzetKart baslik="Aktif Paket" deger={veri.length} renk="emerald"
           ikon={<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>} />
         <OzetKart baslik="Toplam Kullanıcı" deger={toplamKullanici} renk="blue"
           ikon={<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>} />
-        <OzetKart baslik="Ortalama Kalan Gün" deger={veri.length ? Math.round(veri.reduce((t, p) => t + Number(p.kalanGun || 0), 0) / veri.length) : 0} renk="violet"
+        <OzetKart baslik="Ortalama Kalan Gün" deger={suresiOlanlar.length ? Math.round(suresiOlanlar.reduce((t, p) => t + Number(p.kalanGun || 0), 0) / suresiOlanlar.length) : 0} renk="violet"
           ikon={<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>} />
+        <OzetKart baslik="Süresiz Lisans" deger={suresizSayisi} renk="cyan"
+          ikon={<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>} />
       </div>
 
       <div className="flex items-center gap-3 mb-4">
@@ -325,7 +329,7 @@ function AktifPaketlerSekmesi() {
           { baslik: "Paket Adı", al: (p) => p.paketAdi },
           { baslik: "Başlangıç", al: (p) => p.baslangic },
           { baslik: "Bitiş", al: (p) => p.bitis },
-          { baslik: "Kalan Gün", al: (p) => p.kalanGun },
+          { baslik: "Kalan Gün", al: (p) => p.suresiz ? "Süresiz" : p.kalanGun },
           { baslik: "Kullanıcı Sayısı", al: (p) => p.kullaniciSayisi },
         ], "aktif_paketler")} />
         <span className="ml-auto text-sm text-gray-500 dark:text-slate-400">{filtrelenmis.length} kayıt</span>
@@ -350,11 +354,15 @@ function AktifPaketlerSekmesi() {
                   <td className="px-4 py-3.5 text-gray-600 dark:text-slate-400 text-sm">{p.baslangic}</td>
                   <td className="px-4 py-3.5 text-gray-600 dark:text-slate-400 text-sm">{p.bitis}</td>
                   <td className="px-4 py-3.5">
+                    {p.suresiz ? (
+                      <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-400">♾ Süresiz</span>
+                    ) : (
                     <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                       p.kalanGun > 180 ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
                       : p.kalanGun > 60 ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400"
                       : "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400"
                     }`}>{p.kalanGun} gün</span>
+                    )}
                   </td>
                   <td className="px-4 py-3.5 text-gray-600 dark:text-slate-400 text-sm text-center">{p.kullaniciSayisi || "—"}</td>
                 </tr>

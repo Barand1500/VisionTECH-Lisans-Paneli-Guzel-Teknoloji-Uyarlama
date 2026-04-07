@@ -9,6 +9,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useMusteriler } from "../baglam/MusteriContext";
 import { apiGet, apiPost, apiPut, apiDelete } from "../yardimcilar/api";
+import { useAktiviteLog } from "../baglam/AktiviteLogContext";
 import KopyalaButonu from "../bilesenler/KopyalaButonu";
 
 /* ---- Stil Sabitleri ---- */
@@ -80,6 +81,7 @@ export default function MusteriPaketleriPage() {
   const { id } = useParams();
   const git = useNavigate();
   const { musteriler } = useMusteriler();
+  const { logEkle } = useAktiviteLog();
 
   /* Müşteri bul */
   const musteri = musteriler.find((m) => String(m.id) === String(id));
@@ -229,9 +231,11 @@ export default function MusteriPaketleriPage() {
   /* Aksiyonlar */
   const paketSil = async (pid) => {
     try {
+      const silinecek = paketler.find((p) => p.id === pid);
       await apiDelete(`/lisanslar/${pid}`);
       setPaketler((o) => o.filter((p) => p.id !== pid));
       setSilOnay(null);
+      await logEkle("lisans_silme", `${silinecek?.urun || ""} - ${silinecek?.paket || ""} lisansı silindi`);
     } catch (err) {
       console.error("Paket silinemedi:", err);
       setSilOnay(null);
@@ -254,6 +258,7 @@ export default function MusteriPaketleriPage() {
       ));
       setEkKullaniciModal(null);
       setEkKullaniciDuzenle({ yeniEk: 0, kaydetmeUygun: false });
+      await logEkle("lisans_guncelleme", `Ek kullanıcı sayısı ${yeniEkKullaniciSayisi} olarak güncellendi`);
     } catch (err) {
       console.error("Ek kullanıcı güncellenemedi:", err);
     }
@@ -280,6 +285,7 @@ export default function MusteriPaketleriPage() {
     };
     setPaketler((o) => [yeni, ...o]);
     setYeniPaketModal(false);
+    logEkle("lisans_olusturma", `${yeni.urun} - ${yeni.paket} yeni lisans oluşturuldu`);
   };
 
   /* Sallanma ref */
@@ -597,31 +603,54 @@ export default function MusteriPaketleriPage() {
       {/* Lisans Anahtarı */}
       {lisansKeyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setLisansKeyModal(null)}>
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-white/10 w-full max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="font-bold text-gray-900 dark:text-white">Lisans Anahtarı</h4>
-              <button onClick={() => setLisansKeyModal(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white cursor-pointer">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-lg mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-bold text-white text-lg">Lisans Anahtarı</h4>
+                  <p className="text-white/70 text-xs">{lisansKeyModal.urun || "Ürün"}</p>
+                </div>
+              </div>
+              <button onClick={() => setLisansKeyModal(null)} className="text-white/70 hover:text-white cursor-pointer transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-4 mb-4">
-              <p className="text-xs text-gray-400 dark:text-slate-500 mb-1">Mevcut Anahtar</p>
-              <p className="text-lg font-mono font-bold text-gray-900 dark:text-white tracking-wider inline-flex items-center group">
-                {lisansKeyModal.lisansAnahtari}
-                <KopyalaButonu metin={lisansKeyModal.lisansAnahtari} />
-              </p>
+            {/* Body */}
+            <div className="px-6 py-5">
+              <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-5 mb-4 border border-gray-200 dark:border-white/10">
+                <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-slate-500 mb-2 font-semibold">Mevcut Anahtar</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xl font-mono font-bold text-gray-900 dark:text-white tracking-[0.15em] select-all flex-1">
+                    {lisansKeyModal.lisansAnahtari}
+                  </p>
+                  <KopyalaButonu metin={lisansKeyModal.lisansAnahtari} />
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    const yeniKey = rastgeleLisansAnahtari();
+                    setPaketler((o) => o.map((p) => p.id === lisansKeyModal.id ? { ...p, lisansAnahtari: yeniKey } : p));
+                    setLisansKeyModal({ ...lisansKeyModal, lisansAnahtari: yeniKey });
+                  }}
+                  className="flex-1 px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold cursor-pointer inline-flex items-center justify-center gap-2 transition-colors shadow-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                  Yeni Anahtar Oluştur
+                </button>
+                <button
+                  onClick={() => setLisansKeyModal(null)}
+                  className="px-4 py-3 rounded-xl border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                  Kapat
+                </button>
+              </div>
             </div>
-            <button
-              onClick={() => {
-                const yeniKey = rastgeleLisansAnahtari();
-                setPaketler((o) => o.map((p) => p.id === lisansKeyModal.id ? { ...p, lisansAnahtari: yeniKey } : p));
-                setLisansKeyModal({ ...lisansKeyModal, lisansAnahtari: yeniKey });
-              }}
-              className="w-full px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold cursor-pointer inline-flex items-center justify-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-              Yeni Anahtar Oluştur
-            </button>
           </div>
         </div>
       )}

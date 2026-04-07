@@ -15,7 +15,7 @@ export default function YedeklemeModal({ acik, kapat }) {
   const [secilenDosya, setSecilenDosya] = useState(null);
   const [yedekFormati, setYedekFormati] = useState("json"); // json veya sql
   const dosyaRef = useRef(null);
-  const { loglariYukle } = useAktiviteLog();
+  const { loglariYukle, logEkle } = useAktiviteLog();
 
   /* Modal kapanırken durumu sıfırla */
   useEffect(() => {
@@ -53,7 +53,8 @@ export default function YedeklemeModal({ acik, kapat }) {
       a.remove();
       URL.revokeObjectURL(url);
       setSonuc({ tip: "basari", mesaj: `Yedek dosyası başarıyla indirildi (${yedekFormati.toUpperCase()} formatında).` });
-      /* Aktivite loglarını yenile */
+      /* Aktivite logü */
+      await logEkle("yedek_alma", `Yedek alındı (${yedekFormati.toUpperCase()} formatı)`);
       await loglariYukle();
     } catch (err) {
       setSonuc({ tip: "hata", mesaj: "Yedek alınırken hata oluştu: " + err.message });
@@ -103,7 +104,8 @@ export default function YedeklemeModal({ acik, kapat }) {
       
       if (sonuc.basarili) {
         setSonuc({ tip: "basari", mesaj: sonuc.mesaj || "Yedek başarıyla geri yüklendi. Sayfa yenilenecek..." });
-        /* Aktivite loglarını yenile */
+        /* Aktivite logü */
+        await logEkle("geri_yukleme", `Yedek geri yüklendi (${jsonMi ? "JSON" : "SQL"})`);
         await loglariYukle();
         setTimeout(() => window.location.reload(), 2000);
       } else {

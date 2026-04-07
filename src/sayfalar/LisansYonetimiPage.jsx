@@ -8,6 +8,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { apiGet, apiPost, apiPut } from "../yardimcilar/api";
+import { useAktiviteLog } from "../baglam/AktiviteLogContext";
 
 /* ============================================= */
 /*  Sabitler                                       */
@@ -124,6 +125,7 @@ function aySonrasiTarih(aySayisi) {
 /* ============================================= */
 
 export default function LisansYonetimiPage() {
+  const { logEkle } = useAktiviteLog();
   const [lisanslar, setLisanslar] = useState([]);
   const [musteriler, setMusteriler] = useState([]);
   const [paketListesi, setPaketListesi] = useState([]);
@@ -269,6 +271,7 @@ export default function LisansYonetimiPage() {
       setMusteriArama("");
       setHatalar({});
       setFormAcik(false);
+      await logEkle("lisans_olusturma", `${secilenMusteri?.adSoyad || secilenMusteri?.sirketAdi || ""} için yeni lisans oluşturuldu`);
     } catch (err) {
       console.error("Lisans kaydetme hatasi:", err);
     }
@@ -286,6 +289,7 @@ export default function LisansYonetimiPage() {
         durum: "aktif",
       });
       await verileriYukle();
+      await logEkle("lisans_yenileme", `Lisans #${id} 1 yıl uzatıldı`);
     } catch (err) {
       console.error("Lisans yenileme hatasi:", err);
     }
@@ -299,6 +303,7 @@ export default function LisansYonetimiPage() {
     try {
       await apiPut(`/lisanslar/${id}`, { durum: yeniDurum });
       await verileriYukle();
+      await logEkle("lisans_dondurma", `Lisans #${id} ${yeniDurum === "dondurulmuş" ? "donduruldu" : "aktifleştirildi"}`);
     } catch (err) {
       console.error("Lisans dondurma hatasi:", err);
     }

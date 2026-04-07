@@ -11,6 +11,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import KopyalaButonu from "../bilesenler/KopyalaButonu";
 import { apiGet, apiPost, apiPut, apiDelete, apiUpload } from "../yardimcilar/api";
+import { useAktiviteLog } from "../baglam/AktiviteLogContext";
 
 /* ============================================= */
 /*  Sabitler                                      */
@@ -119,6 +120,7 @@ function AgacDugumu({ bayi, tumBayiler, seviye = 0, odakliId, setOdakliId }) {
 
 export default function BayilerPage() {
   const git = useNavigate();
+  const { logEkle } = useAktiviteLog();
   const [bayiler, setBayiler] = useState([]);
   const [arama, setArama] = useState("");
   const [etiketFiltresi, setEtiketFiltresi] = useState(new Set());
@@ -463,6 +465,7 @@ export default function BayilerPage() {
         console.error("Bayi silinemedi:", bayi.id, e);
       }
     }
+    await logEkle("toplu_silme", `${silinecekler.length} bayi toplu silindi`);
     setSeciliIdler(new Set());
     setTopluSilOnay(false);
     bayileriYukle();
@@ -478,6 +481,7 @@ export default function BayilerPage() {
         console.error("Bayi durumu guncellenemedi:", bayi.id, e);
       }
     }
+    await logEkle("bayi_durum", `${hedefler.length} bayi durumu "${yeniDurum}" olarak değiştirildi`);
     setSeciliIdler(new Set());
     bayileriYukle();
   };
@@ -486,6 +490,7 @@ export default function BayilerPage() {
   const bayiSilIslem = async (bayi) => {
     try {
       await apiDelete(`/bayiler/${bayi.id}`);
+      await logEkle("bayi_silme", `"${bayi.ad}" bayisi silindi`);
       seciliIdler.delete(bayi.id);
       setSeciliIdler(new Set(seciliIdler));
       setSilOnay(null);

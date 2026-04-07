@@ -9,6 +9,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "../yardimcilar/api";
+import { useAktiviteLog } from "../baglam/AktiviteLogContext";
 
 /* ============================================= */
 /*  Sabit Tanımlamalar                            */
@@ -105,6 +106,7 @@ const HATA_INPUT_STIL =
 
 export default function BayiEklePage() {
   const git = useNavigate();
+  const { logEkle } = useAktiviteLog();
 
   const [aktifSekme, setAktifSekme] = useState("tuzel");
   const [form, setForm] = useState(bosFormOlustur());
@@ -281,6 +283,7 @@ export default function BayiEklePage() {
       }
 
       setBasarili(true);
+      await logEkle("bayi_ekleme", `"${bayiAdi}" bayisi eklendi`);
       setTimeout(() => git("/dashboard/bayiler"), 2000);
     } catch (err) {
       console.error("Bayi eklenemedi:", err);

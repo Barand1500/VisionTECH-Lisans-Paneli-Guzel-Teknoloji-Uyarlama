@@ -1,5 +1,5 @@
 // =============================================
-// VEGA YAZILIM - KAPSAMLI SEED SCRIPTI v3
+// GÜZEL TEKNOLOJİ - KAPSAMLI SEED SCRIPTI v3
 // Şablonlar, Ürünler, Paketler, Bayiler, Müşteriler ve Lisanslar
 // =============================================
 const { PrismaClient } = require("@prisma/client");
@@ -23,7 +23,7 @@ const bitisTarihiHesapla = (baslangic, gun = 365) => {
 const lisansAnahtari = (prefix) => `${prefix}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
 
 async function main() {
-  console.log("\n🚀 VEGA Seed v3 başlıyor...\n");
+  console.log("\n🚀 Güzel Teknoloji Seed v3 başlıyor...\n");
   console.log("=".repeat(60));
 
   // =============================================
@@ -98,7 +98,7 @@ async function main() {
     { ad: "3 Aylık", kod: "3aylik", renk: "cyan", gun: 90, sira: 3 },
     { ad: "6 Aylık", kod: "6aylik", renk: "teal", gun: 180, sira: 4 },
     { ad: "Yıllık", kod: "yillik", renk: "emerald", gun: 365, sira: 5 },
-    { ad: "Süresiz", kod: "suresiz", renk: "purple", gun: 36500, sira: 6 },
+    { ad: "Süresiz", kod: "suresiz", renk: "purple", gun: 0, suresiz: 1, sira: 6 },
   ];
   
   const lisansTipiMap = {};
@@ -208,7 +208,6 @@ async function main() {
   // =============================================
   console.log("\n📋 Ürün Şablonları oluşturuluyor...");
 
-  // Helper: Şablon özellikleri oluştur
   const ozellikOlustur = async (sablonId, ozellikler) => {
     for (let i = 0; i < ozellikler.length; i++) {
       await prisma.sablonOzellik.create({
@@ -461,24 +460,19 @@ async function main() {
   console.log(`   ✓ ${sablonSayisi} şablon oluşturuldu`);
 
   // =============================================
-  // 9. ÜRÜNLER (Şablonlardan)
+  // 9. ÜRÜNLER
   // =============================================
   console.log("\n📦 Ürünler oluşturuluyor...");
 
   const urunVerileri = [
-    // VEGA Ürünleri
     { ad: "VegaPos", sablon: "VegaPos", grup: "VEGA", temelFiyat: 5000, aciklama: "Profesyonel satış ve stok yönetim yazılımı" },
     { ad: "VegaCari", sablon: "VegaCari", grup: "VEGA", temelFiyat: 3500, aciklama: "Cari hesap ve muhasebe takip yazılımı" },
     { ad: "E-Mutabakat Kontör", sablon: "E-Mutabakat", grup: "VEGA", temelFiyat: 0, aciklama: "E-Mutabakat kontör satışı" },
-    // GIB Ürünleri
     { ad: "E-Fatura Portal", sablon: "E-Fatura", grup: "GIB", temelFiyat: 0, aciklama: "GIB E-Fatura web portal hizmeti" },
     { ad: "E-Arşiv Fatura", sablon: "E-Arşiv", grup: "GIB", temelFiyat: 0, aciklama: "E-Arşiv fatura hizmeti" },
     { ad: "E-İrsaliye", sablon: "E-İrsaliye", grup: "GIB", temelFiyat: 0, aciklama: "E-İrsaliye hizmeti" },
-    // PAVO Ürünleri
     { ad: "PAVO SmartPos", sablon: "PAVO-OKC", grup: "PAVO", temelFiyat: 8500, aciklama: "PAVO yeni nesil akıllı ÖKC cihazı" },
-    // METUNIC Ürünleri
     { ad: "Domain Tescil", sablon: "Domain", grup: "METUNIC", temelFiyat: 0, aciklama: "Domain tescil ve yenileme hizmeti" },
-    // GUZELNET Ürünleri
     { ad: "Web Hosting", sablon: "Hosting", grup: "GUZELNET", temelFiyat: 0, aciklama: "SSD tabanlı web hosting hizmeti" },
     { ad: "Kurumsal E-Posta", sablon: "E-Posta", grup: "GUZELNET", temelFiyat: 0, aciklama: "Kurumsal e-posta hizmeti" },
   ];
@@ -503,7 +497,7 @@ async function main() {
   console.log(`   ✓ ${urunVerileri.length} ürün oluşturuldu`);
 
   // =============================================
-  // 10. PAKETLER + PAKET ÖZELLİKLERİ
+  // 10. PAKETLER
   // =============================================
   console.log("\n📋 Paketler oluşturuluyor...");
 
@@ -520,7 +514,6 @@ async function main() {
       ozellikler: [
         { id: 1, tip: "temel_fiyat", deger: 3500 },
         { id: 2, tip: "kullanici_sayisi", deger: { min: 1, max: 1 } },
-        { id: 3, tip: "ozel_not", deger: "Tek kullanıcı için ideal başlangıç paketi" },
       ]
     }
   });
@@ -555,28 +548,6 @@ async function main() {
         { id: 1, tip: "temel_fiyat", deger: 8000 },
         { id: 2, tip: "kullanici_sayisi", deger: { min: 1, max: 10, ek_kullanici_fiyat: 400 } },
         { id: 3, tip: "aktivasyon_yenileme", deger: { aktivasyon_fiyat: 8000, yenileme_fiyat: 6000 } },
-        { id: 4, tip: "hediye_urun", deger: { urun_id: urunMap["E-Arşiv Fatura"], sure: 365 }, urunAdi: "E-Arşiv Fatura" },
-      ]
-    }
-  });
-
-  await prisma.paket.create({
-    data: {
-      urun_id: urunMap["VegaPos"],
-      ad: "VegaPos Enterprise",
-      tipi: "ENTERPRISE",
-      kullanim_gunu: 365,
-      fiyat: 15000,
-      kullanici_sayisi: 50,
-      aktif: 1,
-      ozellikler: [
-        { id: 1, tip: "temel_fiyat", deger: 15000 },
-        { id: 2, tip: "kullanici_sayisi", deger: { min: 1, max: 50, ek_kullanici_fiyat: 300 } },
-        { id: 3, tip: "aktivasyon_yenileme", deger: { aktivasyon_fiyat: 15000, yenileme_fiyat: 12000 } },
-        { id: 4, tip: "hediye_urun", deger: { urun_id: urunMap["E-Fatura Portal"], sure: 365 }, urunAdi: "E-Fatura Portal" },
-        { id: 5, tip: "hediye_urun", deger: { urun_id: urunMap["E-Arşiv Fatura"], sure: 365 }, urunAdi: "E-Arşiv Fatura" },
-        { id: 6, tip: "indirim", deger: 10 },
-        { id: 7, tip: "ozel_not", deger: "7/24 öncelikli teknik destek dahil" },
       ]
     }
   });
@@ -615,7 +586,7 @@ async function main() {
     }
   });
 
-  // E-Mutabakat Paketleri (Kontör bazlı)
+  // E-Mutabakat Paketleri
   await prisma.paket.create({
     data: {
       urun_id: urunMap["E-Mutabakat Kontör"],
@@ -642,32 +613,14 @@ async function main() {
       ozellikler: [
         { id: 1, tip: "temel_fiyat", deger: 1750 },
         { id: 2, tip: "kademeli_fiyat", deger: { adet: 500, birim: "Kontör" } },
-        { id: 3, tip: "indirim", deger: 12.5 },
-      ]
-    }
-  });
-
-  await prisma.paket.create({
-    data: {
-      urun_id: urunMap["E-Mutabakat Kontör"],
-      ad: "1000 Kontör",
-      tipi: "PROFESYONEL",
-      kullanim_gunu: 365,
-      fiyat: 3000,
-      aktif: 1,
-      ozellikler: [
-        { id: 1, tip: "temel_fiyat", deger: 3000 },
-        { id: 2, tip: "kademeli_fiyat", deger: { adet: 1000, birim: "Kontör" } },
-        { id: 3, tip: "indirim", deger: 25 },
       ]
     }
   });
 
   // E-Fatura Paketleri
-  const efaturaUrunId = urunMap["E-Fatura Portal"];
   await prisma.paket.create({
     data: {
-      urun_id: efaturaUrunId,
+      urun_id: urunMap["E-Fatura Portal"],
       ad: "E-Fatura Başlangıç",
       tipi: "STARTER",
       kullanim_gunu: 365,
@@ -676,14 +629,13 @@ async function main() {
       ozellikler: [
         { id: 1, tip: "aktivasyon_yenileme", deger: { aktivasyon_fiyat: 1500, yenileme_fiyat: 1200 } },
         { id: 2, tip: "kademeli_fiyat", deger: { adet: 500, birim: "Kontör" } },
-        { id: 3, tip: "sicil_domain", deger: { alan_tipi: "sicil_no", zorunlu: true } },
       ]
     }
   });
 
   await prisma.paket.create({
     data: {
-      urun_id: efaturaUrunId,
+      urun_id: urunMap["E-Fatura Portal"],
       ad: "E-Fatura Standart",
       tipi: "STANDART",
       kullanim_gunu: 365,
@@ -692,55 +644,22 @@ async function main() {
       ozellikler: [
         { id: 1, tip: "aktivasyon_yenileme", deger: { aktivasyon_fiyat: 2000, yenileme_fiyat: 1700 } },
         { id: 2, tip: "kademeli_fiyat", deger: { adet: 2500, birim: "Kontör" } },
-        { id: 3, tip: "sicil_domain", deger: { alan_tipi: "sicil_no", zorunlu: true } },
       ]
     }
   });
 
-  await prisma.paket.create({
-    data: {
-      urun_id: efaturaUrunId,
-      ad: "E-Fatura Pro",
-      tipi: "PROFESYONEL",
-      kullanim_gunu: 365,
-      fiyat: 3500,
-      aktif: 1,
-      ozellikler: [
-        { id: 1, tip: "aktivasyon_yenileme", deger: { aktivasyon_fiyat: 3500, yenileme_fiyat: 3000 } },
-        { id: 2, tip: "kademeli_fiyat", deger: { adet: 10000, birim: "Kontör" } },
-        { id: 3, tip: "sicil_domain", deger: { alan_tipi: "sicil_no", zorunlu: true } },
-        { id: 4, tip: "hediye_urun", deger: { urun_id: urunMap["E-Arşiv Fatura"], sure: 365 }, urunAdi: "E-Arşiv Fatura" },
-      ]
-    }
-  });
-
-  // E-Arşiv Paketleri
-  await prisma.paket.create({
-    data: {
-      urun_id: urunMap["E-Arşiv Fatura"],
-      ad: "E-Arşiv Basic",
-      tipi: "BASIC",
-      kullanim_gunu: 365,
-      fiyat: 1000,
-      aktif: 1,
-      ozellikler: [
-        { id: 1, tip: "aktivasyon_yenileme", deger: { aktivasyon_fiyat: 1000, yenileme_fiyat: 800 } },
-        { id: 2, tip: "kademeli_fiyat", deger: { adet: 1000, birim: "Kontör" } },
-      ]
-    }
-  });
-
+  // E-Arşiv Paketi
   await prisma.paket.create({
     data: {
       urun_id: urunMap["E-Arşiv Fatura"],
       ad: "E-Arşiv Standart",
       tipi: "STANDART",
       kullanim_gunu: 365,
-      fiyat: 1500,
+      fiyat: 1000,
       aktif: 1,
       ozellikler: [
-        { id: 1, tip: "aktivasyon_yenileme", deger: { aktivasyon_fiyat: 1500, yenileme_fiyat: 1200 } },
-        { id: 2, tip: "kademeli_fiyat", deger: { adet: 5000, birim: "Kontör" } },
+        { id: 1, tip: "aktivasyon_yenileme", deger: { aktivasyon_fiyat: 1000, yenileme_fiyat: 800 } },
+        { id: 2, tip: "kademeli_fiyat", deger: { adet: 1000, birim: "Kontör" } },
       ]
     }
   });
@@ -773,12 +692,11 @@ async function main() {
       ozellikler: [
         { id: 1, tip: "temel_fiyat", deger: 8500 },
         { id: 2, tip: "sicil_domain", deger: { alan_tipi: "sicil_no", zorunlu: true } },
-        { id: 3, tip: "ozel_not", deger: "2 yıl garanti dahil" },
       ]
     }
   });
 
-  // Domain Paketleri
+  // Domain Paketi
   await prisma.paket.create({
     data: {
       urun_id: urunMap["Domain Tescil"],
@@ -794,22 +712,7 @@ async function main() {
     }
   });
 
-  await prisma.paket.create({
-    data: {
-      urun_id: urunMap["Domain Tescil"],
-      ad: ".com.tr Domain",
-      tipi: "BASIC",
-      kullanim_gunu: 365,
-      fiyat: 150,
-      aktif: 1,
-      ozellikler: [
-        { id: 1, tip: "domain_fiyat", deger: { uzanti: ".com.tr", aktivasyon: 150, yenileme: 120 } },
-        { id: 2, tip: "sicil_domain", deger: { alan_tipi: "domain", zorunlu: true } },
-      ]
-    }
-  });
-
-  // Hosting Paketleri
+  // Hosting Paketi
   await prisma.paket.create({
     data: {
       urun_id: urunMap["Web Hosting"],
@@ -826,24 +729,7 @@ async function main() {
     }
   });
 
-  await prisma.paket.create({
-    data: {
-      urun_id: urunMap["Web Hosting"],
-      ad: "Hosting Pro",
-      tipi: "PROFESYONEL",
-      kullanim_gunu: 365,
-      fiyat: 1100,
-      aktif: 1,
-      ozellikler: [
-        { id: 1, tip: "aktivasyon_yenileme", deger: { aktivasyon_fiyat: 1100, yenileme_fiyat: 1000 } },
-        { id: 2, tip: "kademeli_fiyat", deger: { kapasite: 50, birim: "GB" } },
-        { id: 3, tip: "sicil_domain", deger: { alan_tipi: "domain", zorunlu: true } },
-        { id: 4, tip: "hediye_urun", deger: { urun_id: urunMap["Kurumsal E-Posta"], sure: 365 }, urunAdi: "Kurumsal E-Posta (5 hesap)" },
-      ]
-    }
-  });
-
-  // E-Posta Paketleri
+  // E-Posta Paketi
   await prisma.paket.create({
     data: {
       urun_id: urunMap["Kurumsal E-Posta"],
@@ -860,24 +746,6 @@ async function main() {
     }
   });
 
-  await prisma.paket.create({
-    data: {
-      urun_id: urunMap["Kurumsal E-Posta"],
-      ad: "E-Posta 25 Hesap",
-      tipi: "STANDART",
-      kullanim_gunu: 365,
-      fiyat: 1500,
-      kullanici_sayisi: 25,
-      aktif: 1,
-      ozellikler: [
-        { id: 1, tip: "aktivasyon_yenileme", deger: { aktivasyon_fiyat: 1500, yenileme_fiyat: 1350 } },
-        { id: 2, tip: "kullanici_sayisi", deger: { min: 1, max: 25, ek_kullanici_fiyat: 40 } },
-        { id: 3, tip: "indirim", deger: 10 },
-      ]
-    }
-  });
-
-  // Paket sayısını getir
   const paketSayisi = await prisma.paket.count();
   console.log(`   ✓ ${paketSayisi} paket oluşturuldu`);
 
@@ -888,12 +756,12 @@ async function main() {
 
   const bayi1 = await prisma.bayi.create({
     data: {
-      ad: "Marmara Bilişim",
+      ad: "Güzel Teknoloji",
       tur: "tuzel",
-      sirket_adi: "Marmara Bilişim Teknoloji A.Ş.",
-      yetkili: "Mehmet Kaya",
-      telefon: "0212 444 5566",
-      eposta: "bilgi@marmarabilisim.com",
+      sirket_adi: "Güzel Teknoloji Yazılım A.Ş.",
+      yetkili: "Baran Ürüncan",
+      telefon: "0212 555 1010",
+      eposta: "info@guzelteknoloji.com",
       vergi_no: "1234567890",
       vergi_dairesi: "Şişli",
       sehir: "İstanbul",
@@ -904,25 +772,25 @@ async function main() {
   await prisma.iletisimKisi.create({
     data: {
       bayi_id: bayi1.id,
-      ad_soyad: "Mehmet Kaya",
+      ad_soyad: "Baran Ürüncan",
       unvan: "Genel Müdür",
       departman: "Yönetim",
-      telefon: "0212 444 5566",
-      cep_telefon: "0532 111 2233",
-      eposta: "mehmet.kaya@marmarabilisim.com",
+      telefon: "0212 555 1010",
+      cep_telefon: "0532 100 2030",
+      eposta: "baran@guzelteknoloji.com",
       birincil: 1,
     }
   });
-  console.log(`   ✓ Bayi 1: Marmara Bilişim (İstanbul)`);
+  console.log(`   ✓ Bayi 1: Güzel Teknoloji (İstanbul)`);
 
   const bayi2 = await prisma.bayi.create({
     data: {
-      ad: "Ege Teknoloji",
+      ad: "Panu Teknoloji",
       tur: "tuzel",
-      sirket_adi: "Ege Teknoloji Çözümleri Ltd.",
-      yetkili: "Ayşe Demir",
-      telefon: "0232 333 4455",
-      eposta: "info@egeteknoloji.com",
+      sirket_adi: "Panu Teknoloji Çözümleri Ltd.",
+      yetkili: "Ali Köse",
+      telefon: "0232 444 2020",
+      eposta: "info@panuteknoloji.com",
       vergi_no: "9876543210",
       vergi_dairesi: "Konak",
       sehir: "İzmir",
@@ -933,25 +801,25 @@ async function main() {
   await prisma.iletisimKisi.create({
     data: {
       bayi_id: bayi2.id,
-      ad_soyad: "Ayşe Demir",
+      ad_soyad: "Ali Köse",
       unvan: "Satış Müdürü",
       departman: "Satış",
-      telefon: "0232 333 4455",
-      cep_telefon: "0533 222 3344",
-      eposta: "ayse.demir@egeteknoloji.com",
+      telefon: "0232 444 2020",
+      cep_telefon: "0533 200 3040",
+      eposta: "ali@panuteknoloji.com",
       birincil: 1,
     }
   });
-  console.log(`   ✓ Bayi 2: Ege Teknoloji (İzmir)`);
+  console.log(`   ✓ Bayi 2: Panu Teknoloji (İzmir)`);
 
   const bayi3 = await prisma.bayi.create({
     data: {
-      ad: "Anadolu Yazılım",
+      ad: "Kodgem",
       tur: "tuzel",
-      sirket_adi: "Anadolu Yazılım ve Danışmanlık Ltd.",
-      yetkili: "Ali Yıldız",
-      telefon: "0312 555 6677",
-      eposta: "iletisim@anadoluyazilim.com",
+      sirket_adi: "Kodgem Bilişim ve Danışmanlık Ltd.",
+      yetkili: "Nimet Demir",
+      telefon: "0312 333 3030",
+      eposta: "iletisim@kodgem.com",
       vergi_no: "5555555555",
       vergi_dairesi: "Çankaya",
       sehir: "Ankara",
@@ -962,92 +830,66 @@ async function main() {
   await prisma.iletisimKisi.create({
     data: {
       bayi_id: bayi3.id,
-      ad_soyad: "Ali Yıldız",
+      ad_soyad: "Nimet Demir",
       unvan: "Kurucu Ortak",
       departman: "Yönetim",
-      telefon: "0312 555 6677",
-      cep_telefon: "0534 333 4455",
-      eposta: "ali.yildiz@anadoluyazilim.com",
+      telefon: "0312 333 3030",
+      cep_telefon: "0534 300 4050",
+      eposta: "nimet@kodgem.com",
       birincil: 1,
     }
   });
-  console.log(`   ✓ Bayi 3: Anadolu Yazılım (Ankara)`);
+  console.log(`   ✓ Bayi 3: Kodgem (Ankara)`);
 
   // =============================================
   // 12. MÜŞTERİLER (3 ADET)
   // =============================================
   console.log("\n👤 Müşteriler oluşturuluyor...");
 
-  // Müşteri 1: Bağımsız müşteri (bayi_id yok) - Tüzel
+  // Müşteri 1: Bağımsız müşteri (bayi yok) - Gerçek kişi
   const musteri1 = await prisma.musteri.create({
     data: {
-      tur: "tuzel",
-      sirket_adi: "Demo Ticaret A.Ş.",
-      yetkili_kisi: "Ahmet Yılmaz",
-      vergi_no: "1112223334",
-      vergi_dairesi: "Kadıköy",
-      eposta: "bilgi@demoticaret.com",
+      tur: "gercek",
+      ad_soyad: "Baran Ürüncan",
+      tc_kimlik_no: "11122233344",
+      eposta: "baran.uruncan@gmail.com",
+      sektor_id: sektorMap["Teknoloji"],
+      durum: "aktif",
+    }
+  });
+  await prisma.musteriTelefon.create({ data: { musteri_id: musteri1.id, telefon: "0532 100 2030" } });
+  await prisma.musteriAdres.create({ data: { musteri_id: musteri1.id, adres: "Kadıköy, İstanbul" } });
+  console.log(`   ✓ Müşteri 1: Baran Ürüncan (Bağımsız)`);
+
+  // Müşteri 2: Güzel Teknoloji'nin alt müşterisi - Gerçek kişi
+  const musteri2 = await prisma.musteri.create({
+    data: {
+      tur: "gercek",
+      ad_soyad: "Ali Köse",
+      tc_kimlik_no: "22233344455",
+      eposta: "ali.kose@gmail.com",
       sektor_id: sektorMap["Perakende"],
       durum: "aktif",
     }
   });
-  await prisma.musteriTelefon.create({ data: { musteri_id: musteri1.id, telefon: "0216 555 1234" } });
-  await prisma.musteriAdres.create({ data: { musteri_id: musteri1.id, adres: "Bağdat Cad. No:123, Kadıköy, İstanbul" } });
-  await prisma.iletisimKisi.create({
-    data: {
-      musteri_id: musteri1.id,
-      ad_soyad: "Ahmet Yılmaz",
-      unvan: "Genel Müdür",
-      telefon: "0216 555 1234",
-      cep_telefon: "0535 111 2222",
-      eposta: "ahmet@demoticaret.com",
-      birincil: 1,
-    }
-  });
-  console.log(`   ✓ Müşteri 1: Demo Ticaret A.Ş. (Bağımsız - Perakende)`);
+  await prisma.musteriTelefon.create({ data: { musteri_id: musteri2.id, telefon: "0533 200 3040" } });
+  await prisma.musteriAdres.create({ data: { musteri_id: musteri2.id, adres: "Konak, İzmir" } });
+  console.log(`   ✓ Müşteri 2: Ali Köse (Bayi: Güzel Teknoloji)`);
 
-  // Müşteri 2: Marmara Bilişim'in alt müşterisi - Tüzel
-  const musteri2 = await prisma.musteri.create({
-    data: {
-      tur: "tuzel",
-      sirket_adi: "Anadolu Market Ltd.",
-      yetkili_kisi: "Fatma Şahin",
-      vergi_no: "2223334445",
-      vergi_dairesi: "Beşiktaş",
-      eposta: "iletisim@anadolumarket.com",
-      sektor_id: sektorMap["Toptan Ticaret"],
-      durum: "aktif",
-    }
-  });
-  await prisma.musteriTelefon.create({ data: { musteri_id: musteri2.id, telefon: "0212 666 7788" } });
-  await prisma.musteriAdres.create({ data: { musteri_id: musteri2.id, adres: "Levent Mah. Plaza No:55, Beşiktaş, İstanbul" } });
-  await prisma.iletisimKisi.create({
-    data: {
-      musteri_id: musteri2.id,
-      ad_soyad: "Fatma Şahin",
-      unvan: "Finans Müdürü",
-      telefon: "0212 666 7788",
-      cep_telefon: "0536 222 3333",
-      eposta: "fatma@anadolumarket.com",
-      birincil: 1,
-    }
-  });
-  console.log(`   ✓ Müşteri 2: Anadolu Market Ltd. (Bayi: Marmara Bilişim)`);
-
-  // Müşteri 3: Ege Teknoloji'nin alt müşterisi - Gerçek kişi
+  // Müşteri 3: Kodgem'in alt müşterisi - Gerçek kişi
   const musteri3 = await prisma.musteri.create({
     data: {
       tur: "gercek",
-      ad_soyad: "Mustafa Özkan",
-      tc_kimlik_no: "12345678901",
-      eposta: "mustafa.ozkan@gmail.com",
+      ad_soyad: "Nimet Demir",
+      tc_kimlik_no: "33344455566",
+      eposta: "nimet.demir@gmail.com",
       sektor_id: sektorMap["Hizmet"],
       durum: "aktif",
     }
   });
-  await prisma.musteriTelefon.create({ data: { musteri_id: musteri3.id, telefon: "0537 888 9999" } });
-  await prisma.musteriAdres.create({ data: { musteri_id: musteri3.id, adres: "Karşıyaka Mah. No:42, Konak, İzmir" } });
-  console.log(`   ✓ Müşteri 3: Mustafa Özkan (Gerçek Kişi - Bayi: Ege Teknoloji)`);
+  await prisma.musteriTelefon.create({ data: { musteri_id: musteri3.id, telefon: "0534 300 4050" } });
+  await prisma.musteriAdres.create({ data: { musteri_id: musteri3.id, adres: "Çankaya, Ankara" } });
+  console.log(`   ✓ Müşteri 3: Nimet Demir (Bayi: Kodgem)`);
 
   // =============================================
   // 13. LİSANSLAR
@@ -1056,9 +898,9 @@ async function main() {
 
   let lisansSayisi = 0;
 
-  // --- Müşteri 1: Demo Ticaret A.Ş. için lisanslar ---
-  // VegaPos Pro lisansı
-  const m1Baslangic1 = rastgeleTarih(180);
+  // --- Müşteri 1: Baran Ürüncan (Bağımsız) ---
+  // VegaPos Pro - Yıllık
+  const m1b1 = rastgeleTarih(180);
   await prisma.lisans.create({
     data: {
       musteri_id: musteri1.id,
@@ -1067,11 +909,11 @@ async function main() {
       lisans_tipi_id: lisansTipiMap["yillik"],
       lisans_tipi: "yillik",
       lisans_anahtari: lisansAnahtari("VP"),
-      baslangic_tarihi: m1Baslangic1,
-      bitis_tarihi: bitisTarihiHesapla(m1Baslangic1, 365),
+      baslangic_tarihi: m1b1,
+      bitis_tarihi: bitisTarihiHesapla(m1b1, 365),
       kullanim_gunu: 365,
       durum: "aktif",
-      domain: "1112223334",
+      domain: "11122233344",
       fiyat: 8000,
       net_tutar: 8000,
       kullanici_sayisi: 5,
@@ -1081,8 +923,8 @@ async function main() {
   });
   lisansSayisi++;
 
-  // E-Fatura Standart lisansı
-  const m1Baslangic2 = rastgeleTarih(120);
+  // E-Fatura Standart - Yıllık
+  const m1b2 = rastgeleTarih(120);
   await prisma.lisans.create({
     data: {
       musteri_id: musteri1.id,
@@ -1091,11 +933,11 @@ async function main() {
       lisans_tipi_id: lisansTipiMap["yillik"],
       lisans_tipi: "yillik",
       lisans_anahtari: lisansAnahtari("EF"),
-      baslangic_tarihi: m1Baslangic2,
-      bitis_tarihi: bitisTarihiHesapla(m1Baslangic2, 365),
+      baslangic_tarihi: m1b2,
+      bitis_tarihi: bitisTarihiHesapla(m1b2, 365),
       kullanim_gunu: 365,
       durum: "aktif",
-      domain: "1112223334",
+      domain: "11122233344",
       fiyat: 2000,
       net_tutar: 2000,
       odeme_durumu: "odendi",
@@ -1104,31 +946,8 @@ async function main() {
   });
   lisansSayisi++;
 
-  // E-Arşiv lisansı
-  const m1Baslangic3 = rastgeleTarih(120);
-  await prisma.lisans.create({
-    data: {
-      musteri_id: musteri1.id,
-      bayi_id: null,
-      urun_id: urunMap["E-Arşiv Fatura"],
-      lisans_tipi_id: lisansTipiMap["yillik"],
-      lisans_tipi: "yillik",
-      lisans_anahtari: lisansAnahtari("EA"),
-      baslangic_tarihi: m1Baslangic3,
-      bitis_tarihi: bitisTarihiHesapla(m1Baslangic3, 365),
-      kullanim_gunu: 365,
-      durum: "aktif",
-      domain: "1112223334",
-      fiyat: 1000,
-      net_tutar: 1000,
-      odeme_durumu: "odendi",
-      odenen_tutar: 1000,
-    }
-  });
-  lisansSayisi++;
-
-  // Domain lisansı
-  const m1Baslangic4 = rastgeleTarih(300);
+  // Domain - Yıllık
+  const m1b3 = rastgeleTarih(300);
   await prisma.lisans.create({
     data: {
       musteri_id: musteri1.id,
@@ -1137,11 +956,11 @@ async function main() {
       lisans_tipi_id: lisansTipiMap["yillik"],
       lisans_tipi: "yillik",
       lisans_anahtari: lisansAnahtari("DOM"),
-      baslangic_tarihi: m1Baslangic4,
-      bitis_tarihi: bitisTarihiHesapla(m1Baslangic4, 365),
+      baslangic_tarihi: m1b3,
+      bitis_tarihi: bitisTarihiHesapla(m1b3, 365),
       kullanim_gunu: 365,
       durum: "aktif",
-      domain: "demoticaret.com",
+      domain: "baranuruncan.com",
       fiyat: 350,
       net_tutar: 350,
       odeme_durumu: "odendi",
@@ -1150,214 +969,20 @@ async function main() {
   });
   lisansSayisi++;
 
-  // Web Hosting lisansı
-  const m1Baslangic5 = rastgeleTarih(300);
+  // PAVO SmartPos - Süresiz
+  const m1b4 = rastgeleTarih(100);
   await prisma.lisans.create({
     data: {
       musteri_id: musteri1.id,
       bayi_id: null,
-      urun_id: urunMap["Web Hosting"],
-      lisans_tipi_id: lisansTipiMap["yillik"],
-      lisans_tipi: "yillik",
-      lisans_anahtari: lisansAnahtari("HOST"),
-      baslangic_tarihi: m1Baslangic5,
-      bitis_tarihi: bitisTarihiHesapla(m1Baslangic5, 365),
-      kullanim_gunu: 365,
-      durum: "aktif",
-      domain: "demoticaret.com",
-      fiyat: 500,
-      net_tutar: 500,
-      odeme_durumu: "odendi",
-      odenen_tutar: 500,
-    }
-  });
-  lisansSayisi++;
-  console.log(`   ✓ Demo Ticaret A.Ş. için 5 lisans oluşturuldu`);
-
-  // --- Müşteri 2: Anadolu Market Ltd. için lisanslar (Bayi: Marmara Bilişim) ---
-  // VegaPos Enterprise lisansı
-  const m2Baslangic1 = rastgeleTarih(90);
-  await prisma.lisans.create({
-    data: {
-      musteri_id: musteri2.id,
-      bayi_id: bayi1.id,
-      urun_id: urunMap["VegaPos"],
-      lisans_tipi_id: lisansTipiMap["yillik"],
-      lisans_tipi: "yillik",
-      lisans_anahtari: lisansAnahtari("VP"),
-      baslangic_tarihi: m2Baslangic1,
-      bitis_tarihi: bitisTarihiHesapla(m2Baslangic1, 365),
-      kullanim_gunu: 365,
-      durum: "aktif",
-      domain: "2223334445",
-      fiyat: 15000,
-      indirim_orani: 10,
-      indirim_tutari: 1500,
-      net_tutar: 13500,
-      kullanici_sayisi: 15,
-      odeme_durumu: "odendi",
-      odenen_tutar: 13500,
-    }
-  });
-  lisansSayisi++;
-
-  // E-Fatura Pro lisansı
-  const m2Baslangic2 = rastgeleTarih(60);
-  await prisma.lisans.create({
-    data: {
-      musteri_id: musteri2.id,
-      bayi_id: bayi1.id,
-      urun_id: urunMap["E-Fatura Portal"],
-      lisans_tipi_id: lisansTipiMap["yillik"],
-      lisans_tipi: "yillik",
-      lisans_anahtari: lisansAnahtari("EFP"),
-      baslangic_tarihi: m2Baslangic2,
-      bitis_tarihi: bitisTarihiHesapla(m2Baslangic2, 365),
-      kullanim_gunu: 365,
-      durum: "aktif",
-      domain: "2223334445",
-      fiyat: 3500,
-      net_tutar: 3500,
-      odeme_durumu: "odendi",
-      odenen_tutar: 3500,
-    }
-  });
-  lisansSayisi++;
-
-  // E-Arşiv lisansı
-  const m2Baslangic3 = rastgeleTarih(60);
-  await prisma.lisans.create({
-    data: {
-      musteri_id: musteri2.id,
-      bayi_id: bayi1.id,
-      urun_id: urunMap["E-Arşiv Fatura"],
-      lisans_tipi_id: lisansTipiMap["yillik"],
-      lisans_tipi: "yillik",
-      lisans_anahtari: lisansAnahtari("EA"),
-      baslangic_tarihi: m2Baslangic3,
-      bitis_tarihi: bitisTarihiHesapla(m2Baslangic3, 365),
-      kullanim_gunu: 365,
-      durum: "aktif",
-      domain: "2223334445",
-      fiyat: 1500,
-      net_tutar: 1500,
-      odeme_durumu: "odendi",
-      odenen_tutar: 1500,
-    }
-  });
-  lisansSayisi++;
-
-  // E-İrsaliye lisansı
-  const m2Baslangic4 = rastgeleTarih(60);
-  await prisma.lisans.create({
-    data: {
-      musteri_id: musteri2.id,
-      bayi_id: bayi1.id,
-      urun_id: urunMap["E-İrsaliye"],
-      lisans_tipi_id: lisansTipiMap["yillik"],
-      lisans_tipi: "yillik",
-      lisans_anahtari: lisansAnahtari("EI"),
-      baslangic_tarihi: m2Baslangic4,
-      bitis_tarihi: bitisTarihiHesapla(m2Baslangic4, 365),
-      kullanim_gunu: 365,
-      durum: "aktif",
-      domain: "2223334445",
-      fiyat: 800,
-      net_tutar: 800,
-      odeme_durumu: "odendi",
-      odenen_tutar: 800,
-    }
-  });
-  lisansSayisi++;
-  console.log(`   ✓ Anadolu Market Ltd. için 4 lisans oluşturuldu (Bayi: Marmara Bilişim)`);
-
-  // --- Müşteri 3: Mustafa Özkan için lisanslar (Bayi: Ege Teknoloji) ---
-  // VegaCari Basic lisansı
-  const m3Baslangic1 = rastgeleTarih(150);
-  await prisma.lisans.create({
-    data: {
-      musteri_id: musteri3.id,
-      bayi_id: bayi2.id,
-      urun_id: urunMap["VegaCari"],
-      lisans_tipi_id: lisansTipiMap["yillik"],
-      lisans_tipi: "yillik",
-      lisans_anahtari: lisansAnahtari("VC"),
-      baslangic_tarihi: m3Baslangic1,
-      bitis_tarihi: bitisTarihiHesapla(m3Baslangic1, 365),
-      kullanim_gunu: 365,
-      durum: "aktif",
-      domain: "12345678901",
-      fiyat: 2500,
-      net_tutar: 2500,
-      kullanici_sayisi: 1,
-      odeme_durumu: "odendi",
-      odenen_tutar: 2500,
-    }
-  });
-  lisansSayisi++;
-
-  // Domain lisansı
-  const m3Baslangic2 = rastgeleTarih(200);
-  await prisma.lisans.create({
-    data: {
-      musteri_id: musteri3.id,
-      bayi_id: bayi2.id,
-      urun_id: urunMap["Domain Tescil"],
-      lisans_tipi_id: lisansTipiMap["yillik"],
-      lisans_tipi: "yillik",
-      lisans_anahtari: lisansAnahtari("DOM"),
-      baslangic_tarihi: m3Baslangic2,
-      bitis_tarihi: bitisTarihiHesapla(m3Baslangic2, 365),
-      kullanim_gunu: 365,
-      durum: "aktif",
-      domain: "mustafaozkan.com.tr",
-      fiyat: 150,
-      net_tutar: 150,
-      odeme_durumu: "odendi",
-      odenen_tutar: 150,
-    }
-  });
-  lisansSayisi++;
-
-  // E-Posta lisansı
-  const m3Baslangic3 = rastgeleTarih(200);
-  await prisma.lisans.create({
-    data: {
-      musteri_id: musteri3.id,
-      bayi_id: bayi2.id,
-      urun_id: urunMap["Kurumsal E-Posta"],
-      lisans_tipi_id: lisansTipiMap["yillik"],
-      lisans_tipi: "yillik",
-      lisans_anahtari: lisansAnahtari("MAIL"),
-      baslangic_tarihi: m3Baslangic3,
-      bitis_tarihi: bitisTarihiHesapla(m3Baslangic3, 365),
-      kullanim_gunu: 365,
-      durum: "aktif",
-      domain: "mustafaozkan.com.tr",
-      fiyat: 500,
-      net_tutar: 500,
-      kullanici_sayisi: 5,
-      odeme_durumu: "odendi",
-      odenen_tutar: 500,
-    }
-  });
-  lisansSayisi++;
-  console.log(`   ✓ Mustafa Özkan için 3 lisans oluşturuldu (Bayi: Ege Teknoloji)`);
-
-  // --- Bayi 3: Anadolu Yazılım için direkt lisans (demo amaçlı) ---
-  // PAVO SmartPos lisansı
-  const b3Baslangic1 = rastgeleTarih(100);
-  await prisma.lisans.create({
-    data: {
-      musteri_id: musteri1.id, // Demo Ticaret'e satış yapıldı
-      bayi_id: bayi3.id,
       urun_id: urunMap["PAVO SmartPos"],
       lisans_tipi_id: lisansTipiMap["suresiz"],
       lisans_tipi: "suresiz",
+      suresiz: 1,
       lisans_anahtari: lisansAnahtari("PAVO"),
-      baslangic_tarihi: b3Baslangic1,
-      bitis_tarihi: bitisTarihiHesapla(b3Baslangic1, 36500), // Süresiz
-      kullanim_gunu: 36500,
+      baslangic_tarihi: m1b4,
+      bitis_tarihi: null,
+      kullanim_gunu: 0,
       durum: "aktif",
       domain: "OKC-2024-001",
       fiyat: 8500,
@@ -1367,31 +992,158 @@ async function main() {
     }
   });
   lisansSayisi++;
+  console.log(`   ✓ Baran Ürüncan için ${lisansSayisi} lisans oluşturuldu`);
 
-  // E-Mutabakat Kontör lisansı
-  const b3Baslangic2 = rastgeleTarih(45);
+  // --- Müşteri 2: Ali Köse (Bayi: Güzel Teknoloji) ---
+  const m2Onceki = lisansSayisi;
+
+  // VegaCari Standart - Yıllık
+  const m2b1 = rastgeleTarih(90);
   await prisma.lisans.create({
     data: {
-      musteri_id: musteri2.id, // Anadolu Market'e satış yapıldı
+      musteri_id: musteri2.id,
+      bayi_id: bayi1.id,
+      urun_id: urunMap["VegaCari"],
+      lisans_tipi_id: lisansTipiMap["yillik"],
+      lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("VC"),
+      baslangic_tarihi: m2b1,
+      bitis_tarihi: bitisTarihiHesapla(m2b1, 365),
+      kullanim_gunu: 365,
+      durum: "aktif",
+      domain: "22233344455",
+      fiyat: 3500,
+      net_tutar: 3500,
+      kullanici_sayisi: 3,
+      odeme_durumu: "odendi",
+      odenen_tutar: 3500,
+    }
+  });
+  lisansSayisi++;
+
+  // E-Arşiv Fatura - Yıllık
+  const m2b2 = rastgeleTarih(60);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri2.id,
+      bayi_id: bayi1.id,
+      urun_id: urunMap["E-Arşiv Fatura"],
+      lisans_tipi_id: lisansTipiMap["yillik"],
+      lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("EA"),
+      baslangic_tarihi: m2b2,
+      bitis_tarihi: bitisTarihiHesapla(m2b2, 365),
+      kullanim_gunu: 365,
+      durum: "aktif",
+      domain: "22233344455",
+      fiyat: 1000,
+      net_tutar: 1000,
+      odeme_durumu: "odendi",
+      odenen_tutar: 1000,
+    }
+  });
+  lisansSayisi++;
+
+  // Web Hosting - Yıllık
+  const m2b3 = rastgeleTarih(200);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri2.id,
+      bayi_id: bayi1.id,
+      urun_id: urunMap["Web Hosting"],
+      lisans_tipi_id: lisansTipiMap["yillik"],
+      lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("HOST"),
+      baslangic_tarihi: m2b3,
+      bitis_tarihi: bitisTarihiHesapla(m2b3, 365),
+      kullanim_gunu: 365,
+      durum: "aktif",
+      domain: "alikose.com.tr",
+      fiyat: 500,
+      net_tutar: 500,
+      odeme_durumu: "odendi",
+      odenen_tutar: 500,
+    }
+  });
+  lisansSayisi++;
+  console.log(`   ✓ Ali Köse için ${lisansSayisi - m2Onceki} lisans oluşturuldu (Bayi: Güzel Teknoloji)`);
+
+  // --- Müşteri 3: Nimet Demir (Bayi: Kodgem) ---
+  const m3Onceki = lisansSayisi;
+
+  // VegaPos Starter - Yıllık
+  const m3b1 = rastgeleTarih(150);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri3.id,
+      bayi_id: bayi3.id,
+      urun_id: urunMap["VegaPos"],
+      lisans_tipi_id: lisansTipiMap["yillik"],
+      lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("VP"),
+      baslangic_tarihi: m3b1,
+      bitis_tarihi: bitisTarihiHesapla(m3b1, 365),
+      kullanim_gunu: 365,
+      durum: "aktif",
+      domain: "33344455566",
+      fiyat: 3500,
+      net_tutar: 3500,
+      kullanici_sayisi: 1,
+      odeme_durumu: "odendi",
+      odenen_tutar: 3500,
+    }
+  });
+  lisansSayisi++;
+
+  // E-Mutabakat Kontör - Yıllık
+  const m3b2 = rastgeleTarih(45);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri3.id,
       bayi_id: bayi3.id,
       urun_id: urunMap["E-Mutabakat Kontör"],
       lisans_tipi_id: lisansTipiMap["yillik"],
       lisans_tipi: "yillik",
       lisans_anahtari: lisansAnahtari("EMK"),
-      baslangic_tarihi: b3Baslangic2,
-      bitis_tarihi: bitisTarihiHesapla(b3Baslangic2, 365),
+      baslangic_tarihi: m3b2,
+      bitis_tarihi: bitisTarihiHesapla(m3b2, 365),
       kullanim_gunu: 365,
       durum: "aktif",
-      domain: "2223334445",
-      fiyat: 1750,
-      net_tutar: 1750,
+      domain: "33344455566",
+      fiyat: 500,
+      net_tutar: 500,
       odeme_durumu: "odendi",
-      odenen_tutar: 1750,
-      notlar: "500 Kontör paketi",
+      odenen_tutar: 500,
+      notlar: "100 Kontör paketi",
     }
   });
   lisansSayisi++;
-  console.log(`   ✓ Anadolu Yazılım için 2 lisans oluşturuldu`);
+
+  // Kurumsal E-Posta - Süresiz
+  const m3b3 = rastgeleTarih(200);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri3.id,
+      bayi_id: bayi3.id,
+      urun_id: urunMap["Kurumsal E-Posta"],
+      lisans_tipi_id: lisansTipiMap["suresiz"],
+      lisans_tipi: "suresiz",
+      suresiz: 1,
+      lisans_anahtari: lisansAnahtari("MAIL"),
+      baslangic_tarihi: m3b3,
+      bitis_tarihi: null,
+      kullanim_gunu: 0,
+      durum: "aktif",
+      domain: "nimetdemir.com",
+      fiyat: 500,
+      net_tutar: 500,
+      kullanici_sayisi: 5,
+      odeme_durumu: "odendi",
+      odenen_tutar: 500,
+    }
+  });
+  lisansSayisi++;
+  console.log(`   ✓ Nimet Demir için ${lisansSayisi - m3Onceki} lisans oluşturuldu (Bayi: Kodgem)`);
 
   // =============================================
   // ÖZET
@@ -1411,14 +1163,16 @@ async function main() {
    ├─ Ürünler: ${Object.keys(urunMap).length}
    ├─ Paketler: ${paketSayisi}
    ├─ Bayiler: 3
-   │   ├─ Marmara Bilişim (İstanbul)
-   │   ├─ Ege Teknoloji (İzmir)
-   │   └─ Anadolu Yazılım (Ankara)
+   │   ├─ Güzel Teknoloji (İstanbul)
+   │   ├─ Panu Teknoloji (İzmir)
+   │   └─ Kodgem (Ankara)
    ├─ Müşteriler: 3
-   │   ├─ Demo Ticaret A.Ş. (Bağımsız)
-   │   ├─ Anadolu Market Ltd. (Bayi: Marmara Bilişim)
-   │   └─ Mustafa Özkan (Gerçek Kişi - Bayi: Ege Teknoloji)
+   │   ├─ Baran Ürüncan (Bağımsız)
+   │   ├─ Ali Köse (Bayi: Güzel Teknoloji)
+   │   └─ Nimet Demir (Bayi: Kodgem)
    └─ Lisanslar: ${lisansSayisi}
+       ├─ 2 adet süresiz lisans (PAVO SmartPos + E-Posta)
+       └─ ${lisansSayisi - 2} adet yıllık lisans
 `);
 }
 
