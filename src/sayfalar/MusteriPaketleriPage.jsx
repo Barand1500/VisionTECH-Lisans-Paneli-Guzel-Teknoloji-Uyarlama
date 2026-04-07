@@ -820,8 +820,10 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
   const modalRef = useRef(null);
   const sallanma = () => { if (modalRef.current) { modalRef.current.classList.remove("sallan"); void modalRef.current.offsetWidth; modalRef.current.classList.add("sallan"); } };
 
-  /* Seçili grup */
+  /* Seçili grup ve ürün arama */
   const [seciliGrupId, setSeciliGrupId] = useState(null);
+  const [urunArama, setUrunArama] = useState("");
+  const [urunDropdownAcik, setUrunDropdownAcik] = useState(false);
 
   /* Aktif adım: 1=Ürün, 2=Lisans, 3=Fiyat, 4=Özet */
   const [adim, setAdim] = useState(1);
@@ -840,6 +842,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
     paketId: "",
     /* Adım 2: Lisans Bilgileri */
     lisansTipi: "standart",
+    suresiz: false,
     baslangicTarihi: new Date().toISOString().slice(0, 10),
     kullanimGunu: 365,
     bitisTarihi: tarihEkle(new Date().toISOString().slice(0, 10), 365),
@@ -1308,73 +1311,129 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
           {/* Adım 1: Grup ve Ürün Seçimi */}
           {adim === 1 && (
             <div className="space-y-5">
-              {/* Grup Seçimi */}
-              <div>
-                <label className={LABEL_STIL}>Ürün Grubu Seçin <span className="text-red-500">*</span></label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
-                  {gruplar.map((g) => (
-                    <button
-                      key={g.id}
-                      onClick={() => { setSeciliGrupId(g.id); guncelle("urunId", ""); guncelle("paketId", ""); }}
-                      className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
-                        seciliGrupId === g.id
-                          ? "border-purple-500 bg-purple-50 dark:bg-purple-500/10"
-                          : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                          seciliGrupId === g.id ? "bg-purple-500 text-white" : "bg-gray-100 dark:bg-white/10 text-gray-400"
-                        }`}>
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-                        </div>
-                        <div>
-                          <p className={`font-medium ${seciliGrupId === g.id ? "text-purple-700 dark:text-purple-400" : "text-gray-900 dark:text-white"}`}>{g.ad}</p>
-                          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{urunler.filter(u => u.aktif && u.grup_id === g.id).length} ürün</p>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Ürün Seçimi - Sadece grup seçiliyse */}
-              {seciliGrupId && (
-                <div>
-                  <label className={LABEL_STIL}>Ürün Seçin <span className="text-red-500">*</span></label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-                    {urunler.filter((u) => u.aktif && u.grup_id === seciliGrupId).map((u) => (
-                      <button
-                        key={u.id}
-                        onClick={() => urunSec(u.id)}
-                        className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
-                          form.urunId === u.id
-                            ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10"
-                            : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                            form.urunId === u.id ? "bg-blue-500 text-white" : "bg-gray-100 dark:bg-white/10 text-gray-400"
-                          }`}>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                          </div>
-                          <div>
-                            <p className={`font-medium ${form.urunId === u.id ? "text-blue-700 dark:text-blue-400" : "text-gray-900 dark:text-white"}`}>{u.ad}</p>
-                            <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{u.urun_tipi || u.grubu || "Genel"}</p>
-                          </div>
-                        </div>
+              {/* Ürün Arama ve Seçim - Combobox */}
+              <div className="relative">
+                <label className={LABEL_STIL}>Ürün Ara ve Seç <span className="text-red-500">*</span></label>
+                <div className="relative mt-1">
+                  <div className="relative">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input
+                      type="text"
+                      placeholder="Ürün adı yazarak arayın..."
+                      value={urunArama}
+                      onChange={(e) => { setUrunArama(e.target.value); setUrunDropdownAcik(true); }}
+                      onFocus={() => setUrunDropdownAcik(true)}
+                      className={`${INPUT_STIL} pl-10 pr-10`}
+                    />
+                    {urunArama && (
+                      <button onClick={() => { setUrunArama(""); setUrunDropdownAcik(false); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                       </button>
-                    ))}
-                    {urunler.filter((u) => u.aktif && u.grup_id === seciliGrupId).length === 0 && (
-                      <p className="col-span-2 text-center text-gray-400 dark:text-slate-500 py-8">Bu grupta henüz ürün yok</p>
                     )}
                   </div>
+                  
+                  {/* Dropdown Listesi */}
+                  {urunDropdownAcik && (
+                    <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-xl shadow-xl max-h-72 overflow-auto">
+                      {/* Grupları ve Ürünleri Listele */}
+                      {gruplar.map((g) => {
+                        const grupUrunleri = urunler.filter((u) => u.aktif && u.grup_id === g.id && u.ad.toLowerCase().includes(urunArama.toLowerCase()));
+                        if (grupUrunleri.length === 0) return null;
+                        
+                        return (
+                          <div key={g.id}>
+                            {/* Grup Başlığı */}
+                            <div className="px-3 py-2 bg-gray-50 dark:bg-slate-700/50 text-xs font-semibold text-gray-500 dark:text-slate-400 sticky top-0 flex items-center gap-2">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                              </svg>
+                              {g.ad}
+                              <span className="ml-auto text-gray-400">({grupUrunleri.length})</span>
+                            </div>
+                            {/* Ürünler */}
+                            {grupUrunleri.map((u) => (
+                              <button
+                                key={u.id}
+                                onClick={() => {
+                                  urunSec(u.id);
+                                  setSeciliGrupId(g.id);
+                                  setUrunArama("");
+                                  setUrunDropdownAcik(false);
+                                }}
+                                className={`w-full px-3 py-2.5 text-left hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors flex items-center gap-3 ${
+                                  form.urunId === u.id ? "bg-blue-50 dark:bg-blue-500/10" : ""
+                                }`}
+                              >
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                  form.urunId === u.id ? "bg-blue-500 text-white" : "bg-gray-100 dark:bg-white/10 text-gray-400"
+                                }`}>
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                  </svg>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className={`text-sm font-medium truncate ${form.urunId === u.id ? "text-blue-700 dark:text-blue-400" : "text-gray-900 dark:text-white"}`}>{u.ad}</p>
+                                  <p className="text-xs text-gray-400 dark:text-slate-500 truncate">{u.urun_tipi || u.grubu || g.ad}</p>
+                                </div>
+                                {form.urunId === u.id && (
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })}
+                      {/* Sonuç Yoksa */}
+                      {urunler.filter((u) => u.aktif && u.ad.toLowerCase().includes(urunArama.toLowerCase())).length === 0 && (
+                        <div className="px-4 py-8 text-center text-gray-400 dark:text-slate-500">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 mx-auto mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <p className="text-sm">"{urunArama}" ile eşleşen ürün bulunamadı</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
+                
+                {/* Seçili Ürün Gösterimi */}
+                {form.urunId && (
+                  <div className="mt-3 p-3 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-blue-500 text-white flex items-center justify-center shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-blue-700 dark:text-blue-400">{seciliUrun?.ad}</p>
+                        <p className="text-xs text-blue-600/70 dark:text-blue-400/70">{gruplar.find(g => g.id === seciliGrupId)?.ad} • {seciliUrun?.urun_tipi || "Genel"}</p>
+                      </div>
+                      <button 
+                        onClick={() => { guncelle("urunId", ""); guncelle("paketId", ""); setSeciliGrupId(null); }}
+                        className="p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Dropdown dışına tıklandığında kapat */}
+              {urunDropdownAcik && (
+                <div className="fixed inset-0 z-40" onClick={() => setUrunDropdownAcik(false)} />
               )}
 
+              {/* Paket Seçimi */}
               {form.urunId && urunPaketleri.length > 0 && (
                 <div>
                   <label className={LABEL_STIL}>Paket Seçin (Opsiyonel)</label>
@@ -1525,26 +1584,102 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                 </div>
               </div>
 
-              {/* Başlangıç Tarihi ve Hesaplanan Bitiş */}
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <label className={LABEL_STIL}>Başlangıç Tarihi <span className="text-red-500">*</span></label>
-                  <input type="date" value={form.baslangicTarihi} onChange={(e) => guncelle("baslangicTarihi", e.target.value)} className={INPUT_STIL} />
-                </div>
-                <div className="flex items-end gap-2 text-sm text-gray-500 dark:text-slate-400 pb-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                  <span className="font-medium">{form.kullanimGunu} gün</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <label className={LABEL_STIL}>Bitiş Tarihi</label>
-                  <input type="date" value={form.bitisTarihi} className={`${INPUT_STIL} bg-gray-50 dark:bg-white/5 cursor-not-allowed`} readOnly />
+              {/* Lisans Süresi Seçimi - Günlü / Süresiz */}
+              <div>
+                <label className={LABEL_STIL}>Lisans Süresi Türü</label>
+                <div className="grid grid-cols-2 gap-3 mt-1">
+                  {/* Günlü Seçeneği */}
+                  <button
+                    onClick={() => guncelle("suresiz", false)}
+                    className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                      !form.suresiz
+                        ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10 ring-1 ring-blue-500"
+                        : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                        !form.suresiz ? "bg-blue-500 text-white" : "bg-gray-100 dark:bg-white/10 text-gray-400"
+                      }`}>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className={`font-medium ${!form.suresiz ? "text-blue-700 dark:text-blue-400" : "text-gray-900 dark:text-white"}`}>Günlü Lisans</p>
+                        <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">Başlangıç ve bitiş tarihi belirli</p>
+                      </div>
+                    </div>
+                  </button>
+                  
+                  {/* Süresiz Seçeneği */}
+                  <button
+                    onClick={() => guncelle("suresiz", true)}
+                    className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                      form.suresiz
+                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 ring-1 ring-emerald-500"
+                        : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                        form.suresiz ? "bg-emerald-500 text-white" : "bg-gray-100 dark:bg-white/10 text-gray-400"
+                      }`}>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className={`font-medium ${form.suresiz ? "text-emerald-700 dark:text-emerald-400" : "text-gray-900 dark:text-white"}`}>Süresiz Lisans</p>
+                        <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">Bitiş tarihi olmadan geçerli</p>
+                      </div>
+                    </div>
+                  </button>
                 </div>
               </div>
+
+              {/* Tarih Bilgileri - Günlü Lisans için */}
+              {!form.suresiz ? (
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <label className={LABEL_STIL}>Başlangıç Tarihi <span className="text-red-500">*</span></label>
+                    <input type="date" value={form.baslangicTarihi} onChange={(e) => guncelle("baslangicTarihi", e.target.value)} className={INPUT_STIL} />
+                  </div>
+                  <div className="flex items-end gap-2 text-sm text-gray-500 dark:text-slate-400 pb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                    <span className="font-medium">{form.kullanimGunu} gün</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <label className={LABEL_STIL}>Bitiş Tarihi</label>
+                    <input type="date" value={form.bitisTarihi} className={`${INPUT_STIL} bg-gray-50 dark:bg-white/5 cursor-not-allowed`} readOnly />
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Süresiz Lisans</p>
+                      <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70 mt-1">Bu lisans süresiz olarak tanımlanacaktır. Bitiş tarihi olmadan geçerli kalacaktır.</p>
+                      <div className="mt-3 flex gap-4">
+                        <div>
+                          <label className={`${LABEL_STIL} text-emerald-700 dark:text-emerald-400`}>Başlangıç Tarihi</label>
+                          <input type="date" value={form.baslangicTarihi} onChange={(e) => guncelle("baslangicTarihi", e.target.value)} className={`${INPUT_STIL} border-emerald-300 dark:border-emerald-500/30 max-w-[160px]`} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Şablon Özellikleri (Ürüne özel alanlar) */}
               {sablon && sablon.ozellikler && sablon.ozellikler.length > 0 && (() => {
