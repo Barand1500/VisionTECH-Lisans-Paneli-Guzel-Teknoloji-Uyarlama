@@ -1354,18 +1354,9 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                 </div>
               </div>
 
-              {/* Şablon Özellikleri (Ürüne özel alanlar) */}
+              {/* Paket Özellikleri - Modern Tasarım */}
               {sablon && sablon.ozellikler && sablon.ozellikler.length > 0 && (() => {
-                /* Özellikleri mantıklı sıraya göre sırala:
-                   1. sicil_domain (önce müşteriyi tanımla)
-                   2. kademeli_fiyat (paket seçimi)
-                   3. domain_fiyat
-                   4. kullanici_sayisi
-                   5. aktivasyon_yenileme
-                   6. temel_fiyat
-                   7. demo_suresi
-                   8. diğerleri
-                */
+                /* Özellikleri mantıklı sıraya göre sırala */
                 const siraPriority = {
                   sicil_domain: 1,
                   kademeli_fiyat: 2,
@@ -1381,18 +1372,86 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                   const bPriority = siraPriority[b.ozellik_tipi] || 99;
                   return aPriority - bPriority;
                 });
+
+                // Özellik tipine göre ikon ve renk haritası
+                const ozellikTasarim = {
+                  sicil_domain: { 
+                    ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>,
+                    renk: "from-blue-500 to-cyan-500",
+                    bg: "bg-blue-50 dark:bg-blue-500/10",
+                    border: "border-blue-200 dark:border-blue-500/30"
+                  },
+                  kademeli_fiyat: { 
+                    ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>,
+                    renk: "from-violet-500 to-purple-500",
+                    bg: "bg-violet-50 dark:bg-violet-500/10",
+                    border: "border-violet-200 dark:border-violet-500/30"
+                  },
+                  domain_fiyat: { 
+                    ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+                    renk: "from-teal-500 to-emerald-500",
+                    bg: "bg-teal-50 dark:bg-teal-500/10",
+                    border: "border-teal-200 dark:border-teal-500/30"
+                  },
+                  kullanici_sayisi: { 
+                    ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>,
+                    renk: "from-indigo-500 to-blue-500",
+                    bg: "bg-indigo-50 dark:bg-indigo-500/10",
+                    border: "border-indigo-200 dark:border-indigo-500/30"
+                  },
+                  aktivasyon_yenileme: { 
+                    ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>,
+                    renk: "from-amber-500 to-orange-500",
+                    bg: "bg-amber-50 dark:bg-amber-500/10",
+                    border: "border-amber-200 dark:border-amber-500/30"
+                  },
+                  temel_fiyat: { 
+                    ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+                    renk: "from-emerald-500 to-green-500",
+                    bg: "bg-emerald-50 dark:bg-emerald-500/10",
+                    border: "border-emerald-200 dark:border-emerald-500/30"
+                  },
+                  demo_suresi: { 
+                    ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+                    renk: "from-rose-500 to-pink-500",
+                    bg: "bg-rose-50 dark:bg-rose-500/10",
+                    border: "border-rose-200 dark:border-rose-500/30"
+                  },
+                  hediye_urun: { 
+                    ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" /></svg>,
+                    renk: "from-green-500 to-emerald-500",
+                    bg: "bg-green-50 dark:bg-green-500/10",
+                    border: "border-green-200 dark:border-green-500/30"
+                  },
+                };
                 
                 return (
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-500/5 dark:to-gray-500/5 border border-gray-200 dark:border-white/10">
-                    <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300 flex items-center gap-2 mb-4">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      {sablon.ad} - Ürün Özellikleri
-                    </h4>
-                    <div className="space-y-4">
+                  <div className="rounded-2xl bg-gradient-to-br from-white to-slate-50 dark:from-slate-800/50 dark:to-slate-900/50 border border-gray-200/80 dark:border-white/10 shadow-lg shadow-gray-200/50 dark:shadow-black/20 overflow-hidden">
+                    {/* Başlık */}
+                    <div className="px-5 py-4 bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-fuchsia-500/10 dark:from-violet-500/20 dark:via-purple-500/20 dark:to-fuchsia-500/20 border-b border-gray-200/80 dark:border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h4 className="text-base font-bold text-gray-900 dark:text-white">Paket Özellikleri</h4>
+                          <p className="text-xs text-gray-500 dark:text-slate-400">{sablon.ad} şablonuna ait {siraliOzellikler.length} özellik</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Özellikler Grid */}
+                    <div className="p-5 space-y-4">
                       {siraliOzellikler.map((oz) => {
                         const deger = sablonDegerler[oz.id] || oz.deger || {};
+                        const tasarim = ozellikTasarim[oz.ozellik_tipi] || { 
+                          ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>,
+                          renk: "from-gray-500 to-slate-500",
+                          bg: "bg-gray-50 dark:bg-gray-500/10",
+                          border: "border-gray-200 dark:border-gray-500/30"
+                        };
                         const sablonGuncelle = (alan, val) => {
                           setSablonDegerler((prev) => ({
                             ...prev,
@@ -1403,30 +1462,62 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                         switch (oz.ozellik_tipi) {
                           case "temel_fiyat":
                             return (
-                              <div key={oz.id}>
-                                <label className={LABEL_STIL}>{oz.baslik || "Temel Fiyat"} <span className="text-red-500">*</span></label>
-                                <div className="flex gap-2">
-                                  <input type="number" value={deger.fiyat || 0} onChange={(e) => sablonGuncelle("fiyat", Number(e.target.value))} className={INPUT_STIL + " flex-1"} min={0} step="0.01" />
-                                  <span className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-500 text-sm">{deger.para_birimi || "TL"}</span>
+                              <div key={oz.id} className={`p-4 rounded-xl ${tasarim.bg} border ${tasarim.border} transition-all hover:shadow-md`}>
+                                <div className="flex items-center gap-3 mb-3">
+                                  <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${tasarim.renk} flex items-center justify-center text-white shadow-sm`}>
+                                    {tasarim.ikon}
+                                  </div>
+                                  <div>
+                                    <h5 className="text-sm font-semibold text-gray-800 dark:text-white">{oz.baslik || "Temel Fiyat"}</h5>
+                                    <p className="text-xs text-gray-500 dark:text-slate-400">Ürün temel ücreti</p>
+                                  </div>
                                 </div>
-                            </div>
-                          );
+                                <div className="flex items-center gap-2">
+                                  <div className="relative flex-1">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600 dark:text-emerald-400 font-semibold">₺</span>
+                                    <input type="number" value={deger.fiyat || 0} onChange={(e) => sablonGuncelle("fiyat", Number(e.target.value))} className={`${INPUT_STIL} pl-8 text-lg font-bold text-emerald-700 dark:text-emerald-400`} min={0} step="0.01" />
+                                  </div>
+                                  <span className="px-4 py-2.5 rounded-lg bg-white dark:bg-white/10 text-gray-600 dark:text-slate-300 text-sm font-medium border border-gray-200 dark:border-white/10">{deger.para_birimi || "TL"}</span>
+                                </div>
+                              </div>
+                            );
 
                         case "aktivasyon_yenileme":
                           return (
-                            <div key={oz.id} className="grid grid-cols-2 gap-3">
-                              <div>
-                                <label className={LABEL_STIL}>Aktivasyon Fiyat <span className="text-red-500">*</span></label>
-                                <div className="relative">
-                                  <input type="number" value={deger.aktivasyon_fiyat || 0} onChange={(e) => sablonGuncelle("aktivasyon_fiyat", Number(e.target.value))} className={`${INPUT_STIL} pr-8`} min={0} step="0.01" />
-                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₺</span>
+                            <div key={oz.id} className={`p-4 rounded-xl ${tasarim.bg} border ${tasarim.border} transition-all hover:shadow-md`}>
+                              <div className="flex items-center gap-3 mb-4">
+                                <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${tasarim.renk} flex items-center justify-center text-white shadow-sm`}>
+                                  {tasarim.ikon}
+                                </div>
+                                <div>
+                                  <h5 className="text-sm font-semibold text-gray-800 dark:text-white">{oz.baslik || "Aktivasyon & Yenileme"}</h5>
+                                  <p className="text-xs text-gray-500 dark:text-slate-400">Lisans aktivasyon ve yenileme ücretleri</p>
                                 </div>
                               </div>
-                              <div>
-                                <label className={LABEL_STIL}>Yenileme Fiyat</label>
-                                <div className="relative">
-                                  <input type="number" value={deger.yenileme_fiyat || 0} onChange={(e) => sablonGuncelle("yenileme_fiyat", Number(e.target.value))} className={`${INPUT_STIL} pr-8`} min={0} step="0.01" />
-                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₺</span>
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5 border border-amber-200/50 dark:border-amber-500/20">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                    </div>
+                                    <span className="text-xs font-medium text-gray-600 dark:text-slate-400">Aktivasyon</span>
+                                  </div>
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-600 dark:text-amber-400 font-semibold text-sm">₺</span>
+                                    <input type="number" value={deger.aktivasyon_fiyat || 0} onChange={(e) => sablonGuncelle("aktivasyon_fiyat", Number(e.target.value))} className={`${INPUT_STIL} pl-7 font-bold text-amber-700 dark:text-amber-400`} min={0} step="0.01" />
+                                  </div>
+                                </div>
+                                <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5 border border-orange-200/50 dark:border-orange-500/20">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-6 h-6 rounded-full bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                    </div>
+                                    <span className="text-xs font-medium text-gray-600 dark:text-slate-400">Yenileme</span>
+                                  </div>
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-600 dark:text-orange-400 font-semibold text-sm">₺</span>
+                                    <input type="number" value={deger.yenileme_fiyat || 0} onChange={(e) => sablonGuncelle("yenileme_fiyat", Number(e.target.value))} className={`${INPUT_STIL} pl-7 font-bold text-orange-700 dark:text-orange-400`} min={0} step="0.01" />
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -1434,75 +1525,100 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
 
                         case "kullanici_sayisi":
                           return (
-                            <div key={oz.id}>
-                              <label className={LABEL_STIL}>{oz.baslik || "Kullanıcı Sayısı"}</label>
-                              <div className="grid grid-cols-2 gap-3 mt-1">
-                                <div className="flex items-center gap-2">
-                                  <button 
-                                    type="button"
-                                    onClick={() => sablonGuncelle("min", Math.max(1, (deger.min || 1) - 1))}
-                                    className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 flex items-center justify-center text-gray-600 dark:text-slate-300 transition-colors"
-                                  >−</button>
+                            <div key={oz.id} className={`p-4 rounded-xl ${tasarim.bg} border ${tasarim.border} transition-all hover:shadow-md`}>
+                              <div className="flex items-center gap-3 mb-4">
+                                <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${tasarim.renk} flex items-center justify-center text-white shadow-sm`}>
+                                  {tasarim.ikon}
+                                </div>
+                                <div className="flex-1">
+                                  <h5 className="text-sm font-semibold text-gray-800 dark:text-white">{oz.baslik || "Kullanıcı Sayısı"}</h5>
+                                  <p className="text-xs text-gray-500 dark:text-slate-400">Kaç kullanıcı erişebilecek</p>
+                                </div>
+                                {deger.ek_kullanici_fiyat > 0 && (
+                                  <div className="px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                                    +₺{Number(deger.ek_kullanici_fiyat).toLocaleString("tr-TR")} / ek
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center justify-center gap-4 p-3 bg-white/60 dark:bg-white/5 rounded-xl">
+                                <button 
+                                  type="button"
+                                  onClick={() => sablonGuncelle("min", Math.max(1, (deger.min || 1) - 1))}
+                                  className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-500/20 hover:bg-indigo-200 dark:hover:bg-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 transition-colors font-bold text-lg"
+                                >−</button>
+                                <div className="relative">
                                   <input 
                                     type="number" 
                                     value={deger.min || 1} 
                                     onChange={(e) => sablonGuncelle("min", Math.max(1, Number(e.target.value)))} 
-                                    className={`${INPUT_STIL} text-center flex-1`} 
+                                    className={`${INPUT_STIL} text-center w-24 text-xl font-bold text-indigo-700 dark:text-indigo-400`} 
                                     min={1} 
                                   />
-                                  <button 
-                                    type="button"
-                                    onClick={() => sablonGuncelle("min", (deger.min || 1) + 1)}
-                                    className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 flex items-center justify-center text-gray-600 dark:text-slate-300 transition-colors"
-                                  >+</button>
                                 </div>
-                                {deger.ek_kullanici_fiyat > 0 && (
-                                  <p className="text-xs text-gray-500 dark:text-slate-400 flex items-center">
-                                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">+₺{Number(deger.ek_kullanici_fiyat).toLocaleString("tr-TR")}</span>
-                                    <span className="ml-1">/ ek kullanıcı</span>
-                                  </p>
-                                )}
+                                <button 
+                                  type="button"
+                                  onClick={() => sablonGuncelle("min", (deger.min || 1) + 1)}
+                                  className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-500/20 hover:bg-indigo-200 dark:hover:bg-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 transition-colors font-bold text-lg"
+                                >+</button>
                               </div>
                             </div>
                           );
 
                           case "sicil_domain":
                           return (
-                            <div key={oz.id}>
-                              <label className={LABEL_STIL}>
-                                {oz.baslik || (deger.alan_tipi === "domain" ? "Alan Adı" : "Sicil No")} 
-                                {deger.zorunlu && <span className="text-red-500 ml-1">*</span>}
-                              </label>
-                              <input 
-                                type="text" 
-                                value={deger.deger || ""} 
-                                onChange={(e) => { 
-                                  const val = e.target.value;
-                                  sablonGuncelle("deger", val); 
-                                  guncelle("domain", val);
-                                  // Domain uzantısını otomatik seç
-                                  if (deger.alan_tipi === "domain" && val.includes(".")) {
-                                    const domainFiyatOz = siraliOzellikler.find(o => o.ozellik_tipi === "domain_fiyat");
-                                    if (domainFiyatOz) {
-                                      const dfDeger = sablonDegerler[domainFiyatOz.id] || domainFiyatOz.deger || {};
-                                      const uzantilar = dfDeger.uzantilar || [];
-                                      // Uzantıları uzunluğuna göre sırala (uzun olanlar önce - .com.tr vs .com)
-                                      const siraliUzantilar = [...uzantilar].sort((a, b) => b.uzanti.length - a.uzanti.length);
-                                      for (const u of siraliUzantilar) {
-                                        if (val.toLowerCase().endsWith(u.uzanti.toLowerCase())) {
-                                          setSablonDegerler((prev) => ({
-                                            ...prev,
-                                            [domainFiyatOz.id]: { ...(prev[domainFiyatOz.id] || domainFiyatOz.deger || {}), secili_uzanti: u.uzanti }
-                                          }));
-                                          break;
+                            <div key={oz.id} className={`p-4 rounded-xl ${tasarim.bg} border ${tasarim.border} transition-all hover:shadow-md`}>
+                              <div className="flex items-center gap-3 mb-4">
+                                <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${tasarim.renk} flex items-center justify-center text-white shadow-sm`}>
+                                  {tasarim.ikon}
+                                </div>
+                                <div className="flex-1">
+                                  <h5 className="text-sm font-semibold text-gray-800 dark:text-white">
+                                    {oz.baslik || (deger.alan_tipi === "domain" ? "Alan Adı (Domain)" : "Sicil No")}
+                                  </h5>
+                                  <p className="text-xs text-gray-500 dark:text-slate-400">
+                                    {deger.alan_tipi === "domain" ? "Web sitenizin adresi" : "Kuruma ait sicil numarası"}
+                                  </p>
+                                </div>
+                                {deger.zorunlu && (
+                                  <span className="px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-500/20 text-xs font-medium text-red-600 dark:text-red-400">Zorunlu</span>
+                                )}
+                              </div>
+                              <div className="relative">
+                                {deger.alan_tipi === "domain" && (
+                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 dark:text-blue-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
+                                  </span>
+                                )}
+                                <input 
+                                  type="text" 
+                                  value={deger.deger || ""} 
+                                  onChange={(e) => { 
+                                    const val = e.target.value;
+                                    sablonGuncelle("deger", val); 
+                                    guncelle("domain", val);
+                                    // Domain uzantısını otomatik seç
+                                    if (deger.alan_tipi === "domain" && val.includes(".")) {
+                                      const domainFiyatOz = siraliOzellikler.find(o => o.ozellik_tipi === "domain_fiyat");
+                                      if (domainFiyatOz) {
+                                        const dfDeger = sablonDegerler[domainFiyatOz.id] || domainFiyatOz.deger || {};
+                                        const uzantilar = dfDeger.uzantilar || [];
+                                        const siraliUzantilar = [...uzantilar].sort((a, b) => b.uzanti.length - a.uzanti.length);
+                                        for (const u of siraliUzantilar) {
+                                          if (val.toLowerCase().endsWith(u.uzanti.toLowerCase())) {
+                                            setSablonDegerler((prev) => ({
+                                              ...prev,
+                                              [domainFiyatOz.id]: { ...(prev[domainFiyatOz.id] || domainFiyatOz.deger || {}), secili_uzanti: u.uzanti }
+                                            }));
+                                            break;
+                                          }
                                         }
                                       }
                                     }
-                                  }
-                                }} 
-                                className={INPUT_STIL}
-                                placeholder={deger.alan_tipi === "domain" ? "ornek.com" : "Sicil numarasını girin"} 
-                              />
+                                  }} 
+                                  className={`${INPUT_STIL} ${deger.alan_tipi === "domain" ? "pl-10" : ""} text-blue-700 dark:text-blue-400 font-medium`}
+                                  placeholder={deger.alan_tipi === "domain" ? "ornek.com" : "Sicil numarasını girin"} 
+                                />
+                              </div>
                             </div>
                           );
 
@@ -1511,18 +1627,23 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                           const kademeler = Array.isArray(rawKademeler) ? rawKademeler : [];
                           if (kademeler.length === 0) return null;
                           const tip = deger.tip || "adet";
-                          // Hem adet hem kapasite alanını kontrol et
                           const birimKey = tip === "kapasite" ? "kapasite" : "adet";
                           const ilkKademe = kademeler[0] || {};
-                          // İlk kademeden değeri bul - her iki alanı da kontrol et
                           const ilkDeger = ilkKademe[birimKey] ?? ilkKademe.adet ?? ilkKademe.kapasite;
                           const seciliKademe = deger.secili_kademe ?? ilkDeger;
                           return (
-                            <div key={oz.id}>
-                              <label className={LABEL_STIL}>{oz.baslik || "Paket Tipi"} <span className="text-red-500">*</span></label>
-                              <div className="space-y-2 mt-2">
+                            <div key={oz.id} className={`p-4 rounded-xl ${tasarim.bg} border ${tasarim.border} transition-all hover:shadow-md`}>
+                              <div className="flex items-center gap-3 mb-4">
+                                <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${tasarim.renk} flex items-center justify-center text-white shadow-sm`}>
+                                  {tasarim.ikon}
+                                </div>
+                                <div className="flex-1">
+                                  <h5 className="text-sm font-semibold text-gray-800 dark:text-white">{oz.baslik || "Paket Seçimi"}</h5>
+                                  <p className="text-xs text-gray-500 dark:text-slate-400">{kademeler.length} farklı paket seçeneği</p>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-1 gap-2">
                                 {kademeler.map((kademe, idx) => {
-                                  // Her iki alanı da kontrol et
                                   const kademeValue = kademe[birimKey] ?? kademe.adet ?? kademe.kapasite;
                                   const birimAdi = kademe.birim || "";
                                   const fiyat = Number(kademe.fiyat || 0);
@@ -1530,27 +1651,38 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                                   return (
                                     <label
                                       key={idx}
-                                      className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                                      className={`flex items-center gap-4 p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
                                         secili 
-                                          ? "border-blue-500 bg-blue-50 dark:bg-blue-500/15" 
-                                          : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
+                                          ? "border-violet-500 bg-violet-50 dark:bg-violet-500/15 shadow-sm" 
+                                          : "border-gray-200 dark:border-white/10 hover:border-violet-300 dark:hover:border-violet-500/30 bg-white/60 dark:bg-white/5"
                                       }`}
                                     >
+                                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                                        secili ? "border-violet-500 bg-violet-500" : "border-gray-300 dark:border-gray-600"
+                                      }`}>
+                                        {secili && <div className="w-2 h-2 rounded-full bg-white" />}
+                                      </div>
+                                      <div className="flex-1">
+                                        <span className={`font-bold text-base ${secili ? "text-violet-700 dark:text-violet-400" : "text-gray-700 dark:text-slate-300"}`}>
+                                          {kademeValue} {birimAdi}
+                                        </span>
+                                      </div>
+                                      <div className={`px-3 py-1.5 rounded-lg font-bold text-sm ${
+                                        fiyat === 0 
+                                          ? "bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400" 
+                                          : secili 
+                                            ? "bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400"
+                                            : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-400"
+                                      }`}>
+                                        {fiyat === 0 ? "Dahil" : `+₺${fiyat.toLocaleString("tr-TR")}`}
+                                      </div>
                                       <input 
                                         type="radio" 
                                         name={`kademe_${oz.id}`}
                                         checked={secili}
                                         onChange={() => sablonGuncelle("secili_kademe", kademeValue)}
-                                        className="w-4 h-4 text-blue-600"
+                                        className="sr-only"
                                       />
-                                      <div className="flex-1 flex items-center justify-between">
-                                        <span className={`font-semibold ${secili ? "text-blue-700 dark:text-blue-400" : "text-gray-700 dark:text-slate-300"}`}>
-                                          {kademeValue} {birimAdi}
-                                        </span>
-                                        <span className={`font-bold ${fiyat === 0 ? "text-green-600" : secili ? "text-blue-600" : "text-gray-500"}`}>
-                                          {fiyat === 0 ? "Dahil" : `+₺${fiyat.toLocaleString("tr-TR")}`}
-                                        </span>
-                                      </div>
                                     </label>
                                   );
                                 })}
@@ -1563,21 +1695,31 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                           const hediyeler = Array.isArray(deger.hediyeler) ? deger.hediyeler : [];
                           if (hediyeler.length === 0) return null;
                           return (
-                            <div key={oz.id} className="p-3 rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-500/10 dark:to-emerald-500/10 border border-green-200 dark:border-green-500/30">
-                              <div className="flex items-center gap-2 mb-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
-                                </svg>
-                                <span className="text-sm font-semibold text-green-700 dark:text-green-400">Hediye Ürünler</span>
+                            <div key={oz.id} className="p-4 rounded-xl bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-green-500/10 dark:via-emerald-500/10 dark:to-teal-500/10 border border-green-200 dark:border-green-500/30 transition-all hover:shadow-md">
+                              <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white shadow-lg shadow-green-500/30">
+                                  {tasarim.ikon}
+                                </div>
+                                <div className="flex-1">
+                                  <h5 className="text-sm font-semibold text-gray-800 dark:text-white flex items-center gap-2">
+                                    Hediye Ürünler
+                                    <span className="px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-500/20 text-xs font-bold text-green-600 dark:text-green-400">
+                                      {hediyeler.length} Adet
+                                    </span>
+                                  </h5>
+                                  <p className="text-xs text-green-600 dark:text-green-500">Bu paketle birlikte ücretsiz</p>
+                                </div>
                               </div>
-                              <p className="text-xs text-green-600 dark:text-green-500 mb-2">Bu paketle birlikte aşağıdaki ürünler ücretsiz verilecek:</p>
-                              <div className="space-y-1">
+                              <div className="grid grid-cols-1 gap-2">
                                 {hediyeler.map((hediye, idx) => (
-                                  <div key={idx} className="flex items-center gap-2 px-2 py-1.5 bg-white/60 dark:bg-white/5 rounded-lg">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                    </svg>
+                                  <div key={idx} className="flex items-center gap-3 px-3 py-2.5 bg-white/70 dark:bg-white/5 rounded-xl border border-green-100 dark:border-green-500/20">
+                                    <div className="w-7 h-7 rounded-lg bg-green-100 dark:bg-green-500/20 flex items-center justify-center">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    </div>
                                     <span className="text-sm font-medium text-gray-700 dark:text-slate-300">{hediye.ad || hediye.label || hediye}</span>
+                                    <span className="ml-auto text-xs font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-500/10 px-2 py-1 rounded-md">Ücretsiz</span>
                                   </div>
                                 ))}
                               </div>
@@ -1591,9 +1733,17 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                           if (uzantilar.length === 0) return null;
                           const seciliUzanti = deger.secili_uzanti || uzantilar[0]?.uzanti || null;
                           return (
-                            <div key={oz.id}>
-                              <label className={LABEL_STIL}>{oz.baslik || "Domain Uzantısı"} <span className="text-red-500">*</span></label>
-                              <div className="space-y-1.5 mt-1">
+                            <div key={oz.id} className={`p-4 rounded-xl ${tasarim.bg} border ${tasarim.border} transition-all hover:shadow-md`}>
+                              <div className="flex items-center gap-3 mb-4">
+                                <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${tasarim.renk} flex items-center justify-center text-white shadow-sm`}>
+                                  {tasarim.ikon}
+                                </div>
+                                <div className="flex-1">
+                                  <h5 className="text-sm font-semibold text-gray-800 dark:text-white">{oz.baslik || "Domain Uzantısı"}</h5>
+                                  <p className="text-xs text-gray-500 dark:text-slate-400">{uzantilar.length} uzantı seçeneği</p>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-1 gap-2">
                                 {uzantilar.map((uzanti, idx) => {
                                   const secili = seciliUzanti === uzanti.uzanti;
                                   return (
@@ -1601,18 +1751,29 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                                       key={idx}
                                       type="button"
                                       onClick={() => sablonGuncelle("secili_uzanti", uzanti.uzanti)}
-                                      className={`w-full px-3 py-2 rounded-lg border flex items-center justify-between transition-all cursor-pointer ${
+                                      className={`w-full px-4 py-3 rounded-xl border-2 flex items-center justify-between transition-all cursor-pointer ${
                                         secili 
-                                          ? "border-blue-500 bg-blue-50 dark:bg-blue-500/15" 
-                                          : "border-gray-200 dark:border-white/10 hover:border-gray-300"
+                                          ? "border-teal-500 bg-teal-50 dark:bg-teal-500/15 shadow-sm" 
+                                          : "border-gray-200 dark:border-white/10 hover:border-teal-300 dark:hover:border-teal-500/30 bg-white/60 dark:bg-white/5"
                                       }`}
                                     >
-                                      <span className={`font-mono font-semibold text-sm ${secili ? "text-blue-700 dark:text-blue-400" : "text-gray-700 dark:text-slate-300"}`}>
-                                        {uzanti.uzanti}
-                                      </span>
-                                      <div className="flex items-center gap-3 text-xs">
-                                        <span className={secili ? "text-blue-600" : "text-gray-500"}>Akt: ₺{uzanti.aktivasyon}</span>
-                                        <span className={secili ? "text-blue-600" : "text-gray-500"}>Yen: ₺{uzanti.yenileme}</span>
+                                      <div className="flex items-center gap-3">
+                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                                          secili ? "border-teal-500 bg-teal-500" : "border-gray-300 dark:border-gray-600"
+                                        }`}>
+                                          {secili && <div className="w-2 h-2 rounded-full bg-white" />}
+                                        </div>
+                                        <span className={`font-mono font-bold text-base ${secili ? "text-teal-700 dark:text-teal-400" : "text-gray-700 dark:text-slate-300"}`}>
+                                          {uzanti.uzanti}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <div className={`px-2.5 py-1 rounded-lg text-xs font-medium ${secili ? "bg-teal-100 dark:bg-teal-500/20 text-teal-700 dark:text-teal-400" : "bg-gray-100 dark:bg-white/10 text-gray-500"}`}>
+                                          <span className="opacity-60">Akt:</span> ₺{uzanti.aktivasyon}
+                                        </div>
+                                        <div className={`px-2.5 py-1 rounded-lg text-xs font-medium ${secili ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-white/10 text-gray-500"}`}>
+                                          <span className="opacity-60">Yen:</span> ₺{uzanti.yenileme}
+                                        </div>
                                       </div>
                                     </button>
                                   );
@@ -1624,11 +1785,31 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
 
                         case "demo_suresi":
                           return (
-                            <div key={oz.id}>
-                              <label className={LABEL_STIL}>{oz.baslik || "Demo Süresi"}</label>
-                              <div className="flex items-center gap-2">
-                                <input type="number" value={deger.gun || 30} onChange={(e) => sablonGuncelle("gun", Number(e.target.value))} className={`${INPUT_STIL} w-24`} min={1} />
-                                <span className="text-sm text-gray-500">gün</span>
+                            <div key={oz.id} className={`p-4 rounded-xl ${tasarim.bg} border ${tasarim.border} transition-all hover:shadow-md`}>
+                              <div className="flex items-center gap-3 mb-4">
+                                <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${tasarim.renk} flex items-center justify-center text-white shadow-sm`}>
+                                  {tasarim.ikon}
+                                </div>
+                                <div className="flex-1">
+                                  <h5 className="text-sm font-semibold text-gray-800 dark:text-white">{oz.baslik || "Demo Süresi"}</h5>
+                                  <p className="text-xs text-gray-500 dark:text-slate-400">Deneme süresi belirleme</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3 p-3 bg-white/60 dark:bg-white/5 rounded-xl">
+                                <button 
+                                  type="button"
+                                  onClick={() => sablonGuncelle("gun", Math.max(1, (deger.gun || 30) - 1))}
+                                  className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-500/20 hover:bg-rose-200 dark:hover:bg-rose-500/30 flex items-center justify-center text-rose-600 dark:text-rose-400 transition-colors font-bold text-lg"
+                                >−</button>
+                                <div className="flex-1 flex items-center justify-center gap-2">
+                                  <input type="number" value={deger.gun || 30} onChange={(e) => sablonGuncelle("gun", Math.max(1, Number(e.target.value)))} className={`${INPUT_STIL} w-20 text-center text-xl font-bold text-rose-600 dark:text-rose-400`} min={1} />
+                                  <span className="text-sm font-medium text-gray-500 dark:text-slate-400">gün</span>
+                                </div>
+                                <button 
+                                  type="button"
+                                  onClick={() => sablonGuncelle("gun", (deger.gun || 30) + 1)}
+                                  className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-500/20 hover:bg-rose-200 dark:hover:bg-rose-500/30 flex items-center justify-center text-rose-600 dark:text-rose-400 transition-colors font-bold text-lg"
+                                >+</button>
                               </div>
                             </div>
                           );
