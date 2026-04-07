@@ -181,6 +181,7 @@ export default function MusteriPaketleriPage() {
           fiyati: p.fiyat || 0,
           kullaniciSayisi: p.kullanici_sayisi || 1,
           aktif: p.aktif,
+          ozellikler: p.ozellikler,
         })));
       }
     }).catch(() => {});
@@ -1310,7 +1311,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
         </div>
 
         {/* İçerik */}
-        <div className="flex-1 overflow-visible p-6">
+        <div className="flex-1 overflow-y-auto p-6">
           {/* Adım 1: Grup ve Ürün Seçimi */}
           {adim === 1 && (
             <div className="space-y-5">
