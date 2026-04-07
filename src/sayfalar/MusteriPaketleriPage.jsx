@@ -18,12 +18,6 @@ const LABEL_STIL = "block text-xs font-medium text-gray-700 dark:text-slate-300 
 
 /* ---- Sabit Değerler ---- */
 // Lisans tipleri artık DB'den yükleniyor (/api/lisans-tipleri/aktif)
-const LISANS_TIPLERI_FALLBACK = [
-  { id: "demo", ad: "Demo", renk: "gray", gun: 30 },
-  { id: "standart", ad: "Standart", renk: "blue", gun: 365 },
-  { id: "profesyonel", ad: "Profesyonel", renk: "violet", gun: 365 },
-  { id: "enterprise", ad: "Enterprise", renk: "emerald", gun: 730 },
-];
 
 const ODEME_YONTEMLERI = [
   { id: "nakit", ad: "Nakit" },
@@ -108,7 +102,7 @@ export default function MusteriPaketleriPage() {
   const [dbPaketler, setDbPaketler] = useState([]);
   const [dbBayiler, setDbBayiler] = useState([]);
   const [dbGruplar, setDbGruplar] = useState([]);
-  const [lisansTipleri, setLisansTipleri] = useState(LISANS_TIPLERI_FALLBACK);
+  const [lisansTipleri, setLisansTipleri] = useState([]);
 
   /* Verileri yükle */
   useEffect(() => {
@@ -120,6 +114,7 @@ export default function MusteriPaketleriPage() {
           ad: lt.ad,
           renk: lt.renk || "blue",
           gun: lt.gun || 365,
+          suresiz: !!lt.suresiz,
         })));
       }
     }).catch(() => {});
@@ -189,13 +184,6 @@ export default function MusteriPaketleriPage() {
     /* Bayileri yükle */
     apiGet("/bayiler").then((r) => {
       if (r.basarili) setDbBayiler(r.veri.filter((b) => b.durum === "aktif"));
-    }).catch(() => {});
-
-    /* Lisans tiplerini yükle */
-    apiGet("/lisans-tipleri/aktif").then((r) => {
-      if (r.basarili && r.veri.length > 0) {
-        setLisansTipleri(r.veri.map((t) => ({ id: t.kod, ad: t.ad, renk: t.renk, gun: t.gun })));
-      }
     }).catch(() => {});
   }, [id]);
 
@@ -809,6 +797,7 @@ export default function MusteriPaketleriPage() {
           paketler={dbPaketler}
           bayiler={dbBayiler}
           lisansTipleri={lisansTipleri}
+          git={git}
         />
       )}
     </div>
@@ -820,7 +809,7 @@ export default function MusteriPaketleriPage() {
 /*  Adım adım wizard tarzı, tüm özellikler       */
 /* ============================================= */
 
-function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], paketler, bayiler, lisansTipleri }) {
+function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], paketler, bayiler, lisansTipleri, git }) {
   const modalRef = useRef(null);
   const sallanma = () => { if (modalRef.current) { modalRef.current.classList.remove("sallan"); void modalRef.current.offsetWidth; modalRef.current.classList.add("sallan"); } };
 
@@ -1483,7 +1472,31 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
               {/* Lisans Tipi - Kompakt kartlar */}
               <div>
                 <label className={LABEL_STIL}>Lisans Tipi</label>
-                <div className="grid grid-cols-4 gap-2 mt-1">
+                {lisansTipleri.length === 0 ? (
+                  <div className="mt-2 p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+                    <div className="flex items-start gap-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">Lisans tipi bulunamadı</p>
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">Lisans oluşturabilmek için önce Yönetim sekmesinden lisans tipi eklemeniz gerekiyor.</p>
+                        <button
+                          type="button"
+                          onClick={() => { kapat(); git("/yonetim"); }}
+                          className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold transition-colors cursor-pointer"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          Yönetim Sayfasına Git
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                <div className={`grid gap-2 mt-1 ${({ 1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3" })[lisansTipleri.length] || "grid-cols-4"}`}>
                   {lisansTipleri.map((t) => {
                     const secili = form.lisansTipi === t.id;
                     const renkler = {
@@ -1513,63 +1526,10 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                     );
                   })}
                 </div>
+                )}
               </div>
 
-              {/* Lisans Süresi Seçimi - Günlü / Süresiz */}
-              <div>
-                <label className={LABEL_STIL}>Lisans Süresi Türü</label>
-                <div className="grid grid-cols-2 gap-3 mt-1">
-                  {/* Günlü Seçeneği */}
-                  <button
-                    onClick={() => guncelle("suresiz", false)}
-                    className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer ${
-                      !form.suresiz
-                        ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10 ring-1 ring-blue-500"
-                        : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                        !form.suresiz ? "bg-blue-500 text-white" : "bg-gray-100 dark:bg-white/10 text-gray-400"
-                      }`}>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className={`font-medium ${!form.suresiz ? "text-blue-700 dark:text-blue-400" : "text-gray-900 dark:text-white"}`}>Günlü Lisans</p>
-                        <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">Başlangıç ve bitiş tarihi belirli</p>
-                      </div>
-                    </div>
-                  </button>
-                  
-                  {/* Süresiz Seçeneği */}
-                  <button
-                    onClick={() => guncelle("suresiz", true)}
-                    className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer ${
-                      form.suresiz
-                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 ring-1 ring-emerald-500"
-                        : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                        form.suresiz ? "bg-emerald-500 text-white" : "bg-gray-100 dark:bg-white/10 text-gray-400"
-                      }`}>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className={`font-medium ${form.suresiz ? "text-emerald-700 dark:text-emerald-400" : "text-gray-900 dark:text-white"}`}>Süresiz Lisans</p>
-                        <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">Bitiş tarihi olmadan geçerli</p>
-                      </div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* Tarih Bilgileri - Günlü Lisans için */}
+              {/* Tarih Bilgileri - Lisans tipine göre */}
               {!form.suresiz ? (
                 <div className="flex gap-3">
                   <div className="flex-1">

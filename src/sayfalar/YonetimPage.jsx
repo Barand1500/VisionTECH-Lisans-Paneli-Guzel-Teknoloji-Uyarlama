@@ -179,6 +179,8 @@ function UrunlerSekmesi() {
         versiyon: u.versiyon || "",
         sablonId: u.sablon_id || null,
         sablonAdi: u.sablon_adi || "",
+        // Gelişmiş ayarlar (ozellikler JSON'dan)
+        ...((() => { try { return typeof u.ozellikler === "string" ? JSON.parse(u.ozellikler) : (u.ozellikler || {}); } catch { return {}; } })()),
       })));
       setPaketler(pRes.veri.map((p) => ({
         id: p.id,
@@ -274,6 +276,14 @@ function UrunlerSekmesi() {
         temel_fiyat: veri.temelFiyat || 0,
         versiyon: veri.versiyon || null,
         sablon_id: veri.sablonId || null,
+        ozellikler: JSON.stringify({
+          bildirimGun: veri.bildirimGun || 30,
+          otomatikYenileme: !!veri.otomatikYenileme,
+          yenilemeSuresi: veri.yenilemeSuresi || 365,
+          domainKilidi: !!veri.domainKilidi,
+          maxCihaz: veri.maxCihaz || 1,
+          lisansTransferi: veri.lisansTransferi !== false,
+        }),
       };
       let urunId = veri.id;
       if (veri.id) {
@@ -1467,9 +1477,19 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
     temelFiyat: duzenle ? (modal.temelFiyat || 0) : 0,
     versiyon: duzenle ? (modal.versiyon || "") : "",
     sablonId: duzenle ? (modal.sablonId || null) : null,
+    // Bildirim & Yenileme Ayarları
+    bildirimGun: duzenle ? (modal.bildirimGun || 30) : 30,
+    otomatikYenileme: duzenle ? !!modal.otomatikYenileme : false,
+    yenilemeSuresi: duzenle ? (modal.yenilemeSuresi || 365) : 365,
+    // Lisans Güvenlik Ayarları
+    domainKilidi: duzenle ? !!modal.domainKilidi : false,
+    maxCihaz: duzenle ? (modal.maxCihaz || 1) : 1,
+    lisansTransferi: duzenle ? !!modal.lisansTransferi : true,
     // Opsiyonel bölüm toggle'ları
     kullaniciLimitiAktif: duzenle ? !!(modal.minKullanici > 1 || modal.maxKullanici) : false,
     sureFiyatAktif: duzenle ? !!(modal.demoGun || modal.temelFiyat) : false,
+    bildirimAyarlariAktif: duzenle ? !!(modal.bildirimGun !== 30 || modal.otomatikYenileme) : false,
+    guvenlikAyarlariAktif: duzenle ? !!(modal.domainKilidi || modal.maxCihaz > 1 || !modal.lisansTransferi) : false,
   });
   const [aktifSekme, setAktifSekme] = useState("temel"); // "temel" | "gelismis"
   const [mevcutSurumler, setMevcutSurumler] = useState([]);
@@ -1719,24 +1739,6 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                   </select>
                 </div>
 
-                {/* Adı */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ürün Adı <span className="text-red-500">*</span></label>
-                  <input type="text" value={form.adi} onChange={(e) => guncelle("adi", e.target.value)} placeholder="Ürün adını giriniz" className={INPUT_STIL} required />
-                </div>
-
-                {/* Açıklama */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Açıklama</label>
-                  <textarea 
-                    value={form.aciklama} 
-                    onChange={(e) => guncelle("aciklama", e.target.value)} 
-                    placeholder="Ürün açıklaması..." 
-                    rows={2}
-                    className={INPUT_STIL + " resize-none"}
-                  />
-                </div>
-
                 {/* Ürün Tipi ve Uygulama Tipi */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -1766,6 +1768,24 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                       <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">Önce ürün tipi seçin</p>
                     )}
                   </div>
+                </div>
+
+                {/* Adı */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ürün Adı <span className="text-red-500">*</span></label>
+                  <input type="text" value={form.adi} onChange={(e) => guncelle("adi", e.target.value)} placeholder="Ürün adını giriniz" className={INPUT_STIL} required />
+                </div>
+
+                {/* Açıklama */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Açıklama</label>
+                  <textarea 
+                    value={form.aciklama} 
+                    onChange={(e) => guncelle("aciklama", e.target.value)} 
+                    placeholder="Ürün açıklaması..." 
+                    rows={2}
+                    className={INPUT_STIL + " resize-none"}
+                  />
                 </div>
 
                 {/* Versiyon */}
@@ -1935,6 +1955,82 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                       <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-2">
                         Bu değerler ürünün varsayılan demo süresi ve temel fiyatıdır. Lisans oluştururken lisans tipinden gün bilgisi alınır.
                       </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bildirim & Yenileme Ayarları - Toggle */}
+                <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                  <button type="button" onClick={() => guncelle("bildirimAyarlariAktif", !form.bildirimAyarlariAktif)}
+                    className="w-full p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                    <div className="flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                      <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300">Bildirim & Yenileme</h4>
+                      <span className="text-[10px] text-gray-400 dark:text-slate-500">(Opsiyonel)</span>
+                    </div>
+                    <div className={`w-10 h-5 rounded-full transition-colors flex items-center ${form.bildirimAyarlariAktif ? "bg-amber-500 justify-end" : "bg-gray-300 dark:bg-white/20 justify-start"}`}>
+                      <div className="w-4 h-4 rounded-full bg-white shadow mx-0.5"></div>
+                    </div>
+                  </button>
+                  {form.bildirimAyarlariAktif && (
+                    <div className="px-4 pb-4 pt-0 bg-gray-50 dark:bg-white/5 space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Bildirim Süresi (Gün)</label>
+                          <input type="number" value={form.bildirimGun} onChange={(e) => guncelle("bildirimGun", Number(e.target.value))} className={INPUT_STIL} min={1} />
+                          <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">Lisans bitmeden kaç gün önce bildirim gönderilsin</p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Yenileme Süresi (Gün)</label>
+                          <input type="number" value={form.yenilemeSuresi} onChange={(e) => guncelle("yenilemeSuresi", Number(e.target.value))} className={INPUT_STIL} min={1} />
+                          <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">Otomatik yenilemede kaç günlük uzatılsın</p>
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={form.otomatikYenileme} onChange={(e) => guncelle("otomatikYenileme", e.target.checked)}
+                          className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-amber-600 focus:ring-amber-500" />
+                        <span className="text-sm text-gray-700 dark:text-slate-300">Otomatik Yenileme Aktif</span>
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                {/* Lisans Güvenlik Ayarları - Toggle */}
+                <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                  <button type="button" onClick={() => guncelle("guvenlikAyarlariAktif", !form.guvenlikAyarlariAktif)}
+                    className="w-full p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                    <div className="flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300">Güvenlik Ayarları</h4>
+                      <span className="text-[10px] text-gray-400 dark:text-slate-500">(Opsiyonel)</span>
+                    </div>
+                    <div className={`w-10 h-5 rounded-full transition-colors flex items-center ${form.guvenlikAyarlariAktif ? "bg-red-500 justify-end" : "bg-gray-300 dark:bg-white/20 justify-start"}`}>
+                      <div className="w-4 h-4 rounded-full bg-white shadow mx-0.5"></div>
+                    </div>
+                  </button>
+                  {form.guvenlikAyarlariAktif && (
+                    <div className="px-4 pb-4 pt-0 bg-gray-50 dark:bg-white/5 space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Maksimum Cihaz Sayısı</label>
+                        <input type="number" value={form.maxCihaz} onChange={(e) => guncelle("maxCihaz", Number(e.target.value))} className={INPUT_STIL} min={1} />
+                        <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">Bu ürün kaç cihazda aynı anda kullanılabilir</p>
+                      </div>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={form.domainKilidi} onChange={(e) => guncelle("domainKilidi", e.target.checked)}
+                          className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-red-600 focus:ring-red-500" />
+                        <span className="text-sm text-gray-700 dark:text-slate-300">Domain Kilidi</span>
+                        <span className="text-[10px] text-gray-400 dark:text-slate-500">(Lisans belirli domain'e kilitlenir)</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={form.lisansTransferi} onChange={(e) => guncelle("lisansTransferi", e.target.checked)}
+                          className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-red-600 focus:ring-red-500" />
+                        <span className="text-sm text-gray-700 dark:text-slate-300">Lisans Transferi İzni</span>
+                        <span className="text-[10px] text-gray-400 dark:text-slate-500">(Müşteriler arası transfer edilebilir)</span>
+                      </label>
                     </div>
                   )}
                 </div>
