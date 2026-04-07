@@ -153,6 +153,7 @@ export default function MusteriPaketleriPage() {
           otomatikYenileme: !!l.otomatik_yenileme,
           bildirimGun: l.bildirim_gun || 30,
           notlar: l.notlar || "",
+          suresiz: !!l.suresiz,
         })));
       }
     }).catch(() => {}).finally(() => setYukleniyor(false));
@@ -297,7 +298,8 @@ export default function MusteriPaketleriPage() {
   const sallanma = () => { if (modalRef.current) { modalRef.current.classList.remove("sallan"); void modalRef.current.offsetWidth; modalRef.current.classList.add("sallan"); } };
 
   /* ---- Kalan gün hesapla ---- */
-  const kalanGun = (bitisTarihi) => {
+  const kalanGun = (bitisTarihi, suresiz) => {
+    if (suresiz) return "Süresiz";
     if (!bitisTarihi) return "-";
     const fark = Math.ceil((new Date(bitisTarihi) - new Date()) / (1000 * 60 * 60 * 24));
     return fark;
@@ -329,10 +331,11 @@ export default function MusteriPaketleriPage() {
       case "bitis": return <td key={key} className={`px-4 py-3.5 whitespace-nowrap font-medium ${gecmis ? "text-red-600 dark:text-red-400" : "text-gray-600 dark:text-slate-400"}`}>{tarihGosterTR(p.bitisTarihi)}</td>;
       case "gun": return <td key={key} className="px-4 py-3.5 text-gray-600 dark:text-slate-400 text-center">{p.kullanimGunu}</td>;
       case "kalan": {
-        const kalan = kalanGun(p.bitisTarihi);
+        const kalan = kalanGun(p.bitisTarihi, p.suresiz);
         const kalanNegatif = typeof kalan === "number" && kalan < 0;
         const kalanAz = typeof kalan === "number" && kalan >= 0 && kalan <= 30;
-        return <td key={key} className={`px-4 py-3.5 text-center font-medium whitespace-nowrap ${kalanNegatif ? "text-red-600 dark:text-red-400" : kalanAz ? "text-amber-600 dark:text-amber-400" : "text-gray-600 dark:text-slate-400"}`}>{typeof kalan === "number" ? (kalan < 0 ? `${Math.abs(kalan)} gün geçti` : `${kalan} gün`) : kalan}</td>;
+        const suresizMi = kalan === "Süresiz";
+        return <td key={key} className={`px-4 py-3.5 text-center font-medium whitespace-nowrap ${suresizMi ? "text-emerald-600 dark:text-emerald-400" : kalanNegatif ? "text-red-600 dark:text-red-400" : kalanAz ? "text-amber-600 dark:text-amber-400" : "text-gray-600 dark:text-slate-400"}`}>{suresizMi ? <span className="inline-flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>Süresiz</span> : typeof kalan === "number" ? (kalan < 0 ? `${Math.abs(kalan)} gün geçti` : `${kalan} gün`) : kalan}</td>;
       }
       case "kullanici": return <td key={key} className="px-4 py-3.5 text-gray-600 dark:text-slate-400 text-center">{p.kullanici}</td>;
       case "fiyat": return <td key={key} className="px-4 py-3.5 text-gray-600 dark:text-slate-400">{Number(p.fiyat).toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</td>;
@@ -1307,13 +1310,13 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
         </div>
 
         {/* İçerik */}
-        <div className="flex-1 overflow-auto p-6">
+        <div className="flex-1 overflow-visible p-6">
           {/* Adım 1: Grup ve Ürün Seçimi */}
           {adim === 1 && (
             <div className="space-y-5">
               {/* Ürün Arama ve Seçim - Combobox */}
               <div className="relative">
-                <label className={LABEL_STIL}>Ürün Ara ve Seç <span className="text-red-500">*</span></label>
+                <label className={LABEL_STIL}>Ürün veya Kategori Ara <span className="text-red-500">*</span></label>
                 <div className="relative mt-1">
                   <div className="relative">
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1321,7 +1324,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                     </svg>
                     <input
                       type="text"
-                      placeholder="Ürün adı yazarak arayın..."
+                      placeholder="Ürün veya kategori adı yazarak arayın..."
                       value={urunArama}
                       onChange={(e) => { setUrunArama(e.target.value); setUrunDropdownAcik(true); }}
                       onFocus={() => setUrunDropdownAcik(true)}
@@ -1341,7 +1344,9 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                     <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-xl shadow-xl max-h-72 overflow-auto">
                       {/* Grupları ve Ürünleri Listele */}
                       {gruplar.map((g) => {
-                        const grupUrunleri = urunler.filter((u) => u.aktif && u.grup_id === g.id && u.ad.toLowerCase().includes(urunArama.toLowerCase()));
+                        const aramaKucuk = urunArama.toLowerCase();
+                        const grupEslesiyor = g.ad.toLowerCase().includes(aramaKucuk);
+                        const grupUrunleri = urunler.filter((u) => u.aktif && u.grup_id === g.id && (grupEslesiyor || u.ad.toLowerCase().includes(aramaKucuk)));
                         if (grupUrunleri.length === 0) return null;
                         
                         return (
@@ -1390,14 +1395,22 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                         );
                       })}
                       {/* Sonuç Yoksa */}
-                      {urunler.filter((u) => u.aktif && u.ad.toLowerCase().includes(urunArama.toLowerCase())).length === 0 && (
-                        <div className="px-4 py-8 text-center text-gray-400 dark:text-slate-500">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 mx-auto mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <p className="text-sm">"{urunArama}" ile eşleşen ürün bulunamadı</p>
-                        </div>
-                      )}
+                      {(() => {
+                        const aramaKucuk = urunArama.toLowerCase();
+                        const sonucVar = gruplar.some(g => {
+                          const grupEslesiyor = g.ad.toLowerCase().includes(aramaKucuk);
+                          return urunler.some(u => u.aktif && u.grup_id === g.id && (grupEslesiyor || u.ad.toLowerCase().includes(aramaKucuk)));
+                        });
+                        if (sonucVar) return null;
+                        return (
+                          <div className="px-4 py-8 text-center text-gray-400 dark:text-slate-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 mx-auto mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p className="text-sm">"{urunArama}" ile eşleşen ürün veya kategori bulunamadı</p>
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
