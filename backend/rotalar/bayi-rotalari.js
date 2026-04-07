@@ -87,16 +87,16 @@ router.post("/", hataYakala(async (req, res) => {
 /* ---- Bayi Guncelle ---- */
 router.put("/:id", hataYakala(async (req, res) => {
   const id = Number(req.params.id);
-  const mevcut = await prisma.bayi.findUnique({ where: { id }, select: { id: true } });
+  const mevcut = await prisma.bayi.findUnique({ where: { id }, select: { id: true, tc_kimlik_no: true, vergi_no: true, pasaport_no: true } });
   if (!mevcut) return bulunamadiHatasi(res, "Bayi bulunamadi.");
 
   const { ad, yetkili, eposta, telefon, vergi_no, vergi_dairesi, sektor_id, sehir, durum, tur, ust_bayi_id, tc_kimlik_no, pasaport_no, ad_soyad, sirket_adi, notlar, etiketler } = req.body;
 
-  /* Validasyon kontrolleri (güncelleme) */
+  /* Validasyon kontrolleri (güncelleme) - sadece değişen değerleri doğrula */
   if (eposta && !epostaGecerliMi(eposta)) return dogrulamaHatasi(res, "Gecersiz e-posta formati.");
-  if (tc_kimlik_no && !tcKimlikGecerliMi(tc_kimlik_no)) return dogrulamaHatasi(res, "Gecersiz TC kimlik numarasi.");
-  if (vergi_no && !vergiNoGecerliMi(vergi_no)) return dogrulamaHatasi(res, "Vergi numarasi 10-11 haneli olmalidir.");
-  if (pasaport_no && !pasaportNoGecerliMi(pasaport_no)) return dogrulamaHatasi(res, "Gecersiz pasaport numarasi formati.");
+  if (tc_kimlik_no && tc_kimlik_no !== mevcut.tc_kimlik_no && !tcKimlikGecerliMi(tc_kimlik_no)) return dogrulamaHatasi(res, "Gecersiz TC kimlik numarasi.");
+  if (vergi_no && vergi_no !== mevcut.vergi_no && !vergiNoGecerliMi(vergi_no)) return dogrulamaHatasi(res, "Vergi numarasi 10-11 haneli olmalidir.");
+  if (pasaport_no && pasaport_no !== mevcut.pasaport_no && !pasaportNoGecerliMi(pasaport_no)) return dogrulamaHatasi(res, "Gecersiz pasaport numarasi formati.");
 
   await prisma.bayi.update({
     where: { id },

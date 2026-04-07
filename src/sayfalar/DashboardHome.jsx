@@ -121,6 +121,9 @@ function ayarlariOku() {
 export default function DashboardHome() {
   const navigate = useNavigate();
 
+  /** Yaklaşan lisanslar gün aralığı */
+  const [yaklasanGun, setYaklasanGun] = useState(30);
+  
   /** Son işlemler sekmesi (müşteriler / lisanslar) */
   const [sonIslemSekme, setSonIslemSekme] = useState("musteriler");
   
@@ -161,6 +164,19 @@ export default function DashboardHome() {
     };
     verileriYukle();
   }, []);
+
+  /* Yaklaşan lisanslar - gün değiştiğinde yeniden yükle */
+  useEffect(() => {
+    const yukle = async () => {
+      try {
+        const res = await apiGet(`/dashboard/yaklasan-lisanslar?gun=${yaklasanGun}`);
+        if (res.veri) setYaklasanLisanslar(res.veri);
+      } catch (e) {
+        console.error("Yaklaşan lisanslar yüklenemedi:", e);
+      }
+    };
+    yukle();
+  }, [yaklasanGun]);
 
   /* ---- Dashboard Özelleştirme ---- */
   const [bolumSirasi, setBolumSirasi] = useState(ayarlariOku);
@@ -258,20 +274,31 @@ export default function DashboardHome() {
   /* ---- İşlem rozetleri ---- */
   const islemRozeti = (islem) => {
     const harita = {
-      Yenilendi: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-      Oluşturuldu: "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400",
-      Donduruldu: "bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-400",
+      aktif: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+      pasif: "bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-slate-400",
+      donduruldu: "bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-400",
+      iptal: "bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400",
     };
     return harita[islem] || "bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-slate-400";
   };
 
   const turRozeti = (tur) => {
     const harita = {
-      Tüzel: "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400",
-      Gerçek: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-      Yabancı: "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400",
+      tuzel: "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400",
+      gercek: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+      yabanci: "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400",
     };
     return harita[tur] || "bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-slate-400";
+  };
+
+  const turEtiketi = (tur) => {
+    const harita = { tuzel: "Tüzel", gercek: "Gerçek", yabanci: "Yabancı" };
+    return harita[tur] || tur;
+  };
+
+  const islemEtiketi = (islem) => {
+    const harita = { aktif: "Aktif", pasif: "Pasif", donduruldu: "Donduruldu", iptal: "İptal" };
+    return harita[islem] || islem;
   };
 
   const kalanGunRozeti = (gun) => {
@@ -535,19 +562,30 @@ export default function DashboardHome() {
               </span>
             )}
           </div>
-          <button
-            onClick={() => navigate("/dashboard/raporlar?tab=suresiYaklasanlar")}
-            className="text-xs font-medium text-violet-600 dark:text-violet-400 hover:underline"
-          >
-            Tümünü Gör →
-          </button>
+          <div className="flex items-center gap-2">
+            <select
+              value={yaklasanGun}
+              onChange={(e) => setYaklasanGun(Number(e.target.value))}
+              className="px-2 py-1 text-xs rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-gray-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value={30}>30 gün</option>
+              <option value={60}>60 gün</option>
+              <option value={90}>90 gün</option>
+            </select>
+            <button
+              onClick={() => navigate("/dashboard/raporlar?tab=suresiYaklasanlar")}
+              className="text-xs font-medium text-violet-600 dark:text-violet-400 hover:underline"
+            >
+              Tümünü Gör →
+            </button>
+          </div>
         </div>
         {yaklasanLisanslar.length === 0 ? (
           <div className="py-8 text-center">
             <svg className="w-10 h-10 mx-auto text-emerald-400 mb-2" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="text-sm text-gray-500 dark:text-slate-400">30 gün içinde biten lisans yok</p>
+            <p className="text-sm text-gray-500 dark:text-slate-400">{yaklasanGun} gün içinde biten lisans yok</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -634,7 +672,7 @@ export default function DashboardHome() {
                     </td>
                     <td className="py-2.5 px-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${turRozeti(m.tur)}`}>
-                        {m.tur}
+                        {turEtiketi(m.tur)}
                       </span>
                     </td>
                     <td className="py-2.5 px-3 text-gray-500 dark:text-slate-400">{m.tarih ? new Date(m.tarih).toLocaleDateString("tr-TR") : "-"}</td>
@@ -669,10 +707,10 @@ export default function DashboardHome() {
                     <td className="py-2.5 px-3 text-gray-600 dark:text-slate-300">{l.paket}</td>
                     <td className="py-2.5 px-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${islemRozeti(l.islem)}`}>
-                        {l.islem}
+                        {islemEtiketi(l.islem)}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-gray-500 dark:text-slate-400">{l.tarih}</td>
+                    <td className="py-2.5 px-3 text-gray-500 dark:text-slate-400">{l.tarih ? new Date(l.tarih).toLocaleDateString("tr-TR") : "-"}</td>
                   </tr>
                 ))}
               </tbody>

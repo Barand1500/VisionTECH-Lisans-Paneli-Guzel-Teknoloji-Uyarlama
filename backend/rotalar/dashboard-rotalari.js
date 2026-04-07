@@ -17,18 +17,18 @@ router.get("/ozet", hataYakala(async (_req, res) => {
 
   const [yaklasanLisans] = await prisma.$queryRawUnsafe(`
     SELECT COUNT(*) as toplam FROM lisanslar
-    WHERE durum = 'aktif' AND bitis_tarihi BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+    WHERE durum = 'aktif' AND suresiz = 0 AND bitis_tarihi BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
   `);
 
   res.json({
     basarili: true,
     veri: temizle({
-      toplam_musteri: musteriler.toplam,
-      toplam_bayi: bayiler.toplam,
-      aktif_lisans: aktifLisanslar.toplam,
-      toplam_urun: urunler.toplam,
-      aylik_gelir: aylikGelir.toplam,
-      yaklasan_lisans: yaklasanLisans.toplam,
+      toplamMusteri: musteriler.toplam,
+      aktifBayi: bayiler.toplam,
+      aktifLisans: aktifLisanslar.toplam,
+      toplamUrun: urunler.toplam,
+      aylikGelir: aylikGelir.toplam,
+      buAyBitenLisans: yaklasanLisans.toplam,
     }),
   });
 }));
@@ -36,10 +36,10 @@ router.get("/ozet", hataYakala(async (_req, res) => {
 /* ---- Musteri Dagilimi (Sektore gore) ---- */
 router.get("/musteri-dagilimi", hataYakala(async (_req, res) => {
   const rows = await prisma.$queryRawUnsafe(`
-    SELECT COALESCE(s.ad, 'Belirtilmemis') as sektor, COUNT(*) as sayi
+    SELECT COALESCE(s.ad, 'Belirtilmemiş') as ad, COUNT(*) as deger
     FROM musteriler m LEFT JOIN sektorler s ON m.sektor_id = s.id
     WHERE m.silinme_tarihi IS NULL
-    GROUP BY s.ad ORDER BY sayi DESC LIMIT 10
+    GROUP BY s.ad ORDER BY deger DESC LIMIT 10
   `);
   res.json({ basarili: true, veri: temizle(rows) });
 }));
@@ -59,7 +59,9 @@ router.get("/aylik-lisanslar", hataYakala(async (_req, res) => {
 /* ---- Son Eklenen Musteriler ---- */
 router.get("/son-musteriler", hataYakala(async (_req, res) => {
   const rows = await prisma.$queryRawUnsafe(`
-    SELECT m.id, m.tur, m.ad_soyad, m.sirket_adi, m.eposta, m.durum, m.kayit_tarihi,
+    SELECT m.id, m.tur,
+           COALESCE(m.ad_soyad, m.sirket_adi, '') as ad,
+           m.eposta, m.durum, m.kayit_tarihi as tarih,
            COALESCE(s.ad, '') as sektor_adi
     FROM musteriler m LEFT JOIN sektorler s ON m.sektor_id = s.id
     WHERE m.silinme_tarihi IS NULL
@@ -71,8 +73,11 @@ router.get("/son-musteriler", hataYakala(async (_req, res) => {
 /* ---- Son Eklenen Lisanslar ---- */
 router.get("/son-lisanslar", hataYakala(async (_req, res) => {
   const rows = await prisma.$queryRawUnsafe(`
-    SELECT l.id, l.lisans_anahtari, l.durum, l.baslangic_tarihi, l.bitis_tarihi, l.net_tutar,
-           l.olusturma_tarihi, m.ad_soyad as musteri_adi, m.sirket_adi, u.ad as urun_adi
+    SELECT l.id, l.lisans_anahtari, l.durum as islem,
+           l.baslangic_tarihi, l.bitis_tarihi, l.net_tutar,
+           l.olusturma_tarihi as tarih,
+           COALESCE(m.ad_soyad, m.sirket_adi, '') as musteri,
+           COALESCE(u.ad, '') as paket
     FROM lisanslar l
     LEFT JOIN musteriler m ON l.musteri_id = m.id
     LEFT JOIN urunler u ON l.urun_id = u.id
@@ -81,18 +86,20 @@ router.get("/son-lisanslar", hataYakala(async (_req, res) => {
   res.json({ basarili: true, veri: temizle(rows) });
 }));
 
-/* ---- Yaklasan Lisanslar (30 gun) ---- */
-router.get("/yaklasan-lisanslar", hataYakala(async (_req, res) => {
+/* ---- Yaklasan Lisanslar (dinamik gun araligi) ---- */
+router.get("/yaklasan-lisanslar", hataYakala(async (req, res) => {
+  const gun = parseInt(req.query.gun) || 30;
   const rows = await prisma.$queryRawUnsafe(`
     SELECT l.id, l.lisans_anahtari, l.bitis_tarihi, l.durum,
            DATEDIFF(l.bitis_tarihi, CURDATE()) as kalan_gun,
-           m.ad_soyad as musteri_adi, m.sirket_adi, u.ad as urun_adi
+           COALESCE(m.ad_soyad, m.sirket_adi, '') as musteri,
+           COALESCE(u.ad, '') as urun
     FROM lisanslar l
     LEFT JOIN musteriler m ON l.musteri_id = m.id
     LEFT JOIN urunler u ON l.urun_id = u.id
-    WHERE l.durum = 'aktif' AND l.bitis_tarihi BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+    WHERE l.durum = 'aktif' AND l.suresiz = 0 AND l.bitis_tarihi BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? DAY)
     ORDER BY l.bitis_tarihi ASC
-  `);
+  `, gun);
   res.json({ basarili: true, veri: temizle(rows) });
 }));
 

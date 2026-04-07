@@ -188,6 +188,7 @@ export default function BayiPaketleriPage() {
           fiyati: p.fiyat || 0,
           kullaniciSayisi: p.kullanici_sayisi || 1,
           aktif: p.aktif,
+          ozellikler: p.ozellikler,
         })));
       }
     }).catch(() => {});
@@ -855,6 +856,8 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
 
   /* Seçili grup */
   const [seciliGrupId, setSeciliGrupId] = useState(null);
+  const [urunArama, setUrunArama] = useState("");
+  const [urunDropdownAcik, setUrunDropdownAcik] = useState(false);
 
   /* Aktif adım: 1=Ürün, 2=Lisans, 3=Fiyat, 4=Özet */
   const [adim, setAdim] = useState(1);
@@ -915,8 +918,65 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
     let yenilemeFiyat = 0;
     let domainFiyat = 0;
     let domainUzanti = "";
+    let paketOzellikFiyat = 0;
+    let paketOzellikDetay = [];
+    
+    // Paket özellikleri varsa parse et
+    let paketOzellikler = [];
+    if (paket && paket.ozellikler) {
+      try {
+        paketOzellikler = typeof paket.ozellikler === 'string' 
+          ? JSON.parse(paket.ozellikler) 
+          : paket.ozellikler;
+      } catch (e) {
+        paketOzellikler = [];
+      }
+    }
     
     if (!sablonData || !sablonData.ozellikler) {
+      // Şablon yoksa sadece paket özelliklerinden hesapla
+      if (paketOzellikler.length > 0) {
+        paketOzellikler.forEach(oz => {
+          const deger = oz.deger || {};
+          let fiyat = 0;
+          let detay = "";
+          
+          switch (oz.ozellik_tipi) {
+            case "temel_fiyat":
+              fiyat = Number(deger.fiyat) || 0;
+              detay = `Temel Fiyat: ${fiyat} ₺`;
+              break;
+            case "aktivasyon_yenileme":
+              fiyat = Number(deger.aktivasyon_fiyat) || 0;
+              aktivasyonFiyat = fiyat;
+              yenilemeFiyat = Number(deger.yenileme_fiyat) || 0;
+              detay = `Aktivasyon: ${fiyat} ₺`;
+              break;
+            case "kullanici_sayisi":
+              ekKullaniciBirim = Number(deger.ek_kullanici_fiyat) || 0;
+              detay = `${Number(deger.min) || 1} Kullanıcı`;
+              break;
+            case "kademeli_fiyat":
+              if (deger.kademeler && deger.kademeler.length > 0) {
+                const ilkKademe = deger.kademeler[0];
+                fiyat = Number(ilkKademe.fiyat) || 0;
+                if (fiyat > 0) detay = `Kademe: ${fiyat} ₺`;
+              }
+              break;
+            default:
+              if (deger.fiyat) {
+                fiyat = Number(deger.fiyat) || 0;
+                if (fiyat > 0) detay = `${oz.ozellik_adi}: ${fiyat} ₺`;
+              }
+          }
+          
+          if (fiyat > 0) {
+            paketOzellikFiyat += fiyat;
+            paketOzellikDetay.push(detay);
+          }
+        });
+      }
+      const basitToplam = (paket ? Number(paket.fiyati) || 0 : 0) + paketOzellikFiyat;
       return {
         temelFiyat: 0,
         paketFiyat: paket ? Number(paket.fiyati) || 0 : 0,
@@ -929,7 +989,13 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
         yenilemeFiyat: 0,
         domainFiyat: 0,
         domainUzanti: "",
-        toplam: paket ? Number(paket.fiyati) || 0 : 0
+        paketOzellikFiyat,
+        paketOzellikDetay,
+        toplam: basitToplam,
+        kdvAktif: false,
+        kdvOran: 20,
+        kdvTutar: 0,
+        toplamKdvli: basitToplam
       };
     }
 
@@ -1003,8 +1069,58 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
     }
     
     // Toplam hesapla (aktivasyon_yenileme varsa aktivasyon fiyatı, yoksa temel fiyat)
+    
+    // 7. Paket özelliklerinden ek fiyatlar (şablonda olmayan özellikler)
+    if (paketOzellikler.length > 0) {
+      paketOzellikler.forEach(oz => {
+        const deger = oz.deger || {};
+        let fiyat = 0;
+        let detay = "";
+        
+        const sablondaVar = sablonData.ozellikler.some(s => s.ozellik_tipi === oz.ozellik_tipi);
+        if (sablondaVar) return;
+        
+        switch (oz.ozellik_tipi) {
+          case "temel_fiyat":
+            fiyat = Number(deger.fiyat) || 0;
+            if (fiyat > 0) detay = `Paket Temel Fiyat: ${fiyat} ₺`;
+            break;
+          case "aktivasyon_yenileme":
+            fiyat = Number(deger.aktivasyon_fiyat) || 0;
+            if (fiyat > 0) {
+              aktivasyonFiyat += fiyat;
+              detay = `Paket Aktivasyon: ${fiyat} ₺`;
+            }
+            break;
+          case "kademeli_fiyat":
+            if (deger.kademeler && deger.kademeler.length > 0) {
+              const ilkKademe = deger.kademeler[0];
+              fiyat = Number(ilkKademe.fiyat) || 0;
+              if (fiyat > 0) detay = `Paket Kademe: ${fiyat} ₺`;
+            }
+            break;
+          default:
+            if (deger.fiyat) {
+              fiyat = Number(deger.fiyat) || 0;
+              if (fiyat > 0) detay = `${oz.ozellik_adi}: ${fiyat} ₺`;
+            }
+        }
+        
+        if (fiyat > 0) {
+          paketOzellikFiyat += fiyat;
+          paketOzellikDetay.push(detay);
+        }
+      });
+    }
+    
     const anaFiyat = aktivasyonFiyat > 0 ? aktivasyonFiyat : temelFiyat;
-    const toplam = anaFiyat + paketFiyat + ekKullaniciFiyat + kademeFiyat + domainFiyat;
+    const toplam = anaFiyat + paketFiyat + ekKullaniciFiyat + kademeFiyat + domainFiyat + paketOzellikFiyat;
+    
+    // KDV hesapla
+    const kdvAktif = sablonData?.kdv_aktif || false;
+    const kdvOran = sablonData?.kdv_oran ?? 20;
+    const kdvTutar = kdvAktif ? toplam * kdvOran / 100 : 0;
+    const toplamKdvli = toplam + kdvTutar;
     
     return {
       temelFiyat,
@@ -1018,7 +1134,13 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
       yenilemeFiyat,
       domainFiyat,
       domainUzanti,
-      toplam
+      paketOzellikFiyat,
+      paketOzellikDetay,
+      toplam,
+      kdvAktif,
+      kdvOran,
+      kdvTutar,
+      toplamKdvli
     };
   };
 
@@ -1079,9 +1201,10 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
   useEffect(() => {
     const breakdown = hesaplaToplamFiyat(sablon, sablonDegerler, seciliPaket, form.ekKullanici);
     setFiyatBreakdown(breakdown);
-    if (breakdown.toplam !== form.fiyat) {
+    const brutFiyat = breakdown.kdvAktif ? breakdown.toplamKdvli : breakdown.toplam;
+    if (brutFiyat !== form.fiyat) {
       setForm(o => {
-        const brut = breakdown.toplam;
+        const brut = brutFiyat;
         const tutar = brut * o.indirimOrani / 100;
         return {
           ...o,
@@ -1137,7 +1260,7 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
         bayi_id: Number(bayiId),
         urun_id: form.urunId ? Number(form.urunId) : null,
         paket_id: form.paketId ? Number(form.paketId) : null,
-        bayi_id: form.bayiId ? Number(form.bayiId) : null,
+        satis_bayi_id: form.bayiId ? Number(form.bayiId) : null,
         lisans_tipi: form.lisansTipi,
         suresiz: form.suresiz,
         baslangic_tarihi: form.baslangicTarihi,
@@ -1184,7 +1307,7 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={sallanma}>
-      <div ref={modalRef} className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-3xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div ref={modalRef} className={`bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-h-[90vh] flex flex-col transition-all ${adim === 2 ? "max-w-5xl" : "max-w-3xl"}`} onClick={(e) => e.stopPropagation()}>
 
         {/* Başlık */}
         <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between shrink-0">
@@ -1226,75 +1349,136 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
         </div>
 
         {/* İçerik */}
-        <div className="flex-1 overflow-auto p-6">
-          {/* Adım 1: Grup ve Ürün Seçimi */}
+        <div className={`flex-1 p-6 ${adim === 1 && urunDropdownAcik ? "overflow-visible" : "overflow-y-auto"}`}>
+          {/* Adım 1: Ürün ve Paket Seçimi */}
           {adim === 1 && (
             <div className="space-y-5">
-              {/* Grup Seçimi */}
-              <div>
-                <label className={LABEL_STIL}>Ürün Grubu Seçin <span className="text-red-500">*</span></label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
-                  {gruplar.map((g) => (
-                    <button
-                      key={g.id}
-                      onClick={() => { setSeciliGrupId(g.id); guncelle("urunId", ""); guncelle("paketId", ""); }}
-                      className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
-                        seciliGrupId === g.id
-                          ? "border-purple-500 bg-purple-50 dark:bg-purple-500/10"
-                          : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                          seciliGrupId === g.id ? "bg-purple-500 text-white" : "bg-gray-100 dark:bg-white/10 text-gray-400"
-                        }`}>
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-                        </div>
-                        <div>
-                          <p className={`font-medium ${seciliGrupId === g.id ? "text-purple-700 dark:text-purple-400" : "text-gray-900 dark:text-white"}`}>{g.ad}</p>
-                          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{urunler.filter(u => u.aktif && u.grup_id === g.id).length} ürün</p>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Ürün Seçimi - Sadece grup seçiliyse */}
-              {seciliGrupId && (
-                <div>
-                  <label className={LABEL_STIL}>Ürün Seçin <span className="text-red-500">*</span></label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-                    {urunler.filter((u) => u.aktif && u.grup_id === seciliGrupId).map((u) => (
-                      <button
-                        key={u.id}
-                        onClick={() => urunSec(u.id)}
-                        className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
-                          form.urunId === u.id
-                            ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10"
-                            : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                            form.urunId === u.id ? "bg-blue-500 text-white" : "bg-gray-100 dark:bg-white/10 text-gray-400"
-                          }`}>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                          </div>
-                          <div>
-                            <p className={`font-medium ${form.urunId === u.id ? "text-blue-700 dark:text-blue-400" : "text-gray-900 dark:text-white"}`}>{u.ad}</p>
-                            <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{u.urun_tipi || u.grubu || "Genel"}</p>
-                          </div>
-                        </div>
+              {/* Ürün Arama ve Seçim - Combobox */}
+              <div className="relative">
+                <label className={LABEL_STIL}>Ürün veya Kategori Ara <span className="text-red-500">*</span></label>
+                <div className="relative mt-1">
+                  <div className="relative">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input
+                      type="text"
+                      placeholder="Ürün veya kategori adı yazarak arayın..."
+                      value={urunArama}
+                      onChange={(e) => { setUrunArama(e.target.value); setUrunDropdownAcik(true); }}
+                      onFocus={() => setUrunDropdownAcik(true)}
+                      className={`${INPUT_STIL} pl-10 pr-10`}
+                    />
+                    {urunArama && (
+                      <button onClick={() => { setUrunArama(""); setUrunDropdownAcik(false); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                       </button>
-                    ))}
-                    {urunler.filter((u) => u.aktif && u.grup_id === seciliGrupId).length === 0 && (
-                      <p className="col-span-2 text-center text-gray-400 dark:text-slate-500 py-8">Bu grupta henüz ürün yok</p>
                     )}
                   </div>
+                  
+                  {/* Dropdown Listesi */}
+                  {urunDropdownAcik && (
+                    <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-xl shadow-xl max-h-72 overflow-auto">
+                      {gruplar.map((g) => {
+                        const aramaKucuk = urunArama.toLowerCase();
+                        const grupEslesiyor = g.ad.toLowerCase().includes(aramaKucuk);
+                        const grupUrunleri = urunler.filter((u) => u.aktif && u.grup_id === g.id && (grupEslesiyor || u.ad.toLowerCase().includes(aramaKucuk)));
+                        if (grupUrunleri.length === 0) return null;
+                        
+                        return (
+                          <div key={g.id}>
+                            <div className="px-3 py-2 bg-gray-50 dark:bg-slate-700/50 text-xs font-semibold text-gray-500 dark:text-slate-400 sticky top-0 flex items-center gap-2">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                              </svg>
+                              {g.ad}
+                              <span className="ml-auto text-gray-400">({grupUrunleri.length})</span>
+                            </div>
+                            {grupUrunleri.map((u) => (
+                              <button
+                                key={u.id}
+                                onClick={() => {
+                                  urunSec(u.id);
+                                  setSeciliGrupId(g.id);
+                                  setUrunArama("");
+                                  setUrunDropdownAcik(false);
+                                }}
+                                className={`w-full px-3 py-2.5 text-left hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors flex items-center gap-3 ${
+                                  form.urunId === u.id ? "bg-blue-50 dark:bg-blue-500/10" : ""
+                                }`}
+                              >
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                  form.urunId === u.id ? "bg-blue-500 text-white" : "bg-gray-100 dark:bg-white/10 text-gray-400"
+                                }`}>
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                  </svg>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className={`text-sm font-medium truncate ${form.urunId === u.id ? "text-blue-700 dark:text-blue-400" : "text-gray-900 dark:text-white"}`}>{u.ad}</p>
+                                  <p className="text-xs text-gray-400 dark:text-slate-500 truncate">{u.urun_tipi || u.grubu || g.ad}</p>
+                                </div>
+                                {form.urunId === u.id && (
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })}
+                      {(() => {
+                        const aramaKucuk = urunArama.toLowerCase();
+                        const sonucVar = gruplar.some(g => {
+                          const grupEslesiyor = g.ad.toLowerCase().includes(aramaKucuk);
+                          return urunler.some(u => u.aktif && u.grup_id === g.id && (grupEslesiyor || u.ad.toLowerCase().includes(aramaKucuk)));
+                        });
+                        if (sonucVar) return null;
+                        return (
+                          <div className="px-4 py-8 text-center text-gray-400 dark:text-slate-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 mx-auto mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p className="text-sm">"{urunArama}" ile eşleşen ürün veya kategori bulunamadı</p>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
                 </div>
+                
+                {/* Seçili Ürün Gösterimi */}
+                {form.urunId && (
+                  <div className="mt-3 p-3 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-blue-500 text-white flex items-center justify-center shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-blue-700 dark:text-blue-400">{seciliUrun?.ad}</p>
+                        <p className="text-xs text-blue-600/70 dark:text-blue-400/70">{gruplar.find(g => g.id === seciliGrupId)?.ad} • {seciliUrun?.urun_tipi || "Genel"}</p>
+                      </div>
+                      <button 
+                        onClick={() => { guncelle("urunId", ""); guncelle("paketId", ""); setSeciliGrupId(null); }}
+                        className="p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Dropdown dışına tıklandığında kapat */}
+              {urunDropdownAcik && (
+                <div className="fixed inset-0 z-40" onClick={() => setUrunDropdownAcik(false)} />
               )}
 
               {form.urunId && urunPaketleri.length > 0 && (
@@ -1331,7 +1515,9 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
 
           {/* Adım 2: Lisans Bilgileri */}
           {adim === 2 && (
-            <div className="space-y-5">
+            <div className="flex gap-6">
+              {/* Sol Taraf - Lisans Bilgileri */}
+              <div className="flex-1 space-y-5">
               
               {/* Lisans Tipi - Kompakt kartlar */}
               <div>
@@ -1750,10 +1936,119 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
                   )}
                 </div>
               </details>
+              </div>
+              
+              {/* Sağ Taraf - Paket Özellikleri Paneli */}
+              <div className="w-72 shrink-0 border-l border-gray-200 dark:border-white/10 pl-6 space-y-4">
+                {/* Paket Başlığı */}
+                <div className="pb-3 border-b border-gray-200 dark:border-white/10">
+                  <h4 className="text-sm font-semibold text-gray-800 dark:text-white flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                    {seciliPaket ? seciliPaket.adi : "Paket Seçilmedi"}
+                  </h4>
+                  {seciliPaket && (
+                    <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{seciliPaket.tipi} • {seciliPaket.kullanimGunu} gün</p>
+                  )}
+                </div>
+
+                {/* Paket Özellikleri Listesi */}
+                {seciliPaket && seciliPaket.ozellikler && (() => {
+                  const paketOzellikler = typeof seciliPaket.ozellikler === 'string' 
+                    ? JSON.parse(seciliPaket.ozellikler) 
+                    : seciliPaket.ozellikler;
+                  
+                  if (paketOzellikler.length === 0) return (
+                    <p className="text-xs text-gray-400 dark:text-slate-500 py-4 text-center">Bu pakette özellik bulunmuyor</p>
+                  );
+
+                  const ozellikStilleri = {
+                    hediye_urun: { icon: "🎁", baslik: "Hediye Ürün", renk: "emerald" },
+                    ek_kullanici_fiyat: { icon: "👥", baslik: "Ek Kullanıcı", renk: "blue" },
+                    indirim: { icon: "🏷️", baslik: "İndirim", renk: "amber" },
+                    ozel_not: { icon: "📝", baslik: "Not", renk: "purple" },
+                    ek_sure: { icon: "⏱️", baslik: "Ek Süre", renk: "cyan" },
+                    temel_fiyat: { icon: "💰", baslik: "Temel Fiyat", renk: "emerald" },
+                    aktivasyon_yenileme: { icon: "🔄", baslik: "Aktivasyon", renk: "amber" },
+                    kullanici_sayisi: { icon: "👤", baslik: "Kullanıcı", renk: "blue" },
+                    sicil_domain: { icon: "🌐", baslik: "Domain", renk: "cyan" },
+                    kademeli_fiyat: { icon: "📊", baslik: "Kademeli", renk: "purple" },
+                    domain_fiyat: { icon: "🔗", baslik: "Domain Fiyat", renk: "teal" },
+                    demo_suresi: { icon: "⏰", baslik: "Demo", renk: "rose" },
+                  };
+
+                  const degerGoster = (oz) => {
+                    const d = oz.deger;
+                    switch (oz.tip) {
+                      case "hediye_urun": return oz.urunAdi || "Ürün hediye";
+                      case "ek_kullanici_fiyat": return `+${Number(d).toLocaleString("tr-TR")}₺/kişi`;
+                      case "indirim": return `%${d} indirim`;
+                      case "ozel_not": return d || "-";
+                      case "ek_sure": return `+${d} gün`;
+                      case "temel_fiyat": return d?.fiyat ? `${Number(d.fiyat).toLocaleString("tr-TR")}₺` : "-";
+                      case "aktivasyon_yenileme": return d ? `Akt: ${Number(d.aktivasyon_fiyat || 0).toLocaleString("tr-TR")}₺` : "-";
+                      case "kullanici_sayisi": return d ? `${d.min || 1}-${d.max || "∞"} kişi` : "-";
+                      case "sicil_domain": return d ? (d.alan_tipi === "domain" ? "Domain" : "Sicil") : "-";
+                      case "kademeli_fiyat": return d?.kademeler?.length ? `${d.kademeler.length} kademe` : "-";
+                      case "domain_fiyat": return d?.uzantilar?.length ? `${d.uzantilar.length} uzantı` : "-";
+                      case "demo_suresi": return d?.gun ? `${d.gun} gün` : "-";
+                      default: return "-";
+                    }
+                  };
+
+                  return (
+                    <div className="space-y-2">
+                      {paketOzellikler.map((oz) => {
+                        const stil = ozellikStilleri[oz.tip] || { icon: "⚙️", baslik: oz.tip, renk: "gray" };
+                        return (
+                          <div key={oz.id} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
+                            <span className="text-sm">{stil.icon}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-gray-700 dark:text-slate-300">{stil.baslik}</p>
+                              <p className="text-[10px] text-gray-400 dark:text-slate-500 truncate">{degerGoster(oz)}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+
+                {/* Ürün Özellikleri (Şablon) */}
+                {sablon && sablon.ozellikler && sablon.ozellikler.length > 0 && (
+                  <div className="pt-3 border-t border-gray-200 dark:border-white/10">
+                    <h5 className="text-xs font-semibold text-gray-600 dark:text-slate-400 mb-2 flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Ürün Özellikleri
+                    </h5>
+                    <div className="space-y-1">
+                      {sablon.ozellikler.slice(0, 5).map((oz) => (
+                        <div key={oz.id} className="text-xs text-gray-500 dark:text-slate-400 flex items-center gap-1">
+                          <span className="w-1 h-1 rounded-full bg-gray-400"></span>
+                          {oz.baslik || oz.ozellik_tipi}
+                        </div>
+                      ))}
+                      {sablon.ozellikler.length > 5 && (
+                        <p className="text-[10px] text-gray-400">+{sablon.ozellikler.length - 5} özellik daha</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {!seciliPaket && (
+                  <div className="py-8 text-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 mx-auto text-gray-300 dark:text-slate-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                    <p className="text-xs text-gray-400 dark:text-slate-500">Adım 1'de paket seçin</p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
-
-          {/* Adım 3: Fiyat ve Ödeme */}
           {adim === 3 && (
             <div className="space-y-4">
               {/* Bayi Seçimi */}
@@ -1805,6 +2100,21 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
                       <span className="font-medium">₺{fiyatBreakdown.paketFiyat.toLocaleString("tr-TR")}</span>
                     </div>
                   )}
+                  {fiyatBreakdown.paketOzellikFiyat > 0 && (
+                    <div className="py-1.5 border-b border-gray-200 dark:border-white/10">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-slate-400">Paket Özellikleri</span>
+                        <span className="font-medium">₺{fiyatBreakdown.paketOzellikFiyat.toLocaleString("tr-TR")}</span>
+                      </div>
+                      {fiyatBreakdown.paketOzellikDetay && fiyatBreakdown.paketOzellikDetay.length > 0 && (
+                        <div className="mt-1 text-xs text-gray-400 dark:text-slate-500 pl-2">
+                          {fiyatBreakdown.paketOzellikDetay.map((detay, idx) => (
+                            <div key={idx}>• {detay}</div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {fiyatBreakdown.ekKullaniciFiyat > 0 && (
                     <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-white/10">
                       <span className="text-gray-600 dark:text-slate-400">Ek Kullanıcı ({fiyatBreakdown.ekKullaniciAdet}×₺{fiyatBreakdown.ekKullaniciBirim})</span>
@@ -1819,9 +2129,21 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
                   )}
                   {fiyatBreakdown.toplam > 0 && (
                     <div className="flex justify-between pt-2 border-t border-gray-300 dark:border-white/20">
-                      <span className="font-semibold text-gray-700 dark:text-slate-300">Toplam</span>
+                      <span className="font-semibold text-gray-700 dark:text-slate-300">Ara Toplam</span>
                       <span className="font-bold text-gray-900 dark:text-white">₺{fiyatBreakdown.toplam.toLocaleString("tr-TR")}</span>
                     </div>
+                  )}
+                  {fiyatBreakdown.kdvAktif && fiyatBreakdown.toplam > 0 && (
+                    <>
+                      <div className="flex justify-between py-1.5 text-blue-600 dark:text-blue-400">
+                        <span>KDV (%{fiyatBreakdown.kdvOran})</span>
+                        <span>+₺{fiyatBreakdown.kdvTutar.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between pt-2 border-t border-blue-300 dark:border-blue-500/30">
+                        <span className="font-bold text-gray-700 dark:text-slate-200">Genel Toplam (KDV Dahil)</span>
+                        <span className="font-bold text-blue-700 dark:text-blue-400">₺{fiyatBreakdown.toplamKdvli.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    </>
                   )}
                   {(Number(form.indirimOrani) > 0 || Number(form.indirimTutari) > 0) && (
                     <>

@@ -1101,6 +1101,12 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
     const anaFiyat = aktivasyonFiyat > 0 ? aktivasyonFiyat : temelFiyat;
     const toplam = anaFiyat + paketFiyat + ekKullaniciFiyat + kademeFiyat + domainFiyat + paketOzellikFiyat;
     
+    // KDV hesapla
+    const kdvAktif = sablonData?.kdv_aktif || false;
+    const kdvOran = sablonData?.kdv_oran ?? 20;
+    const kdvTutar = kdvAktif ? toplam * kdvOran / 100 : 0;
+    const toplamKdvli = toplam + kdvTutar;
+    
     return {
       temelFiyat,
       paketFiyat,
@@ -1115,7 +1121,11 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
       domainUzanti,
       paketOzellikFiyat,
       paketOzellikDetay,
-      toplam
+      toplam,
+      kdvAktif,
+      kdvOran,
+      kdvTutar,
+      toplamKdvli
     };
   };
 
@@ -1176,9 +1186,10 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
   useEffect(() => {
     const breakdown = hesaplaToplamFiyat(sablon, sablonDegerler, seciliPaket, form.ekKullanici);
     setFiyatBreakdown(breakdown);
-    if (breakdown.toplam !== form.fiyat) {
+    const brutFiyat = breakdown.kdvAktif ? breakdown.toplamKdvli : breakdown.toplam;
+    if (brutFiyat !== form.fiyat) {
       setForm(o => {
-        const brut = breakdown.toplam;
+        const brut = brutFiyat;
         const tutar = brut * o.indirimOrani / 100;
         return {
           ...o,
@@ -2113,9 +2124,21 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                   )}
                   {fiyatBreakdown.toplam > 0 && (
                     <div className="flex justify-between pt-2 border-t border-gray-300 dark:border-white/20">
-                      <span className="font-semibold text-gray-700 dark:text-slate-300">Toplam</span>
+                      <span className="font-semibold text-gray-700 dark:text-slate-300">Ara Toplam</span>
                       <span className="font-bold text-gray-900 dark:text-white">₺{fiyatBreakdown.toplam.toLocaleString("tr-TR")}</span>
                     </div>
+                  )}
+                  {fiyatBreakdown.kdvAktif && fiyatBreakdown.toplam > 0 && (
+                    <>
+                      <div className="flex justify-between py-1.5 text-blue-600 dark:text-blue-400">
+                        <span>KDV (%{fiyatBreakdown.kdvOran})</span>
+                        <span>+₺{fiyatBreakdown.kdvTutar.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between pt-2 border-t border-blue-300 dark:border-blue-500/30">
+                        <span className="font-bold text-gray-700 dark:text-slate-200">Genel Toplam (KDV Dahil)</span>
+                        <span className="font-bold text-blue-700 dark:text-blue-400">₺{fiyatBreakdown.toplamKdvli.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    </>
                   )}
                   {(Number(form.indirimOrani) > 0 || Number(form.indirimTutari) > 0) && (
                     <>

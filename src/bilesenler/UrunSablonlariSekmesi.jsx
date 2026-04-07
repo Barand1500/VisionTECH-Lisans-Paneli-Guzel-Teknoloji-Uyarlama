@@ -819,6 +819,16 @@ function SablonTasarimci({ sablonId, kapat }) {
                     </div>
                   )}
                 </div>
+                {form.kdv_aktif && (
+                  <div className="mt-2 flex items-start gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      Bu şablon ile oluşturulan paketlerde fiyata %{form.kdv_oran ?? 20} KDV eklenecektir. Paket oluşturma ekranında KDV tutarı ayrıca gösterilecektir.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -90,15 +90,17 @@ export default function TakvimPage() {
       try {
         const yanit = await apiGet("/lisanslar");
         if (!iptal && yanit.basarili) {
-          setLisanslar(yanit.veri.map((l) => ({
-            id: `L-${String(l.id).padStart(3, "0")}`,
-            musteriId: l.musteri_id,
-            musteriAdi: l.musteri_adi || "",
-            urun: l.urun_adi || l.paket_adi || "",
-            baslangic: l.baslangic_tarihi ? l.baslangic_tarihi.slice(0, 10) : "",
-            bitis: l.bitis_tarihi ? l.bitis_tarihi.slice(0, 10) : "",
-            durum: lisansDurumuHesapla(l.baslangic_tarihi, l.bitis_tarihi),
-          })));
+          setLisanslar(yanit.veri
+            .filter((l) => !l.suresiz)
+            .map((l) => ({
+              id: `L-${String(l.id).padStart(3, "0")}`,
+              musteriId: l.musteri_id,
+              musteriAdi: l.musteri_adi || l.sirket_adi || "",
+              urun: l.urun_adi || l.paket_adi || "",
+              baslangic: l.baslangic_tarihi ? l.baslangic_tarihi.slice(0, 10) : "",
+              bitis: l.bitis_tarihi ? l.bitis_tarihi.slice(0, 10) : "",
+              durum: lisansDurumuHesapla(l.baslangic_tarihi, l.bitis_tarihi),
+            })));
         }
       } catch { /* sessiz */ }
       if (!iptal) setYukleniyor(false);

@@ -31,16 +31,16 @@ const _sallanmaYonetim = document.getElementById("sallanma-stili-yon") || (() =>
 /* ---- Sekme Tanımları ---- */
 const SEKMELER = [
   {
-    id: "urunler", etiket: "Ürünler",
-    ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>,
+    id: "tipYonetimi", etiket: "Tip Yönetimi",
+    ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>,
   },
   {
     id: "sablonlar", etiket: "Şablonlar",
     ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" /></svg>,
   },
   {
-    id: "tipYonetimi", etiket: "Tip Yönetimi",
-    ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>,
+    id: "urunler", etiket: "Ürünler",
+    ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>,
   },
   {
     id: "surumler", etiket: "Sürümler",
@@ -80,7 +80,7 @@ const SEKMELER = [
 /* ============================================= */
 
 export default function YonetimPage() {
-  const [aktifSekme, setAktifSekme] = useState("urunler");
+  const [aktifSekme, setAktifSekme] = useState("tipYonetimi");
 
   return (
     <div>
@@ -1618,7 +1618,7 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
 
   const gonder = (e) => {
     e.preventDefault();
-    if (!form.adi || !form.urunTipi) return;
+    if (!form.adi) return;
     kaydet(form);
   };
 
@@ -1760,16 +1760,12 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                       value={form.uygulamaTipi} 
                       onChange={(e) => guncelle("uygulamaTipi", e.target.value)} 
                       className={INPUT_STIL}
-                      disabled={!form.urunTipi}
                     >
                       <option value="-">-</option>
                       {uygulamaTipleri
-                        .filter((t) => t.urun_tipi_adi === form.urunTipi)
+                        .filter((t) => !form.urunTipi || t.urun_tipi_adi === form.urunTipi)
                         .map((t) => <option key={t.id} value={t.ad}>{t.ad}</option>)}
                     </select>
-                    {!form.urunTipi && (
-                      <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">Önce ürün tipi seçin</p>
-                    )}
                   </div>
                 </div>
 

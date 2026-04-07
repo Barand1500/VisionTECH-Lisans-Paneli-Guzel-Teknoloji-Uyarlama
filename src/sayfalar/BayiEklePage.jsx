@@ -7,8 +7,8 @@
 /* ============================================= */
 
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { apiGet, apiPost } from "../yardimcilar/api";
+import { useNavigate, useParams } from "react-router-dom";
+import { apiGet, apiPost, apiPut } from "../yardimcilar/api";
 import { useAktiviteLog } from "../baglam/AktiviteLogContext";
 
 /* ============================================= */
@@ -106,6 +106,8 @@ const HATA_INPUT_STIL =
 
 export default function BayiEklePage() {
   const git = useNavigate();
+  const { id } = useParams();
+  const duzenleModu = !!id;
   const { logEkle } = useAktiviteLog();
 
   const [aktifSekme, setAktifSekme] = useState("tuzel");
@@ -119,6 +121,7 @@ export default function BayiEklePage() {
   const ustBayiRef = useRef(null);
   const dosyaInputRef = useRef(null);
   const [dosyalar, setDosyalar] = useState([]);
+  const [yukleniyor, setYukleniyor] = useState(false);
 
   /* ---- Bayileri ve Sektörleri API'den Çek ---- */
   useEffect(() => {
@@ -129,6 +132,40 @@ export default function BayiEklePage() {
       if (yanit?.veri) setSektorler(yanit.veri);
     }).catch(() => {});
   }, []);
+
+  /* ---- Düzenleme modunda mevcut bayi verisini yükle ---- */
+  useEffect(() => {
+    if (!duzenleModu) return;
+    setYukleniyor(true);
+    apiGet(`/bayiler/${id}`).then((yanit) => {
+      if (yanit?.veri) {
+        const b = yanit.veri;
+        setAktifSekme(b.tur || "tuzel");
+        const ustBayiObj = bayiler.find((x) => x.id === b.ust_bayi_id);
+        setForm({
+          sirketAdi: b.sirket_adi || "",
+          adSoyad: b.ad_soyad || "",
+          yetkili: b.yetkili || "",
+          eposta: b.eposta || "",
+          vergiDairesi: b.vergi_dairesi || "",
+          vergiNo: b.vergi_no || "",
+          tcKimlikNo: b.tc_kimlik_no || "",
+          pasaportNo: b.pasaport_no || "",
+          sektor: b.sektor_id ? String(b.sektor_id) : "",
+          sektorDiger: "",
+          ustBayiId: b.ust_bayi_id ? String(b.ust_bayi_id) : "",
+          ustBayiArama: "",
+          ustBayi: ustBayiObj ? ustBayiObj.ad : "",
+          adres: b.adres || "",
+          kisiler: [],
+          notlar: b.notlar || "",
+          etiketler: b.etiketler ? (typeof b.etiketler === "string" ? JSON.parse(b.etiketler) : b.etiketler) : [],
+          yeniEtiket: "",
+          durum: b.durum === "aktif",
+        });
+      }
+    }).catch(() => {}).finally(() => setYukleniyor(false));
+  }, [duzenleModu, id, bayiler.length]);
 
   /* ---- Üst Bayi dropdown dışına tıklanınca kapat ---- */
   useEffect(() => {
@@ -244,7 +281,7 @@ export default function BayiEklePage() {
     const bayiAdi = aktifSekme === "gercek" ? form.adSoyad : (form.sirketAdi || form.adSoyad || form.yetkili);
 
     try {
-      const yanit = await apiPost("/bayiler", {
+      const govde = {
         ad: bayiAdi,
         yetkili: form.yetkili || form.adSoyad,
         eposta: form.eposta,
@@ -262,16 +299,24 @@ export default function BayiEklePage() {
         adres: form.adres || null,
         notlar: form.notlar || null,
         etiketler: form.etiketler.length > 0 ? form.etiketler : null,
-      });
+      };
+
+      let yanit;
+      if (duzenleModu) {
+        yanit = await apiPut(`/bayiler/${id}`, govde);
+      } else {
+        yanit = await apiPost("/bayiler", govde);
+      }
 
       /* Dosya varsa yükle */
-      if (dosyalar.length > 0 && yanit?.id) {
+      const bayiId = duzenleModu ? id : yanit?.id;
+      if (dosyalar.length > 0 && bayiId) {
         for (const dosya of dosyalar) {
           const fd = new FormData();
           fd.append("dosyalar", dosya);
           try {
             const token = localStorage.getItem("token");
-            await fetch(`http://localhost:5000/api/bayiler/${yanit.id}/dosyalar`, {
+            await fetch(`http://localhost:5000/api/bayiler/${bayiId}/dosyalar`, {
               method: "POST",
               headers: token ? { Authorization: `Bearer ${token}` } : {},
               body: fd,
@@ -283,7 +328,11 @@ export default function BayiEklePage() {
       }
 
       setBasarili(true);
-      await logEkle("bayi_ekleme", `"${bayiAdi}" bayisi eklendi`);
+      if (duzenleModu) {
+        await logEkle("bayi_guncelleme", `"${bayiAdi}" bayisi güncellendi`);
+      } else {
+        await logEkle("bayi_ekleme", `"${bayiAdi}" bayisi eklendi`);
+      }
       setTimeout(() => git("/dashboard/bayiler"), 2000);
     } catch (err) {
       console.error("Bayi eklenemedi:", err);
@@ -295,6 +344,17 @@ export default function BayiEklePage() {
   /*  Başarılı Kayıt Ekranı                        */
   /* ============================================= */
 
+  if (yukleniyor) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-emerald-200 dark:border-emerald-800 border-t-emerald-500 rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500 dark:text-slate-400">Bayi bilgileri yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (basarili) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -304,7 +364,7 @@ export default function BayiEklePage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Bayi Başarıyla Kaydedildi!</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{duzenleModu ? "Bayi Başarıyla Güncellendi!" : "Bayi Başarıyla Kaydedildi!"}</h2>
           <p className="text-gray-500 dark:text-slate-400">Bayiler sayfasına yönlendiriliyorsunuz...</p>
         </div>
       </div>
@@ -330,8 +390,8 @@ export default function BayiEklePage() {
             </svg>
             Bayilere Dön
           </button>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Yeni Bayi Kaydı</h1>
-          <p className="text-gray-500 dark:text-slate-400 mt-1">Bayi bilgilerini doldurun ve kaydedin.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{duzenleModu ? "Bayi Düzenle" : "Yeni Bayi Kaydı"}</h1>
+          <p className="text-gray-500 dark:text-slate-400 mt-1">{duzenleModu ? "Bayi bilgilerini güncelleyin." : "Bayi bilgilerini doldurun ve kaydedin."}</p>
         </div>
       </div>
 
@@ -806,7 +866,7 @@ export default function BayiEklePage() {
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
-            {kayitYapiliyor ? "Kaydediliyor..." : "Bayiyi Kaydet"}
+            {kayitYapiliyor ? (duzenleModu ? "Güncelleniyor..." : "Kaydediliyor...") : (duzenleModu ? "Bayiyi Güncelle" : "Bayiyi Kaydet")}
           </button>
         </div>
       </form>
