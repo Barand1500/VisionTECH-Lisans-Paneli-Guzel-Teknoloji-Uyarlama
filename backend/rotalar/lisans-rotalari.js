@@ -257,4 +257,142 @@ router.put("/durum-guncelle", hataYakala(async (_req, res) => {
   res.json({ basarili: true, mesaj: "Lisans durumlari guncellendi." });
 }));
 
+/* ---- Lisans Detay (Bilgi modalı) ---- */
+router.get("/:id/detay", hataYakala(async (req, res) => {
+  const id = Number(req.params.id);
+  const [row] = await prisma.$queryRawUnsafe(`
+    SELECT l.*,
+           m.ad_soyad AS musteri_adi, m.sirket_adi AS musteri_sirket, m.tur AS musteri_turu, m.eposta AS musteri_eposta,
+           u.ad AS urun_adi, u.urun_tipi, u.uygulama_tipi, u.versiyon, u.sablon_id,
+           ug.ad AS grup_adi,
+           p.ad AS paket_adi, p.tipi AS paket_tipi, p.kullanim_gunu AS paket_gun,
+           b.ad AS bayi_adi, b.eposta AS bayi_eposta,
+           lt.ad AS lisans_tipi_adi, lt.renk AS lisans_tipi_renk,
+           s.surum AS surum_no, s.tarih AS surum_tarihi
+    FROM lisanslar l
+    LEFT JOIN musteriler m ON l.musteri_id = m.id
+    LEFT JOIN urunler u ON l.urun_id = u.id
+    LEFT JOIN urun_gruplari ug ON u.grup_id = ug.id
+    LEFT JOIN paketler p ON l.paket_id = p.id
+    LEFT JOIN bayiler b ON l.bayi_id = b.id
+    LEFT JOIN lisans_tipleri lt ON l.lisans_tipi = lt.kod
+    LEFT JOIN surumler s ON l.surum_id = s.id
+    WHERE l.id = ?
+  `, id);
+  if (!row) return bulunamadiHatasi(res, "Lisans bulunamadi.");
+
+  /* Şablon özelliklerini yükle */
+  let sablonOzellikleri = [];
+  if (row.sablon_id) {
+    sablonOzellikleri = await prisma.sablonOzellik.findMany({
+      where: { sablon_id: Number(row.sablon_id), aktif: 1 },
+      orderBy: { sira: "asc" },
+    });
+  }
+
+  res.json({ basarili: true, veri: { ...temizle([row])[0], sablon_ozellikleri: temizle(sablonOzellikleri) } });
+}));
+
+/* ---- Domain Transfer ---- */
+router.post("/:id/domain-transfer", hataYakala(async (req, res) => {
+  const id = Number(req.params.id);
+  const { hedef_musteri_id, hedef_bayi_id } = req.body;
+
+  if (!hedef_musteri_id) return dogrulamaHatasi(res, "Hedef müşteri zorunludur.");
+
+  const lisans = await prisma.lisans.findUnique({ where: { id }, select: { id: true, domain: true, musteri_id: true, bayi_id: true, silinme_tarihi: true } });
+  if (!lisans) return bulunamadiHatasi(res, "Lisans bulunamadi.");
+  if (lisans.silinme_tarihi) return dogrulamaHatasi(res, "Silinmiş lisans transfer edilemez.");
+  if (!lisans.domain) return dogrulamaHatasi(res, "Bu lisansta domain bilgisi bulunmuyor.");
+  if (Number(hedef_musteri_id) === lisans.musteri_id) return dogrulamaHatasi(res, "Aynı müşteriye transfer yapılamaz.");
+
+  const hedefMusteri = await prisma.musteri.findFirst({ where: { id: Number(hedef_musteri_id), silinme_tarihi: null } });
+  if (!hedefMusteri) return bulunamadiHatasi(res, "Hedef müşteri bulunamadı.");
+
+  const eskiMusteriId = lisans.musteri_id;
+  const eskiBayiId = lisans.bayi_id;
+
+  /* Transfer işlemi */
+  const updateData = {
+    musteri_id: Number(hedef_musteri_id),
+    guncelleme_tarihi: new Date(),
+  };
+  if (hedef_bayi_id !== undefined) {
+    updateData.bayi_id = hedef_bayi_id ? Number(hedef_bayi_id) : null;
+  }
+
+  /* Transfer logunu moduller alanına yaz */
+  const mevcutModuller = lisans.domain ? {} : {};
+  const mevcutLisans = await prisma.lisans.findUnique({ where: { id }, select: { moduller: true } });
+  const moduller = mevcutLisans?.moduller || {};
+  const transferLog = moduller.transfer_gecmisi || [];
+  transferLog.push({
+    tarih: new Date().toISOString(),
+    eski_musteri_id: eskiMusteriId,
+    eski_bayi_id: eskiBayiId,
+    yeni_musteri_id: Number(hedef_musteri_id),
+    yeni_bayi_id: hedef_bayi_id ? Number(hedef_bayi_id) : null,
+  });
+  updateData.moduller = { ...moduller, transfer_gecmisi: transferLog };
+
+  await prisma.lisans.update({ where: { id }, data: updateData });
+
+  /* Aktivite logu */
+  await prisma.aktiviteLog.create({
+    data: {
+      tip: "domain_transfer",
+      mesaj: `Domain "${lisans.domain}" transferi yapıldı. Müşteri #${eskiMusteriId} → #${hedef_musteri_id}`,
+    },
+  });
+
+  res.json({ basarili: true, mesaj: `Domain "${lisans.domain}" başarıyla transfer edildi.` });
+}));
+
+/* ---- Domain Geri Al ---- */
+router.post("/:id/domain-geri-al", hataYakala(async (req, res) => {
+  const id = Number(req.params.id);
+  const lisans = await prisma.lisans.findUnique({ where: { id }, select: { id: true, domain: true, musteri_id: true, bayi_id: true, moduller: true, silinme_tarihi: true } });
+  if (!lisans) return bulunamadiHatasi(res, "Lisans bulunamadi.");
+  if (lisans.silinme_tarihi) return dogrulamaHatasi(res, "Silinmiş lisans geri alınamaz.");
+
+  const moduller = lisans.moduller || {};
+  const transferLog = moduller.transfer_gecmisi || [];
+  if (transferLog.length === 0) return dogrulamaHatasi(res, "Bu lisansta transfer geçmişi bulunamadı.");
+
+  const sonTransfer = transferLog[transferLog.length - 1];
+
+  /* Eski müşterinin hala var olup olmadığını kontrol et */
+  const eskiMusteri = await prisma.musteri.findFirst({ where: { id: sonTransfer.eski_musteri_id, silinme_tarihi: null } });
+  if (!eskiMusteri) return dogrulamaHatasi(res, "Önceki müşteri silinmiş veya bulunamadı.");
+
+  /* Geri al */
+  transferLog.push({
+    tarih: new Date().toISOString(),
+    eski_musteri_id: lisans.musteri_id,
+    eski_bayi_id: lisans.bayi_id,
+    yeni_musteri_id: sonTransfer.eski_musteri_id,
+    yeni_bayi_id: sonTransfer.eski_bayi_id,
+    geri_alma: true,
+  });
+
+  await prisma.lisans.update({
+    where: { id },
+    data: {
+      musteri_id: sonTransfer.eski_musteri_id,
+      bayi_id: sonTransfer.eski_bayi_id,
+      moduller: { ...moduller, transfer_gecmisi: transferLog },
+      guncelleme_tarihi: new Date(),
+    },
+  });
+
+  await prisma.aktiviteLog.create({
+    data: {
+      tip: "domain_geri_alma",
+      mesaj: `Domain "${lisans.domain}" geri alındı. Müşteri #${lisans.musteri_id} → #${sonTransfer.eski_musteri_id}`,
+    },
+  });
+
+  res.json({ basarili: true, mesaj: `Domain "${lisans.domain}" başarıyla geri alındı.` });
+}));
+
 module.exports = router;

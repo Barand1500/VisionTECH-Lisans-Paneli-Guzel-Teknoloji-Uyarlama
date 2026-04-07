@@ -430,11 +430,11 @@ export default function BayiDetayPage() {
                 )}
 
                 {/* Etiketler */}
-                {bayi.etiketler && bayi.etiketler.length > 0 && (
+                {bayi.etiketler && bayi.etiketler.length > 0 && (() => { try { const parsed = typeof bayi.etiketler === "string" ? JSON.parse(bayi.etiketler) : bayi.etiketler; return Array.isArray(parsed) && parsed.length > 0; } catch { return false; } })() && (
                   <div>
                     <h3 className="text-sm font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-4">Etiketler</h3>
                     <div className="flex flex-wrap gap-2">
-                      {(typeof bayi.etiketler === "string" ? JSON.parse(bayi.etiketler) : bayi.etiketler).map((etiket, idx) => (
+                      {(Array.isArray(bayi.etiketler) ? bayi.etiketler : (() => { try { return JSON.parse(bayi.etiketler) || []; } catch { return []; } })()).map((etiket, idx) => (
                         <span key={idx} className="px-3 py-1.5 rounded-full text-sm font-medium bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">
                           {etiket}
                         </span>

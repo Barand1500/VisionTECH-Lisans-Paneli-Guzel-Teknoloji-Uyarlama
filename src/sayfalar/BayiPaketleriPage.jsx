@@ -161,6 +161,13 @@ export default function BayiPaketleriPage() {
           otomatikYenileme: !!l.otomatik_yenileme,
           bildirimGun: l.bildirim_gun || 30,
           notlar: l.notlar || "",
+          macAdresi: l.mac_adresi || "",
+          ipAdresi: l.ip_adresi || "",
+          moduller: l.moduller || null,
+          musteriId: l.musteri_id,
+          bayiId: l.bayi_id,
+          lisansTipiId: l.lisans_tipi_id,
+          surumId: l.surum_id,
         })));
       }
     }).catch(() => {}).finally(() => setYukleniyor(false));
@@ -231,6 +238,16 @@ export default function BayiPaketleriPage() {
   const [ekKullaniciDuzenle, setEkKullaniciDuzenle] = useState({ yeniEk: 0, kaydetmeUygun: false });
   const [faturaModal, setFaturaModal] = useState(null);
   const [yeniPaketModal, setYeniPaketModal] = useState(false);
+
+  /* Bilgi Modalı State */
+  const [bilgiModal, setBilgiModal] = useState(null);
+  const [bilgiDetay, setBilgiDetay] = useState(null);
+  const [bilgiYukleniyor, setBilgiYukleniyor] = useState(false);
+  const [transferModal, setTransferModal] = useState(false);
+  const [transferArama, setTransferArama] = useState("");
+  const [transferMusteri, setTransferMusteri] = useState(null);
+  const [transferYukleniyor, setTransferYukleniyor] = useState(false);
+  const [tumMusteriler, setTumMusteriler] = useState([]);
 
   /* Filtre & sayfalama */
   const filtreliPaketler = paketler.filter((p) => {
@@ -504,6 +521,15 @@ export default function BayiPaketleriPage() {
                     {sutunSirasi.map((key) => sutunHucre(p, key, gecmis))}
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-1.5">
+                        {/* Bilgi */}
+                        <button onClick={async () => {
+                          setBilgiModal(p); setBilgiYukleniyor(true); setBilgiDetay(null);
+                          try { const r = await apiGet(`/lisanslar/${p.id}/detay`); if (r.basarili) setBilgiDetay(r.veri); } catch {} setBilgiYukleniyor(false);
+                        }} title="Bilgi"
+                          className="w-8 h-8 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white flex items-center justify-center cursor-pointer transition-colors shadow-sm">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        </button>
                         {/* Cihazlar */}
                         <button onClick={() => setCihazlarModal(p)} title="Cihazlar"
                           className="w-8 h-8 rounded-lg bg-purple-500 hover:bg-purple-600 text-white flex items-center justify-center cursor-pointer transition-colors shadow-sm">
@@ -841,6 +867,228 @@ export default function BayiPaketleriPage() {
           git={git}
         />
       )}
+
+      {/* ========== Bilgi Modalı ========== */}
+      {bilgiModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => { setBilgiModal(null); setBilgiDetay(null); }}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                </div>
+                <div>
+                  <h4 className="font-bold text-white text-lg">Ürün Bilgisi</h4>
+                  <p className="text-white/70 text-xs">{bilgiModal.urun} {bilgiModal.paket !== "-" ? `• ${bilgiModal.paket}` : ""}</p>
+                </div>
+              </div>
+              <button onClick={() => { setBilgiModal(null); setBilgiDetay(null); }} className="text-white/70 hover:text-white cursor-pointer transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+              {bilgiYukleniyor ? (
+                <div className="text-center py-12">
+                  <div className="inline-block w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3" />
+                  <p className="text-sm text-gray-500 dark:text-slate-400">Bilgiler yükleniyor...</p>
+                </div>
+              ) : bilgiDetay ? (
+                <>
+                  {/* Ürün Bilgileri */}
+                  <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                    <div className="px-4 py-2.5 bg-gray-50 dark:bg-white/5 border-b border-gray-200 dark:border-white/10"><h5 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Ürün Bilgileri</h5></div>
+                    <div className="p-4 grid grid-cols-2 gap-3">
+                      <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Ürün</p><p className="text-sm font-medium text-gray-900 dark:text-white">{bilgiDetay.urun_adi || "-"}</p></div>
+                      <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Grup</p><p className="text-sm font-medium text-gray-900 dark:text-white">{bilgiDetay.grup_adi || "-"}</p></div>
+                      <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Ürün Tipi</p><p className="text-sm font-medium text-gray-900 dark:text-white">{bilgiDetay.urun_tipi || "-"}</p></div>
+                      <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Uygulama Tipi</p><p className="text-sm font-medium text-gray-900 dark:text-white">{bilgiDetay.uygulama_tipi || "-"}</p></div>
+                      <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Paket</p><p className="text-sm font-medium text-gray-900 dark:text-white">{bilgiDetay.paket_adi || "-"}</p></div>
+                      <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Versiyon</p><p className="text-sm font-medium text-gray-900 dark:text-white">{bilgiDetay.versiyon || bilgiDetay.surum_no || "-"}</p></div>
+                    </div>
+                  </div>
+                  {/* Lisans Bilgileri */}
+                  <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                    <div className="px-4 py-2.5 bg-gray-50 dark:bg-white/5 border-b border-gray-200 dark:border-white/10"><h5 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Lisans Bilgileri</h5></div>
+                    <div className="p-4 grid grid-cols-2 gap-3">
+                      <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Lisans Anahtarı</p><p className="text-sm font-mono font-medium text-gray-900 dark:text-white flex items-center gap-1">{bilgiDetay.lisans_anahtari || "-"}{bilgiDetay.lisans_anahtari && <KopyalaButonu metin={bilgiDetay.lisans_anahtari} />}</p></div>
+                      <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Lisans Tipi</p><p className="text-sm font-medium text-gray-900 dark:text-white">{bilgiDetay.lisans_tipi_adi || bilgiDetay.lisans_tipi || "-"}</p></div>
+                      <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Başlangıç</p><p className="text-sm font-medium text-gray-900 dark:text-white">{bilgiDetay.baslangic_tarihi ? tarihGosterTR(bilgiDetay.baslangic_tarihi.slice(0, 10)) : "-"}</p></div>
+                      <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Bitiş</p><p className="text-sm font-medium text-gray-900 dark:text-white">{bilgiDetay.suresiz ? "Süresiz" : bilgiDetay.bitis_tarihi ? tarihGosterTR(bilgiDetay.bitis_tarihi.slice(0, 10)) : "-"}</p></div>
+                      <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Durum</p><p className={`text-sm font-semibold ${bilgiDetay.durum === "aktif" ? "text-emerald-600" : bilgiDetay.durum === "suresi-dolmus" ? "text-red-600" : "text-amber-600"}`}>{bilgiDetay.durum === "aktif" ? "Aktif" : bilgiDetay.durum === "suresi-dolmus" ? "Süresi Dolmuş" : bilgiDetay.durum === "dondurulmuş" ? "Dondurulmuş" : bilgiDetay.durum}</p></div>
+                      <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Kullanıcı</p><p className="text-sm font-medium text-gray-900 dark:text-white">{bilgiDetay.kullanici_sayisi || 1}{bilgiDetay.ek_kullanici > 0 ? ` (+${bilgiDetay.ek_kullanici} ek)` : ""}</p></div>
+                    </div>
+                  </div>
+                  {/* Teknik Bilgiler */}
+                  {(bilgiDetay.domain || bilgiDetay.mac_adresi || bilgiDetay.ip_adresi) && (
+                    <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                      <div className="px-4 py-2.5 bg-gray-50 dark:bg-white/5 border-b border-gray-200 dark:border-white/10"><h5 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Teknik Bilgiler</h5></div>
+                      <div className="p-4 grid grid-cols-2 gap-3">
+                        {bilgiDetay.domain && <div className="col-span-2"><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Domain</p><p className="text-sm font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1">{bilgiDetay.domain}<KopyalaButonu metin={bilgiDetay.domain} /></p></div>}
+                        {bilgiDetay.mac_adresi && <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">MAC Adresi</p><p className="text-sm font-mono font-medium text-gray-900 dark:text-white">{bilgiDetay.mac_adresi}</p></div>}
+                        {bilgiDetay.ip_adresi && <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">IP Adresi</p><p className="text-sm font-mono font-medium text-gray-900 dark:text-white">{bilgiDetay.ip_adresi}</p></div>}
+                      </div>
+                    </div>
+                  )}
+                  {/* Finansal Bilgiler */}
+                  <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                    <div className="px-4 py-2.5 bg-gray-50 dark:bg-white/5 border-b border-gray-200 dark:border-white/10"><h5 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Finansal Bilgiler</h5></div>
+                    <div className="p-4 grid grid-cols-2 gap-3">
+                      <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Fiyat</p><p className="text-sm font-bold text-gray-900 dark:text-white">{Number(bilgiDetay.fiyat || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</p></div>
+                      <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Net Tutar</p><p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{Number(bilgiDetay.net_tutar || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</p></div>
+                      {Number(bilgiDetay.indirim_orani) > 0 && <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">İndirim</p><p className="text-sm font-medium text-orange-600">%{bilgiDetay.indirim_orani}</p></div>}
+                      <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Ödeme Durumu</p><p className={`text-sm font-semibold ${bilgiDetay.odeme_durumu === "odendi" ? "text-emerald-600" : bilgiDetay.odeme_durumu === "kismi" ? "text-amber-600" : "text-red-600"}`}>{bilgiDetay.odeme_durumu === "odendi" ? "Ödendi" : bilgiDetay.odeme_durumu === "kismi" ? "Kısmi" : "Ödenmedi"}</p></div>
+                      {bilgiDetay.fatura_no && <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Fatura No</p><p className="text-sm font-medium text-gray-900 dark:text-white">{bilgiDetay.fatura_no}</p></div>}
+                      {bilgiDetay.odeme_yontemi && <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Ödeme Yöntemi</p><p className="text-sm font-medium text-gray-900 dark:text-white capitalize">{bilgiDetay.odeme_yontemi}</p></div>}
+                    </div>
+                  </div>
+                  {/* Şablon Özellikleri */}
+                  {bilgiDetay.sablon_ozellikleri?.length > 0 && (
+                    <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                      <div className="px-4 py-2.5 bg-gray-50 dark:bg-white/5 border-b border-gray-200 dark:border-white/10"><h5 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Şablon Özellikleri</h5></div>
+                      <div className="p-4 space-y-2">
+                        {bilgiDetay.sablon_ozellikleri.map((oz) => {
+                          const deger = typeof oz.deger === "string" ? (() => { try { return JSON.parse(oz.deger); } catch { return oz.deger; } })() : oz.deger;
+                          return (
+                            <div key={oz.id} className="flex items-start gap-3 p-2.5 rounded-lg bg-gray-50 dark:bg-white/5">
+                              <span className="text-sm">{oz.baslik || oz.ozellik_tipi}</span>
+                              <span className="ml-auto text-xs text-gray-500 dark:text-slate-400 text-right">
+                                {typeof deger === "object" ? Object.entries(deger).map(([k, v]) => <span key={k} className="block">{k}: {String(v)}</span>) : String(deger)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {/* Ek Bilgiler */}
+                  {bilgiDetay.moduller?.sablon_verileri && (
+                    <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                      <div className="px-4 py-2.5 bg-gray-50 dark:bg-white/5 border-b border-gray-200 dark:border-white/10"><h5 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Ek Bilgiler (Şablon)</h5></div>
+                      <div className="p-4 space-y-2">
+                        {Object.entries(bilgiDetay.moduller.sablon_verileri).map(([key, val]) => (
+                          <div key={key} className="flex items-center justify-between p-2.5 rounded-lg bg-gray-50 dark:bg-white/5">
+                            <span className="text-sm text-gray-700 dark:text-slate-300 capitalize">{key.replace(/_/g, " ")}</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">{typeof val === "object" ? JSON.stringify(val) : String(val)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* Transfer Geçmişi */}
+                  {bilgiDetay.moduller?.transfer_gecmisi?.length > 0 && (
+                    <div className="rounded-xl border border-amber-200 dark:border-amber-500/20 overflow-hidden">
+                      <div className="px-4 py-2.5 bg-amber-50 dark:bg-amber-500/10 border-b border-amber-200 dark:border-amber-500/20"><h5 className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Transfer Geçmişi</h5></div>
+                      <div className="p-4 space-y-2">
+                        {bilgiDetay.moduller.transfer_gecmisi.map((t, i) => (
+                          <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg bg-gray-50 dark:bg-white/5 text-xs">
+                            <span className={`px-2 py-0.5 rounded-full font-medium ${t.geri_alma ? "bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400" : "bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400"}`}>{t.geri_alma ? "Geri Alma" : "Transfer"}</span>
+                            <span className="text-gray-500 dark:text-slate-400">Müşteri #{t.eski_musteri_id} → #{t.yeni_musteri_id}</span>
+                            <span className="ml-auto text-gray-400 dark:text-slate-500">{new Date(t.tarih).toLocaleDateString("tr-TR")}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* Domain İşlemleri */}
+                  {bilgiDetay.domain && (
+                    <div className="rounded-xl border border-fuchsia-200 dark:border-fuchsia-500/20 overflow-hidden">
+                      <div className="px-4 py-2.5 bg-fuchsia-50 dark:bg-fuchsia-500/10 border-b border-fuchsia-200 dark:border-fuchsia-500/20"><h5 className="text-xs font-bold text-fuchsia-600 dark:text-fuchsia-400 uppercase tracking-wider">Domain İşlemleri</h5></div>
+                      <div className="p-4 flex gap-3">
+                        <button onClick={async () => {
+                          setTransferModal(true); setTransferArama(""); setTransferMusteri(null);
+                          try { const r = await apiGet("/musteriler"); if (r.basarili) setTumMusteriler(r.veri); } catch {}
+                        }} className="flex-1 px-4 py-2.5 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 text-white text-sm font-semibold cursor-pointer inline-flex items-center justify-center gap-2 transition-colors">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                          Transfer Et
+                        </button>
+                        {bilgiDetay.moduller?.transfer_gecmisi?.length > 0 && (
+                          <button onClick={async () => {
+                            if (!confirm("Son transferi geri almak istediğinize emin misiniz?")) return;
+                            try {
+                              const r = await apiPost(`/lisanslar/${bilgiDetay.id}/domain-geri-al`);
+                              if (r.basarili) { alert(r.mesaj); setBilgiModal(null); setBilgiDetay(null); apiGet(`/lisanslar/bayi/${id}`).then((r2) => { if (r2.basarili) setPaketler(r2.veri.map((l) => ({ id: l.id, urun: l.urun_adi || "-", urunId: l.urun_id, paket: l.paket_adi || "-", paketId: l.paket_id, bayiAdi: l.bayi_adi || "", lisansTipi: l.lisans_tipi || "standart", suresiz: !!l.suresiz, domain: l.domain || "", faturaNo: l.fatura_no || "", faturaTarihi: l.fatura_tarihi ? l.fatura_tarihi.slice(0, 10) : "", kullanimGunu: l.kullanim_gunu || 365, baslangicTarihi: l.baslangic_tarihi ? l.baslangic_tarihi.slice(0, 10) : "", bitisTarihi: l.bitis_tarihi ? l.bitis_tarihi.slice(0, 10) : "", kullanici: l.kullanici_sayisi ? String(l.kullanici_sayisi) : "1", ekKullanici: l.ek_kullanici || 0, fiyat: l.fiyat ? Number(l.fiyat).toFixed(2) : "0.00", indirimOrani: l.indirim_orani || 0, netTutar: l.net_tutar ? Number(l.net_tutar).toFixed(2) : "0.00", odemeDurumu: l.odeme_durumu || "odenmedi", odemeYontemi: l.odeme_yontemi || "", faturaGeldi: !!l.fatura_geldi, lisansAnahtari: l.lisans_anahtari || "", otomatikYenileme: !!l.otomatik_yenileme, bildirimGun: l.bildirim_gun || 30, notlar: l.notlar || "", macAdresi: l.mac_adresi || "", ipAdresi: l.ip_adresi || "", moduller: l.moduller || null, musteriId: l.musteri_id, bayiId: l.bayi_id, lisansTipiId: l.lisans_tipi_id, surumId: l.surum_id }))); }); }
+                            } catch (e) { alert(e.message || "Geri alma başarısız."); }
+                          }} className="flex-1 px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold cursor-pointer inline-flex items-center justify-center gap-2 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+                            Geri Al
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {bilgiDetay.notlar && (
+                    <div className="rounded-xl border border-gray-200 dark:border-white/10 p-4">
+                      <p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase mb-1">Notlar</p>
+                      <p className="text-sm text-gray-700 dark:text-slate-300 whitespace-pre-wrap">{bilgiDetay.notlar}</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-12"><p className="text-sm text-gray-500 dark:text-slate-400">Bilgi yüklenemedi.</p></div>
+              )}
+            </div>
+            <div className="px-6 py-3 border-t border-gray-200 dark:border-white/10 shrink-0">
+              <button onClick={() => { setBilgiModal(null); setBilgiDetay(null); }} className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">Kapat</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========== Domain Transfer Modalı ========== */}
+      {transferModal && bilgiModal && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setTransferModal(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-gradient-to-r from-fuchsia-600 to-pink-600 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+              <div><h4 className="font-bold text-white">Domain Transfer</h4><p className="text-white/70 text-xs">{bilgiDetay?.domain}</p></div>
+              <button onClick={() => setTransferModal(false)} className="text-white/70 hover:text-white cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className={LABEL_STIL}>Hedef Müşteri</label>
+                <input type="text" value={transferArama} onChange={(e) => setTransferArama(e.target.value)} placeholder="Müşteri adı ara..." className={INPUT_STIL} />
+              </div>
+              {transferArama.length > 0 && (
+                <div className="max-h-48 overflow-y-auto border border-gray-200 dark:border-white/10 rounded-lg">
+                  {tumMusteriler.filter(m => (m.ad_soyad || m.sirket_adi || "").toLowerCase().includes(transferArama.toLowerCase())).slice(0, 20).map((m) => (
+                    <button key={m.id} onClick={() => { setTransferMusteri(m); setTransferArama(m.ad_soyad || m.sirket_adi || `#${m.id}`); }}
+                      className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer border-b border-gray-100 dark:border-white/5 last:border-0 ${transferMusteri?.id === m.id ? "bg-fuchsia-50 dark:bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-400 font-medium" : "text-gray-700 dark:text-slate-300"}`}>
+                      <p className="font-medium">{m.ad_soyad || m.sirket_adi || `Müşteri #${m.id}`}</p>
+                      <p className="text-xs text-gray-400 dark:text-slate-500">{m.eposta || ""} {m.tur === "tuzel" ? "• Tüzel" : m.tur === "yabanci" ? "• Yabancı" : "• Gerçek"}</p>
+                    </button>
+                  ))}
+                  {tumMusteriler.filter(m => (m.ad_soyad || m.sirket_adi || "").toLowerCase().includes(transferArama.toLowerCase())).length === 0 && (
+                    <p className="px-4 py-3 text-sm text-gray-400 dark:text-slate-500 text-center">Eşleşen müşteri bulunamadı.</p>
+                  )}
+                </div>
+              )}
+              {transferMusteri && (
+                <div className="p-3 rounded-lg bg-fuchsia-50 dark:bg-fuchsia-500/10 border border-fuchsia-200 dark:border-fuchsia-500/20">
+                  <p className="text-xs text-fuchsia-600 dark:text-fuchsia-400 font-medium">Seçilen: {transferMusteri.ad_soyad || transferMusteri.sirket_adi || `#${transferMusteri.id}`}</p>
+                </div>
+              )}
+              <div className="flex gap-3">
+                <button onClick={() => setTransferModal(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">İptal</button>
+                <button disabled={!transferMusteri || transferYukleniyor}
+                  onClick={async () => {
+                    setTransferYukleniyor(true);
+                    try {
+                      const r = await apiPost(`/lisanslar/${bilgiDetay.id}/domain-transfer`, { hedef_musteri_id: transferMusteri.id });
+                      if (r.basarili) { alert(r.mesaj); setTransferModal(false); setBilgiModal(null); setBilgiDetay(null); apiGet(`/lisanslar/bayi/${id}`).then((r2) => { if (r2.basarili) setPaketler(r2.veri.map((l) => ({ id: l.id, urun: l.urun_adi || "-", urunId: l.urun_id, paket: l.paket_adi || "-", paketId: l.paket_id, bayiAdi: l.bayi_adi || "", lisansTipi: l.lisans_tipi || "standart", suresiz: !!l.suresiz, domain: l.domain || "", faturaNo: l.fatura_no || "", faturaTarihi: l.fatura_tarihi ? l.fatura_tarihi.slice(0, 10) : "", kullanimGunu: l.kullanim_gunu || 365, baslangicTarihi: l.baslangic_tarihi ? l.baslangic_tarihi.slice(0, 10) : "", bitisTarihi: l.bitis_tarihi ? l.bitis_tarihi.slice(0, 10) : "", kullanici: l.kullanici_sayisi ? String(l.kullanici_sayisi) : "1", ekKullanici: l.ek_kullanici || 0, fiyat: l.fiyat ? Number(l.fiyat).toFixed(2) : "0.00", indirimOrani: l.indirim_orani || 0, netTutar: l.net_tutar ? Number(l.net_tutar).toFixed(2) : "0.00", odemeDurumu: l.odeme_durumu || "odenmedi", odemeYontemi: l.odeme_yontemi || "", faturaGeldi: !!l.fatura_geldi, lisansAnahtari: l.lisans_anahtari || "", otomatikYenileme: !!l.otomatik_yenileme, bildirimGun: l.bildirim_gun || 30, notlar: l.notlar || "", macAdresi: l.mac_adresi || "", ipAdresi: l.ip_adresi || "", moduller: l.moduller || null, musteriId: l.musteri_id, bayiId: l.bayi_id, lisansTipiId: l.lisans_tipi_id, surumId: l.surum_id }))); }); }
+                    } catch (e) { alert(e.message || "Transfer başarısız."); }
+                    setTransferYukleniyor(false);
+                  }}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 disabled:opacity-50 text-white text-sm font-semibold cursor-pointer transition-colors">
+                  {transferYukleniyor ? "Transfer ediliyor..." : "Transfer Et"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

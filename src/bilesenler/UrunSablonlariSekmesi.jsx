@@ -177,6 +177,33 @@ const OZELLIK_TIPLERI = [
     varsayilan: { urunler: [], zorunlu: true },
     // Mantık: Bu ürün verilirken bağımlı ürünler yoksa uyarı verilir
   },
+  {
+    id: "domain_yonetimi",
+    ad: "Domain Yönetimi",
+    ikon: "🔄",
+    renk: "fuchsia",
+    aciklama: "Domain transfer ve geri alma ayarları",
+    varsayilan: { transfer_aktif: true, geri_alma_aktif: true, yenileme_hatirlatma_gun: 30 },
+    // Mantık: Domain içeren lisanslarda transfer/geri alma butonları aktifleşir
+  },
+  {
+    id: "garanti_suresi",
+    ad: "Garanti Süresi",
+    ikon: "🛡️",
+    renk: "slate",
+    aciklama: "Ürün garanti süresi ve kapsamı",
+    varsayilan: { gun: 365, kapsam: "" },
+    // Mantık: Bilgi modalında garanti bilgisi gösterilir
+  },
+  {
+    id: "guvenlik",
+    ad: "Güvenlik Ayarları",
+    ikon: "🔒",
+    renk: "lime",
+    aciklama: "MAC/IP kontrolü ve cihaz limiti",
+    varsayilan: { mac_kontrolu: false, ip_kisitlama: false, max_cihaz: 1 },
+    // Mantık: Bilgi modalında güvenlik ayarları gösterilir
+  },
 ];
 
 /* ============================================= */

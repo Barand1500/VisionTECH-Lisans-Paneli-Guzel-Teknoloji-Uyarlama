@@ -78,7 +78,7 @@ router.post("/", hataYakala(async (req, res) => {
       ust_bayi_id: ust_bayi_id || null, tc_kimlik_no: tc_kimlik_no || null,
       pasaport_no: pasaport_no || null, ad_soyad: ad_soyad || null,
       sirket_adi: sirket_adi || null, notlar: notlar || null,
-      etiketler: etiketler !== undefined ? (typeof etiketler === 'string' ? etiketler : JSON.stringify(etiketler)) : null,
+      etiketler: etiketler ? (typeof etiketler === 'string' ? etiketler : JSON.stringify(etiketler)) : null,
     },
   });
   res.status(201).json({ basarili: true, mesaj: "Bayi basariyla eklendi.", id: sonuc.id });
@@ -115,7 +115,7 @@ router.put("/:id", hataYakala(async (req, res) => {
       ad_soyad: ad_soyad !== undefined ? (ad_soyad || null) : undefined,
       sirket_adi: sirket_adi !== undefined ? (sirket_adi || null) : undefined,
       notlar: notlar !== undefined ? (notlar || null) : undefined,
-      etiketler: etiketler !== undefined ? (typeof etiketler === 'string' ? etiketler : JSON.stringify(etiketler)) : undefined,
+      etiketler: etiketler !== undefined ? (etiketler ? (typeof etiketler === 'string' ? etiketler : JSON.stringify(etiketler)) : null) : undefined,
       guncelleme_tarihi: new Date(),
     },
   });
