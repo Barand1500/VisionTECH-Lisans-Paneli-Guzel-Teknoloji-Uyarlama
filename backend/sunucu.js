@@ -7,6 +7,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const rateLimit = require("express-rate-limit");
 
 /* ---- Veritabani (Prisma) ---- */
 const { prisma } = require("./veritabani/prisma");
@@ -15,13 +16,32 @@ const { prisma } = require("./veritabani/prisma");
 const uygulama = express();
 const PORT = process.env.PORT || 5000;
 
+/* ---- Rate Limiting ---- */
+// Genel API limiti: 15 dakikada 200 istek
+const genelLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { basarili: false, mesaj: "Çok fazla istek gönderildi. Lütfen biraz bekleyin." },
+});
+// Login/Auth limiti: 15 dakikada 15 deneme (brute force koruması)
+const yetkiLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { basarili: false, mesaj: "Çok fazla giriş denemesi. 15 dakika sonra tekrar deneyin." },
+});
+
 /* ---- Middleware ---- */
 uygulama.use(cors());
 uygulama.use(express.json({ limit: "50mb" }));
 uygulama.use(express.urlencoded({ limit: "50mb", extended: true }));
+uygulama.use("/api", genelLimit);
 
 /* ---- API Rotalari ---- */
-uygulama.use("/api/yetki", require("./rotalar/yetki-rotalari"));
+uygulama.use("/api/yetki", yetkiLimit, require("./rotalar/yetki-rotalari"));
 uygulama.use("/api/musteriler", require("./rotalar/musteri-rotalari"));
 uygulama.use("/api/bayiler", require("./rotalar/bayi-rotalari"));
 uygulama.use("/api/bayi-urunler", require("./rotalar/bayi-urun-rotalari")); // Ayri endpoint
