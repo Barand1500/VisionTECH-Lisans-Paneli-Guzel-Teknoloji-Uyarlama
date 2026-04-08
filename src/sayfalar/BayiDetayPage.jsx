@@ -281,7 +281,7 @@ export default function BayiDetayPage() {
                 <div>
                   <p className="text-xs text-gray-400 dark:text-slate-500 mb-1">E-posta</p>
                   <div className="flex items-center gap-2">
-                    <a href={`mailto:${bayi.eposta}`} className="text-sm text-blue-600 dark:text-blue-400 hover:underline break-all" title="Mail göndermek için tıklayın">{bayi.eposta}</a>
+                    <a href={`mailto:${bayi.eposta}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 dark:text-blue-400 hover:underline break-all" title="Mail göndermek için tıklayın">{bayi.eposta}</a>
                     <KopyalaButonu metin={bayi.eposta} />
                   </div>
                 </div>

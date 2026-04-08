@@ -976,7 +976,7 @@ export default function BayiPaketleriPage() {
                     <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
                       <div className="px-4 py-2.5 bg-gray-50 dark:bg-white/5 border-b border-gray-200 dark:border-white/10"><h5 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Ek Bilgiler (Şablon)</h5></div>
                       <div className="p-4 space-y-2">
-                        {Object.entries(bilgiDetay.moduller.sablon_verileri).map(([key, val]) => (
+                        {Object.entries(bilgiDetay.moduller.sablon_verileri || {}).map(([key, val]) => (
                           <div key={key} className="flex items-center justify-between p-2.5 rounded-lg bg-gray-50 dark:bg-white/5">
                             <span className="text-sm text-gray-700 dark:text-slate-300 capitalize">{key.replace(/_/g, " ")}</span>
                             <span className="text-sm font-medium text-gray-900 dark:text-white">{typeof val === "object" ? JSON.stringify(val) : String(val)}</span>

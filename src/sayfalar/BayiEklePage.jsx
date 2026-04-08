@@ -159,7 +159,7 @@ export default function BayiEklePage() {
           adres: b.adres || "",
           kisiler: [],
           notlar: b.notlar || "",
-          etiketler: Array.isArray(b.etiketler) ? b.etiketler : (b.etiketler ? (typeof b.etiketler === "string" ? (JSON.parse(b.etiketler) || []) : b.etiketler) : []),
+          etiketler: Array.isArray(b.etiketler) ? b.etiketler : (b.etiketler ? (typeof b.etiketler === "string" ? (() => { try { return JSON.parse(b.etiketler) || []; } catch { return []; } })() : b.etiketler) : []),
           yeniEtiket: "",
           durum: b.durum === "aktif",
         });

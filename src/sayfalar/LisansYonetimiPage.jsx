@@ -48,9 +48,11 @@ const LABEL_STIL =
  * frontend'de hesaplanıp "Expired/Active/Expiring" olarak gönderilmelidir.
  */
 function kalanGunHesapla(bitisTarihiStr) {
+  if (!bitisTarihiStr) return -1;
   const bugun = new Date();
   bugun.setHours(0, 0, 0, 0);
   const bitis = new Date(bitisTarihiStr);
+  if (isNaN(bitis.getTime())) return -1;
   bitis.setHours(0, 0, 0, 0);
   const farkMs = bitis.getTime() - bugun.getTime();
   return Math.ceil(farkMs / (1000 * 60 * 60 * 24));
