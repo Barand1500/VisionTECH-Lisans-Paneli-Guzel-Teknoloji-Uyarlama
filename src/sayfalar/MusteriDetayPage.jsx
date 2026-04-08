@@ -8,6 +8,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiGet, apiPost, apiPut, apiDelete, apiUpload } from "../yardimcilar/api";
 import KopyalaButonu from "../bilesenler/KopyalaButonu";
+import { useMusteriler } from "../baglam/MusteriContext";
 
 /* ---- Sekme Tanimlari ---- */
 const SEKMELER = [
@@ -35,6 +36,7 @@ const tarihFormatla = (tarih) => {
 export default function MusteriDetayPage() {
   const { id } = useParams();
   const git = useNavigate();
+  const { verileriYukle } = useMusteriler();
   const [yukleniyor, setYukleniyor] = useState(true);
   const [musteri, setMusteri] = useState(null);
   const [aktifSekme, setAktifSekme] = useState("genel");
@@ -275,6 +277,7 @@ export default function MusteriDetayPage() {
                   try {
                     await apiPut(`/musteriler/${id}`, { durum: yeniDurum });
                     setMusteri((o) => ({ ...o, durum: yeniDurum }));
+                    verileriYukle();
                   } catch (e) { console.error("Durum güncellenemedi:", e); }
                 }}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-all hover:shadow-md ${
