@@ -18,18 +18,18 @@ const uygulama = express();
 const PORT = process.env.PORT || 5000;
 
 /* ---- Rate Limiting ---- */
-// Genel API limiti: 15 dakikada 200 istek
+// Genel API limiti: 15 dakikada 1000 istek
 const genelLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: 1000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { basarili: false, mesaj: "Çok fazla istek gönderildi. Lütfen biraz bekleyin." },
 });
-// Login/Auth limiti: 15 dakikada 15 deneme (brute force koruması)
+// Login/Auth limiti: 15 dakikada 20 deneme (brute force koruması)
 const yetkiLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 15,
+  max: 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: { basarili: false, mesaj: "Çok fazla giriş denemesi. 15 dakika sonra tekrar deneyin." },
