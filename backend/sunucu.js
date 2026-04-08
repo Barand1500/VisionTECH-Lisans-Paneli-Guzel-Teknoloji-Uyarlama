@@ -36,6 +36,7 @@ const yetkiLimit = rateLimit({
 });
 
 /* ---- Middleware ---- */
+uygulama.set("trust proxy", 1); /* Nginx/reverse proxy arkasinda gercek IP'yi al */
 uygulama.use(cors());
 uygulama.use(express.json({ limit: "50mb" }));
 uygulama.use(express.urlencoded({ limit: "50mb", extended: true }));
