@@ -162,10 +162,7 @@ export function MusteriProvider({ children }) {
 
   const topluDurumGuncelle = async (idler, durum) => {
     await Promise.all(idler.map((id) => apiPut(`/musteriler/${id}`, { durum })));
-    const idSet = new Set(idler);
-    setMusteriler((onceki) =>
-      onceki.map((m) => (idSet.has(m.id) ? { ...m, durum } : m))
-    );
+    await verileriYukle();
   };
 
   /* ---- Not CRUD ---- */

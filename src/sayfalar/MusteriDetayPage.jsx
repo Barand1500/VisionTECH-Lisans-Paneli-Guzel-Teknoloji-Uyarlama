@@ -190,6 +190,7 @@ export default function MusteriDetayPage() {
       setDosyalar(dosyaYanit.veri || []);
     } catch (e) {
       console.error("Dosya yuklenemedi:", e);
+      alert("Dosya y\u00FCklenemedi: " + (e.message || "Bilinmeyen hata"));
     } finally {
       setDosyaYukleniyor(false);
       if (dosyaInputRef.current) dosyaInputRef.current.value = "";

@@ -175,6 +175,7 @@ export default function BayiDetayPage() {
       setDosyalar(dosyaYanit.veri || []);
     } catch (e) {
       console.error("Dosya yuklenemedi:", e);
+      alert("Dosya yüklenemedi: " + (e.message || "Bilinmeyen hata"));
     } finally {
       setDosyaYukleniyor(false);
       if (dosyaInputRef.current) dosyaInputRef.current.value = "";

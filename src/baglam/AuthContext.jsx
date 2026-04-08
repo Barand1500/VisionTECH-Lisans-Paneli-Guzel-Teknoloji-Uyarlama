@@ -26,6 +26,7 @@ export function AuthProvider({ children }) {
 
   const girisYap = async (eposta, sifre) => {
     const yanit = await apiPost("/yetki/giris", { eposta, sifre });
+    if (!yanit?.token || !yanit?.kullanici) throw new Error("Giri\u015F yan\u0131t\u0131 ge\u00E7ersiz.");
     setToken(yanit.token);
     setKullanici(yanit.kullanici);
     localStorage.setItem("gt_token", yanit.token);
