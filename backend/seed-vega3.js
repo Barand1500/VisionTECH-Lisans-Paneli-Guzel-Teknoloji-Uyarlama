@@ -750,7 +750,7 @@ async function main() {
   console.log(`   ✓ ${paketSayisi} paket oluşturuldu`);
 
   // =============================================
-  // 11. BAYİLER (3 ADET)
+  // 11. BAYİLER (5 ADET)
   // =============================================
   console.log("\n🏢 Bayiler oluşturuluyor...");
 
@@ -760,13 +760,14 @@ async function main() {
       tur: "tuzel",
       sirket_adi: "Güzel Teknoloji Yazılım A.Ş.",
       yetkili: "Baran Ürüncan",
-      telefon: "0212 555 1010",
+      telefon: "05321002030",
       eposta: "info@guzelteknoloji.com",
       vergi_no: "1234567890",
       vergi_dairesi: "Şişli",
       sehir: "İstanbul",
       sektor_id: sektorMap["Teknoloji"],
       durum: "aktif",
+      etiketler: JSON.stringify(["Ana Bayi", "Premium", "İstanbul"]),
     }
   });
   await prisma.iletisimKisi.create({
@@ -775,10 +776,22 @@ async function main() {
       ad_soyad: "Baran Ürüncan",
       unvan: "Genel Müdür",
       departman: "Yönetim",
-      telefon: "0212 555 1010",
-      cep_telefon: "0532 100 2030",
+      telefon: "02125551010",
+      cep_telefon: "05321002030",
       eposta: "baran@guzelteknoloji.com",
       birincil: 1,
+    }
+  });
+  await prisma.iletisimKisi.create({
+    data: {
+      bayi_id: bayi1.id,
+      ad_soyad: "Selin Aydın",
+      unvan: "Teknik Destek Uzmanı",
+      departman: "Teknik",
+      telefon: "02125551011",
+      cep_telefon: "05361112233",
+      eposta: "selin@guzelteknoloji.com",
+      birincil: 0,
     }
   });
   console.log(`   ✓ Bayi 1: Güzel Teknoloji (İstanbul)`);
@@ -787,15 +800,16 @@ async function main() {
     data: {
       ad: "Panu Teknoloji",
       tur: "tuzel",
-      sirket_adi: "Panu Teknoloji Çözümleri Ltd.",
+      sirket_adi: "Panu Teknoloji Çözümleri Ltd. Şti.",
       yetkili: "Ali Köse",
-      telefon: "0232 444 2020",
+      telefon: "05332003040",
       eposta: "info@panuteknoloji.com",
       vergi_no: "9876543210",
       vergi_dairesi: "Konak",
       sehir: "İzmir",
       sektor_id: sektorMap["Teknoloji"],
       durum: "aktif",
+      etiketler: JSON.stringify(["Yetkili Bayi", "İzmir"]),
     }
   });
   await prisma.iletisimKisi.create({
@@ -804,8 +818,8 @@ async function main() {
       ad_soyad: "Ali Köse",
       unvan: "Satış Müdürü",
       departman: "Satış",
-      telefon: "0232 444 2020",
-      cep_telefon: "0533 200 3040",
+      telefon: "02324442020",
+      cep_telefon: "05332003040",
       eposta: "ali@panuteknoloji.com",
       birincil: 1,
     }
@@ -814,17 +828,18 @@ async function main() {
 
   const bayi3 = await prisma.bayi.create({
     data: {
-      ad: "Kodgem",
+      ad: "Kodgem Bilişim",
       tur: "tuzel",
-      sirket_adi: "Kodgem Bilişim ve Danışmanlık Ltd.",
+      sirket_adi: "Kodgem Bilişim ve Danışmanlık Ltd. Şti.",
       yetkili: "Nimet Demir",
-      telefon: "0312 333 3030",
+      telefon: "05343004050",
       eposta: "iletisim@kodgem.com",
       vergi_no: "5555555555",
       vergi_dairesi: "Çankaya",
       sehir: "Ankara",
       sektor_id: sektorMap["Hizmet"],
       durum: "aktif",
+      etiketler: JSON.stringify(["Yetkili Bayi", "Ankara"]),
     }
   });
   await prisma.iletisimKisi.create({
@@ -833,63 +848,333 @@ async function main() {
       ad_soyad: "Nimet Demir",
       unvan: "Kurucu Ortak",
       departman: "Yönetim",
-      telefon: "0312 333 3030",
-      cep_telefon: "0534 300 4050",
+      telefon: "03123333030",
+      cep_telefon: "05343004050",
       eposta: "nimet@kodgem.com",
       birincil: 1,
     }
   });
-  console.log(`   ✓ Bayi 3: Kodgem (Ankara)`);
+  await prisma.iletisimKisi.create({
+    data: {
+      bayi_id: bayi3.id,
+      ad_soyad: "Emre Yılmaz",
+      unvan: "Satış Danışmanı",
+      departman: "Satış",
+      cep_telefon: "05423334455",
+      eposta: "emre@kodgem.com",
+      birincil: 0,
+    }
+  });
+  console.log(`   ✓ Bayi 3: Kodgem Bilişim (Ankara)`);
+
+  const bayi4 = await prisma.bayi.create({
+    data: {
+      ad: "Mega Yazılım",
+      tur: "tuzel",
+      sirket_adi: "Mega Yazılım Teknoloji A.Ş.",
+      yetkili: "Hakan Çelik",
+      telefon: "05354005060",
+      eposta: "info@megayazilim.com.tr",
+      vergi_no: "7771234567",
+      vergi_dairesi: "Nilüfer",
+      sehir: "Bursa",
+      sektor_id: sektorMap["Teknoloji"],
+      durum: "aktif",
+      etiketler: JSON.stringify(["Yetkili Bayi", "Bursa", "Yeni"]),
+    }
+  });
+  await prisma.iletisimKisi.create({
+    data: {
+      bayi_id: bayi4.id,
+      ad_soyad: "Hakan Çelik",
+      unvan: "Genel Müdür",
+      departman: "Yönetim",
+      telefon: "02242501010",
+      cep_telefon: "05354005060",
+      eposta: "hakan@megayazilim.com.tr",
+      birincil: 1,
+    }
+  });
+  console.log(`   ✓ Bayi 4: Mega Yazılım (Bursa)`);
+
+  const bayi5 = await prisma.bayi.create({
+    data: {
+      ad: "Doruk Bilişim",
+      tur: "gercek",
+      ad_soyad: "Zeynep Kara",
+      tc_kimlik_no: "44455566677",
+      yetkili: "Zeynep Kara",
+      telefon: "05065006070",
+      eposta: "zeynep@dorukbilisim.com",
+      sehir: "Antalya",
+      sektor_id: sektorMap["Perakende"],
+      durum: "aktif",
+      etiketler: JSON.stringify(["Bireysel Bayi", "Antalya"]),
+    }
+  });
+  await prisma.iletisimKisi.create({
+    data: {
+      bayi_id: bayi5.id,
+      ad_soyad: "Zeynep Kara",
+      unvan: "İşletme Sahibi",
+      departman: "Yönetim",
+      cep_telefon: "05065006070",
+      eposta: "zeynep@dorukbilisim.com",
+      birincil: 1,
+    }
+  });
+  console.log(`   ✓ Bayi 5: Doruk Bilişim (Antalya)`);
 
   // =============================================
-  // 12. MÜŞTERİLER (3 ADET)
+  // 12. MÜŞTERİLER (10 ADET)
   // =============================================
   console.log("\n👤 Müşteriler oluşturuluyor...");
 
-  // Müşteri 1: Bağımsız müşteri (bayi yok) - Gerçek kişi
+  // ---- Müşteri 1: Gerçek kişi, bağımsız ----
   const musteri1 = await prisma.musteri.create({
     data: {
       tur: "gercek",
-      ad_soyad: "Baran Ürüncan",
-      tc_kimlik_no: "11122233344",
-      eposta: "baran.uruncan@gmail.com",
-      sektor_id: sektorMap["Teknoloji"],
+      ad_soyad: "Mehmet Yıldız",
+      tc_kimlik_no: "10120130140",
+      eposta: "mehmet.yildiz@gmail.com",
+      sektor_id: sektorMap["Perakende"],
       durum: "aktif",
+      etiketler: ["VIP", "Perakende"],
     }
   });
-  await prisma.musteriTelefon.create({ data: { musteri_id: musteri1.id, telefon: "0532 100 2030" } });
-  await prisma.musteriAdres.create({ data: { musteri_id: musteri1.id, adres: "Kadıköy, İstanbul" } });
-  console.log(`   ✓ Müşteri 1: Baran Ürüncan (Bağımsız)`);
+  await prisma.musteriTelefon.create({ data: { musteri_id: musteri1.id, telefon: "05301234567" } });
+  await prisma.musteriTelefon.create({ data: { musteri_id: musteri1.id, telefon: "02161234567" } });
+  await prisma.musteriAdres.create({ data: { musteri_id: musteri1.id, adres: "Kadıköy Mah. Bağdat Cad. No:42/A, Kadıköy/İstanbul" } });
+  console.log(`   ✓ Müşteri 1: Mehmet Yıldız (Bağımsız)`);
 
-  // Müşteri 2: Güzel Teknoloji'nin alt müşterisi - Gerçek kişi
+  // ---- Müşteri 2: Tüzel, Güzel Teknoloji bayisi altında ----
   const musteri2 = await prisma.musteri.create({
     data: {
+      tur: "tuzel",
+      sirket_adi: "Anadolu Market Zinciri A.Ş.",
+      yetkili_kisi: "Fatma Özkan",
+      eposta: "fatma@anadolumarket.com.tr",
+      vergi_no: "1112223334",
+      vergi_dairesi: "Beyoğlu",
+      sektor_id: sektorMap["Perakende"],
+      durum: "aktif",
+      etiketler: ["Kurumsal", "Zincir Mağaza"],
+    }
+  });
+  await prisma.musteriTelefon.create({ data: { musteri_id: musteri2.id, telefon: "05412345678" } });
+  await prisma.musteriTelefon.create({ data: { musteri_id: musteri2.id, telefon: "02122345678" } });
+  await prisma.musteriAdres.create({ data: { musteri_id: musteri2.id, adres: "İstiklal Cad. No:128, Beyoğlu/İstanbul" } });
+  await prisma.musteriAdres.create({ data: { musteri_id: musteri2.id, adres: "Merkez Depo: Esenyurt OSB, 3. Cd. No:7, Esenyurt/İstanbul" } });
+  await prisma.iletisimKisi.create({
+    data: {
+      musteri_id: musteri2.id,
+      ad_soyad: "Fatma Özkan",
+      unvan: "IT Müdürü",
+      departman: "Bilgi İşlem",
+      telefon: "02122345678",
+      cep_telefon: "05412345678",
+      eposta: "fatma@anadolumarket.com.tr",
+      birincil: 1,
+    }
+  });
+  await prisma.iletisimKisi.create({
+    data: {
+      musteri_id: musteri2.id,
+      ad_soyad: "Kemal Doğan",
+      unvan: "Muhasebe Müdürü",
+      departman: "Finans",
+      cep_telefon: "05423456789",
+      eposta: "kemal@anadolumarket.com.tr",
+      birincil: 0,
+    }
+  });
+  console.log(`   ✓ Müşteri 2: Anadolu Market Zinciri (Bayi: Güzel Teknoloji)`);
+
+  // ---- Müşteri 3: Gerçek kişi, Güzel Teknoloji bayisi altında ----
+  const musteri3 = await prisma.musteri.create({
+    data: {
       tur: "gercek",
-      ad_soyad: "Ali Köse",
-      tc_kimlik_no: "22233344455",
-      eposta: "ali.kose@gmail.com",
+      ad_soyad: "Ahmet Kaya",
+      tc_kimlik_no: "20230240250",
+      eposta: "ahmet.kaya@hotmail.com",
+      sektor_id: sektorMap["Perakende"],
+      durum: "aktif",
+      etiketler: ["Esnaf"],
+    }
+  });
+  await prisma.musteriTelefon.create({ data: { musteri_id: musteri3.id, telefon: "05559876543" } });
+  await prisma.musteriAdres.create({ data: { musteri_id: musteri3.id, adres: "Atatürk Mah. Cumhuriyet Cad. No:15, Bakırköy/İstanbul" } });
+  console.log(`   ✓ Müşteri 3: Ahmet Kaya (Bayi: Güzel Teknoloji)`);
+
+  // ---- Müşteri 4: Tüzel, Panu Teknoloji bayisi altında ----
+  const musteri4 = await prisma.musteri.create({
+    data: {
+      tur: "tuzel",
+      sirket_adi: "Ege Lojistik Ltd. Şti.",
+      yetkili_kisi: "Derya Aksoy",
+      eposta: "derya@egelojistik.com",
+      vergi_no: "4445556667",
+      vergi_dairesi: "Alsancak",
+      sektor_id: sektorMap["Hizmet"],
+      durum: "aktif",
+      etiketler: ["Lojistik", "KOBİ"],
+    }
+  });
+  await prisma.musteriTelefon.create({ data: { musteri_id: musteri4.id, telefon: "05327654321" } });
+  await prisma.musteriTelefon.create({ data: { musteri_id: musteri4.id, telefon: "02324567890" } });
+  await prisma.musteriAdres.create({ data: { musteri_id: musteri4.id, adres: "Alsancak Mah. Kıbrıs Şehitleri Cad. No:88, Konak/İzmir" } });
+  await prisma.iletisimKisi.create({
+    data: {
+      musteri_id: musteri4.id,
+      ad_soyad: "Derya Aksoy",
+      unvan: "Genel Müdür",
+      departman: "Yönetim",
+      telefon: "02324567890",
+      cep_telefon: "05327654321",
+      eposta: "derya@egelojistik.com",
+      birincil: 1,
+    }
+  });
+  console.log(`   ✓ Müşteri 4: Ege Lojistik (Bayi: Panu Teknoloji)`);
+
+  // ---- Müşteri 5: Gerçek kişi, Panu Teknoloji bayisi altında ----
+  const musteri5 = await prisma.musteri.create({
+    data: {
+      tur: "gercek",
+      ad_soyad: "Canan Demir",
+      tc_kimlik_no: "30340350360",
+      eposta: "canan.demir@gmail.com",
       sektor_id: sektorMap["Perakende"],
       durum: "aktif",
     }
   });
-  await prisma.musteriTelefon.create({ data: { musteri_id: musteri2.id, telefon: "0533 200 3040" } });
-  await prisma.musteriAdres.create({ data: { musteri_id: musteri2.id, adres: "Konak, İzmir" } });
-  console.log(`   ✓ Müşteri 2: Ali Köse (Bayi: Güzel Teknoloji)`);
+  await prisma.musteriTelefon.create({ data: { musteri_id: musteri5.id, telefon: "05448765432" } });
+  await prisma.musteriAdres.create({ data: { musteri_id: musteri5.id, adres: "Bornova Mah. 2. Sk. No:5, Bornova/İzmir" } });
+  console.log(`   ✓ Müşteri 5: Canan Demir (Bayi: Panu Teknoloji)`);
 
-  // Müşteri 3: Kodgem'in alt müşterisi - Gerçek kişi
-  const musteri3 = await prisma.musteri.create({
+  // ---- Müşteri 6: Tüzel, Kodgem bayisi altında ----
+  const musteri6 = await prisma.musteri.create({
+    data: {
+      tur: "tuzel",
+      sirket_adi: "Başkent Medikal San. Tic. Ltd. Şti.",
+      yetkili_kisi: "Oğuz Şahin",
+      eposta: "oguz@baskentmedikal.com",
+      vergi_no: "6667778889",
+      vergi_dairesi: "Kızılay",
+      sektor_id: sektorMap["Sağlık"],
+      durum: "aktif",
+      etiketler: ["Sağlık Sektörü", "Kurumsal"],
+    }
+  });
+  await prisma.musteriTelefon.create({ data: { musteri_id: musteri6.id, telefon: "05051234567" } });
+  await prisma.musteriTelefon.create({ data: { musteri_id: musteri6.id, telefon: "03124561234" } });
+  await prisma.musteriAdres.create({ data: { musteri_id: musteri6.id, adres: "Kızılay Mah. Atatürk Blv. No:200/B, Çankaya/Ankara" } });
+  await prisma.iletisimKisi.create({
+    data: {
+      musteri_id: musteri6.id,
+      ad_soyad: "Oğuz Şahin",
+      unvan: "Satın Alma Müdürü",
+      departman: "Satın Alma",
+      telefon: "03124561234",
+      cep_telefon: "05051234567",
+      eposta: "oguz@baskentmedikal.com",
+      birincil: 1,
+    }
+  });
+  console.log(`   ✓ Müşteri 6: Başkent Medikal (Bayi: Kodgem)`);
+
+  // ---- Müşteri 7: Gerçek kişi, Kodgem bayisi altında ----
+  const musteri7 = await prisma.musteri.create({
     data: {
       tur: "gercek",
-      ad_soyad: "Nimet Demir",
-      tc_kimlik_no: "33344455566",
-      eposta: "nimet.demir@gmail.com",
+      ad_soyad: "Elif Arslan",
+      tc_kimlik_no: "40450460470",
+      eposta: "elif.arslan@outlook.com",
       sektor_id: sektorMap["Hizmet"],
       durum: "aktif",
     }
   });
-  await prisma.musteriTelefon.create({ data: { musteri_id: musteri3.id, telefon: "0534 300 4050" } });
-  await prisma.musteriAdres.create({ data: { musteri_id: musteri3.id, adres: "Çankaya, Ankara" } });
-  console.log(`   ✓ Müşteri 3: Nimet Demir (Bayi: Kodgem)`);
+  await prisma.musteriTelefon.create({ data: { musteri_id: musteri7.id, telefon: "05369871234" } });
+  await prisma.musteriAdres.create({ data: { musteri_id: musteri7.id, adres: "Bahçelievler Mah. 7. Cad. No:12, Çankaya/Ankara" } });
+  console.log(`   ✓ Müşteri 7: Elif Arslan (Bayi: Kodgem)`);
+
+  // ---- Müşteri 8: Tüzel, Mega Yazılım bayisi altında ----
+  const musteri8 = await prisma.musteri.create({
+    data: {
+      tur: "tuzel",
+      sirket_adi: "Nilüfer Otomotiv San. ve Tic. A.Ş.",
+      yetkili_kisi: "Burak Yılmaz",
+      eposta: "burak@niluferotomotiv.com",
+      vergi_no: "8889990001",
+      vergi_dairesi: "Osmangazi",
+      sektor_id: sektorMap["Üretim"],
+      durum: "aktif",
+      etiketler: ["Üretim", "Otomotiv", "Kurumsal"],
+    }
+  });
+  await prisma.musteriTelefon.create({ data: { musteri_id: musteri8.id, telefon: "05381112233" } });
+  await prisma.musteriTelefon.create({ data: { musteri_id: musteri8.id, telefon: "02248901234" } });
+  await prisma.musteriAdres.create({ data: { musteri_id: musteri8.id, adres: "Organize Sanayi Bölgesi 12. Cd. No:45, Nilüfer/Bursa" } });
+  await prisma.iletisimKisi.create({
+    data: {
+      musteri_id: musteri8.id,
+      ad_soyad: "Burak Yılmaz",
+      unvan: "Fabrika Müdürü",
+      departman: "Üretim",
+      telefon: "02248901234",
+      cep_telefon: "05381112233",
+      eposta: "burak@niluferotomotiv.com",
+      birincil: 1,
+    }
+  });
+  console.log(`   ✓ Müşteri 8: Nilüfer Otomotiv (Bayi: Mega Yazılım)`);
+
+  // ---- Müşteri 9: Gerçek kişi, Doruk Bilişim bayisi altında ----
+  const musteri9 = await prisma.musteri.create({
+    data: {
+      tur: "gercek",
+      ad_soyad: "Serkan Polat",
+      tc_kimlik_no: "50560570580",
+      eposta: "serkan.polat@gmail.com",
+      sektor_id: sektorMap["Perakende"],
+      durum: "aktif",
+      etiketler: ["Esnaf", "Antalya"],
+    }
+  });
+  await prisma.musteriTelefon.create({ data: { musteri_id: musteri9.id, telefon: "05074567890" } });
+  await prisma.musteriAdres.create({ data: { musteri_id: musteri9.id, adres: "Konyaaltı Mah. Liman Cad. No:33, Konyaaltı/Antalya" } });
+  console.log(`   ✓ Müşteri 9: Serkan Polat (Bayi: Doruk Bilişim)`);
+
+  // ---- Müşteri 10: Tüzel, bağımsız ----
+  const musteri10 = await prisma.musteri.create({
+    data: {
+      tur: "tuzel",
+      sirket_adi: "Akdeniz Gıda Toptan Tic. Ltd. Şti.",
+      yetkili_kisi: "Murat Koç",
+      eposta: "murat@akdenizgida.com.tr",
+      vergi_no: "3334445556",
+      vergi_dairesi: "Muratpaşa",
+      sektor_id: sektorMap["Toptan Ticaret"],
+      durum: "aktif",
+      etiketler: ["Toptan", "Gıda"],
+    }
+  });
+  await prisma.musteriTelefon.create({ data: { musteri_id: musteri10.id, telefon: "05427890123" } });
+  await prisma.musteriTelefon.create({ data: { musteri_id: musteri10.id, telefon: "02423456789" } });
+  await prisma.musteriAdres.create({ data: { musteri_id: musteri10.id, adres: "Toptancılar Sitesi B Blok No:14, Muratpaşa/Antalya" } });
+  await prisma.iletisimKisi.create({
+    data: {
+      musteri_id: musteri10.id,
+      ad_soyad: "Murat Koç",
+      unvan: "Genel Müdür",
+      departman: "Yönetim",
+      telefon: "02423456789",
+      cep_telefon: "05427890123",
+      eposta: "murat@akdenizgida.com.tr",
+      birincil: 1,
+    }
+  });
+  console.log(`   ✓ Müşteri 10: Akdeniz Gıda (Bağımsız)`);
 
   // =============================================
   // 13. LİSANSLAR
@@ -898,252 +1183,482 @@ async function main() {
 
   let lisansSayisi = 0;
 
-  // --- Müşteri 1: Baran Ürüncan (Bağımsız) ---
-  // VegaPos Pro - Yıllık
+  // --- Müşteri 1: Mehmet Yıldız (Bağımsız) ---
   const m1b1 = rastgeleTarih(180);
   await prisma.lisans.create({
     data: {
-      musteri_id: musteri1.id,
-      bayi_id: null,
-      urun_id: urunMap["VegaPos"],
-      lisans_tipi_id: lisansTipiMap["yillik"],
-      lisans_tipi: "yillik",
-      lisans_anahtari: lisansAnahtari("VP"),
-      baslangic_tarihi: m1b1,
-      bitis_tarihi: bitisTarihiHesapla(m1b1, 365),
-      kullanim_gunu: 365,
-      durum: "aktif",
-      domain: "11122233344",
-      fiyat: 8000,
-      net_tutar: 8000,
-      kullanici_sayisi: 5,
-      odeme_durumu: "odendi",
-      odenen_tutar: 8000,
+      musteri_id: musteri1.id, bayi_id: null,
+      urun_id: urunMap["VegaPos"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("VP"), baslangic_tarihi: m1b1, bitis_tarihi: bitisTarihiHesapla(m1b1, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "10120130140",
+      fiyat: 8000, net_tutar: 8000, kullanici_sayisi: 5, odeme_durumu: "odendi", odenen_tutar: 8000,
     }
   });
   lisansSayisi++;
 
-  // E-Fatura Standart - Yıllık
   const m1b2 = rastgeleTarih(120);
   await prisma.lisans.create({
     data: {
-      musteri_id: musteri1.id,
-      bayi_id: null,
-      urun_id: urunMap["E-Fatura Portal"],
-      lisans_tipi_id: lisansTipiMap["yillik"],
-      lisans_tipi: "yillik",
-      lisans_anahtari: lisansAnahtari("EF"),
-      baslangic_tarihi: m1b2,
-      bitis_tarihi: bitisTarihiHesapla(m1b2, 365),
-      kullanim_gunu: 365,
-      durum: "aktif",
-      domain: "11122233344",
-      fiyat: 2000,
-      net_tutar: 2000,
-      odeme_durumu: "odendi",
-      odenen_tutar: 2000,
+      musteri_id: musteri1.id, bayi_id: null,
+      urun_id: urunMap["E-Fatura Portal"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("EF"), baslangic_tarihi: m1b2, bitis_tarihi: bitisTarihiHesapla(m1b2, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "10120130140",
+      fiyat: 2000, net_tutar: 2000, odeme_durumu: "odendi", odenen_tutar: 2000,
     }
   });
   lisansSayisi++;
 
-  // Domain - Yıllık
   const m1b3 = rastgeleTarih(300);
   await prisma.lisans.create({
     data: {
-      musteri_id: musteri1.id,
-      bayi_id: null,
-      urun_id: urunMap["Domain Tescil"],
-      lisans_tipi_id: lisansTipiMap["yillik"],
-      lisans_tipi: "yillik",
-      lisans_anahtari: lisansAnahtari("DOM"),
-      baslangic_tarihi: m1b3,
-      bitis_tarihi: bitisTarihiHesapla(m1b3, 365),
-      kullanim_gunu: 365,
-      durum: "aktif",
-      domain: "baranuruncan.com",
-      fiyat: 350,
-      net_tutar: 350,
-      odeme_durumu: "odendi",
-      odenen_tutar: 350,
+      musteri_id: musteri1.id, bayi_id: null,
+      urun_id: urunMap["Domain Tescil"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("DOM"), baslangic_tarihi: m1b3, bitis_tarihi: bitisTarihiHesapla(m1b3, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "mehmetyildiz.com",
+      fiyat: 350, net_tutar: 350, odeme_durumu: "odendi", odenen_tutar: 350,
     }
   });
   lisansSayisi++;
 
-  // PAVO SmartPos - Süresiz
   const m1b4 = rastgeleTarih(100);
   await prisma.lisans.create({
     data: {
-      musteri_id: musteri1.id,
-      bayi_id: null,
-      urun_id: urunMap["PAVO SmartPos"],
-      lisans_tipi_id: lisansTipiMap["suresiz"],
-      lisans_tipi: "suresiz",
-      suresiz: 1,
-      lisans_anahtari: lisansAnahtari("PAVO"),
-      baslangic_tarihi: m1b4,
-      bitis_tarihi: null,
-      kullanim_gunu: 0,
-      durum: "aktif",
-      domain: "OKC-2024-001",
-      fiyat: 8500,
-      net_tutar: 8500,
-      odeme_durumu: "odendi",
-      odenen_tutar: 8500,
+      musteri_id: musteri1.id, bayi_id: null,
+      urun_id: urunMap["PAVO SmartPos"], lisans_tipi_id: lisansTipiMap["suresiz"], lisans_tipi: "suresiz", suresiz: 1,
+      lisans_anahtari: lisansAnahtari("PAVO"), baslangic_tarihi: m1b4, bitis_tarihi: null,
+      kullanim_gunu: 0, durum: "aktif", domain: "OKC-2024-001",
+      fiyat: 8500, net_tutar: 8500, odeme_durumu: "odendi", odenen_tutar: 8500,
     }
   });
   lisansSayisi++;
-  console.log(`   ✓ Baran Ürüncan için ${lisansSayisi} lisans oluşturuldu`);
+  console.log(`   ✓ Mehmet Yıldız: 4 lisans (Bağımsız)`);
 
-  // --- Müşteri 2: Ali Köse (Bayi: Güzel Teknoloji) ---
-  const m2Onceki = lisansSayisi;
-
-  // VegaCari Standart - Yıllık
-  const m2b1 = rastgeleTarih(90);
+  // --- Müşteri 2: Anadolu Market (Bayi: Güzel Teknoloji) ---
+  const m2b1 = rastgeleTarih(60);
   await prisma.lisans.create({
     data: {
-      musteri_id: musteri2.id,
-      bayi_id: bayi1.id,
-      urun_id: urunMap["VegaCari"],
-      lisans_tipi_id: lisansTipiMap["yillik"],
-      lisans_tipi: "yillik",
-      lisans_anahtari: lisansAnahtari("VC"),
-      baslangic_tarihi: m2b1,
-      bitis_tarihi: bitisTarihiHesapla(m2b1, 365),
-      kullanim_gunu: 365,
-      durum: "aktif",
-      domain: "22233344455",
-      fiyat: 3500,
-      net_tutar: 3500,
-      kullanici_sayisi: 3,
-      odeme_durumu: "odendi",
-      odenen_tutar: 3500,
+      musteri_id: musteri2.id, bayi_id: bayi1.id,
+      urun_id: urunMap["VegaPos"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("VP"), baslangic_tarihi: m2b1, bitis_tarihi: bitisTarihiHesapla(m2b1, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "1112223334",
+      fiyat: 8000, net_tutar: 7200, kullanici_sayisi: 10, odeme_durumu: "odendi", odenen_tutar: 7200,
+      notlar: "Bayi indirimi uygulandı (%10)",
     }
   });
   lisansSayisi++;
 
-  // E-Arşiv Fatura - Yıllık
   const m2b2 = rastgeleTarih(60);
   await prisma.lisans.create({
     data: {
-      musteri_id: musteri2.id,
-      bayi_id: bayi1.id,
-      urun_id: urunMap["E-Arşiv Fatura"],
-      lisans_tipi_id: lisansTipiMap["yillik"],
-      lisans_tipi: "yillik",
-      lisans_anahtari: lisansAnahtari("EA"),
-      baslangic_tarihi: m2b2,
-      bitis_tarihi: bitisTarihiHesapla(m2b2, 365),
-      kullanim_gunu: 365,
-      durum: "aktif",
-      domain: "22233344455",
-      fiyat: 1000,
-      net_tutar: 1000,
-      odeme_durumu: "odendi",
-      odenen_tutar: 1000,
+      musteri_id: musteri2.id, bayi_id: bayi1.id,
+      urun_id: urunMap["VegaCari"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("VC"), baslangic_tarihi: m2b2, bitis_tarihi: bitisTarihiHesapla(m2b2, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "1112223334",
+      fiyat: 3500, net_tutar: 3150, kullanici_sayisi: 5, odeme_durumu: "odendi", odenen_tutar: 3150,
     }
   });
   lisansSayisi++;
 
-  // Web Hosting - Yıllık
-  const m2b3 = rastgeleTarih(200);
+  const m2b3 = rastgeleTarih(90);
   await prisma.lisans.create({
     data: {
-      musteri_id: musteri2.id,
-      bayi_id: bayi1.id,
-      urun_id: urunMap["Web Hosting"],
-      lisans_tipi_id: lisansTipiMap["yillik"],
-      lisans_tipi: "yillik",
-      lisans_anahtari: lisansAnahtari("HOST"),
-      baslangic_tarihi: m2b3,
-      bitis_tarihi: bitisTarihiHesapla(m2b3, 365),
-      kullanim_gunu: 365,
-      durum: "aktif",
-      domain: "alikose.com.tr",
-      fiyat: 500,
-      net_tutar: 500,
-      odeme_durumu: "odendi",
-      odenen_tutar: 500,
+      musteri_id: musteri2.id, bayi_id: bayi1.id,
+      urun_id: urunMap["E-Fatura Portal"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("EF"), baslangic_tarihi: m2b3, bitis_tarihi: bitisTarihiHesapla(m2b3, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "1112223334",
+      fiyat: 2000, net_tutar: 2000, odeme_durumu: "odendi", odenen_tutar: 2000,
     }
   });
   lisansSayisi++;
-  console.log(`   ✓ Ali Köse için ${lisansSayisi - m2Onceki} lisans oluşturuldu (Bayi: Güzel Teknoloji)`);
 
-  // --- Müşteri 3: Nimet Demir (Bayi: Kodgem) ---
-  const m3Onceki = lisansSayisi;
+  const m2b4 = rastgeleTarih(90);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri2.id, bayi_id: bayi1.id,
+      urun_id: urunMap["E-Arşiv Fatura"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("EA"), baslangic_tarihi: m2b4, bitis_tarihi: bitisTarihiHesapla(m2b4, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "1112223334",
+      fiyat: 1000, net_tutar: 1000, odeme_durumu: "odendi", odenen_tutar: 1000,
+    }
+  });
+  lisansSayisi++;
 
-  // VegaPos Starter - Yıllık
+  const m2b5 = rastgeleTarih(200);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri2.id, bayi_id: bayi1.id,
+      urun_id: urunMap["Web Hosting"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("HOST"), baslangic_tarihi: m2b5, bitis_tarihi: bitisTarihiHesapla(m2b5, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "anadolumarket.com.tr",
+      fiyat: 500, net_tutar: 500, odeme_durumu: "odendi", odenen_tutar: 500,
+    }
+  });
+  lisansSayisi++;
+
+  const m2b6 = rastgeleTarih(200);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri2.id, bayi_id: bayi1.id,
+      urun_id: urunMap["Domain Tescil"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("DOM"), baslangic_tarihi: m2b6, bitis_tarihi: bitisTarihiHesapla(m2b6, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "anadolumarket.com.tr",
+      fiyat: 150, net_tutar: 150, odeme_durumu: "odendi", odenen_tutar: 150,
+    }
+  });
+  lisansSayisi++;
+
+  const m2b7 = rastgeleTarih(30);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri2.id, bayi_id: bayi1.id,
+      urun_id: urunMap["Kurumsal E-Posta"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("MAIL"), baslangic_tarihi: m2b7, bitis_tarihi: bitisTarihiHesapla(m2b7, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "anadolumarket.com.tr",
+      fiyat: 500, net_tutar: 500, kullanici_sayisi: 5, odeme_durumu: "odendi", odenen_tutar: 500,
+    }
+  });
+  lisansSayisi++;
+  console.log(`   ✓ Anadolu Market: 7 lisans (Bayi: Güzel Teknoloji)`);
+
+  // --- Müşteri 3: Ahmet Kaya (Bayi: Güzel Teknoloji) ---
   const m3b1 = rastgeleTarih(150);
   await prisma.lisans.create({
     data: {
-      musteri_id: musteri3.id,
-      bayi_id: bayi3.id,
-      urun_id: urunMap["VegaPos"],
-      lisans_tipi_id: lisansTipiMap["yillik"],
-      lisans_tipi: "yillik",
-      lisans_anahtari: lisansAnahtari("VP"),
-      baslangic_tarihi: m3b1,
-      bitis_tarihi: bitisTarihiHesapla(m3b1, 365),
-      kullanim_gunu: 365,
-      durum: "aktif",
-      domain: "33344455566",
-      fiyat: 3500,
-      net_tutar: 3500,
-      kullanici_sayisi: 1,
-      odeme_durumu: "odendi",
-      odenen_tutar: 3500,
+      musteri_id: musteri3.id, bayi_id: bayi1.id,
+      urun_id: urunMap["VegaPos"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("VP"), baslangic_tarihi: m3b1, bitis_tarihi: bitisTarihiHesapla(m3b1, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "20230240250",
+      fiyat: 3500, net_tutar: 3500, kullanici_sayisi: 1, odeme_durumu: "odendi", odenen_tutar: 3500,
     }
   });
   lisansSayisi++;
 
-  // E-Mutabakat Kontör - Yıllık
-  const m3b2 = rastgeleTarih(45);
+  const m3b2 = rastgeleTarih(100);
   await prisma.lisans.create({
     data: {
-      musteri_id: musteri3.id,
-      bayi_id: bayi3.id,
-      urun_id: urunMap["E-Mutabakat Kontör"],
-      lisans_tipi_id: lisansTipiMap["yillik"],
-      lisans_tipi: "yillik",
-      lisans_anahtari: lisansAnahtari("EMK"),
-      baslangic_tarihi: m3b2,
-      bitis_tarihi: bitisTarihiHesapla(m3b2, 365),
-      kullanim_gunu: 365,
-      durum: "aktif",
-      domain: "33344455566",
-      fiyat: 500,
-      net_tutar: 500,
-      odeme_durumu: "odendi",
-      odenen_tutar: 500,
-      notlar: "100 Kontör paketi",
+      musteri_id: musteri3.id, bayi_id: bayi1.id,
+      urun_id: urunMap["PAVO SmartPos"], lisans_tipi_id: lisansTipiMap["suresiz"], lisans_tipi: "suresiz", suresiz: 1,
+      lisans_anahtari: lisansAnahtari("PAVO"), baslangic_tarihi: m3b2, bitis_tarihi: null,
+      kullanim_gunu: 0, durum: "aktif", domain: "OKC-2024-002",
+      fiyat: 8500, net_tutar: 8500, odeme_durumu: "odendi", odenen_tutar: 8500,
+    }
+  });
+  lisansSayisi++;
+  console.log(`   ✓ Ahmet Kaya: 2 lisans (Bayi: Güzel Teknoloji)`);
+
+  // --- Müşteri 4: Ege Lojistik (Bayi: Panu Teknoloji) ---
+  const m4b1 = rastgeleTarih(90);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri4.id, bayi_id: bayi2.id,
+      urun_id: urunMap["VegaPos"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("VP"), baslangic_tarihi: m4b1, bitis_tarihi: bitisTarihiHesapla(m4b1, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "4445556667",
+      fiyat: 5000, net_tutar: 5000, kullanici_sayisi: 3, odeme_durumu: "odendi", odenen_tutar: 5000,
     }
   });
   lisansSayisi++;
 
-  // Kurumsal E-Posta - Süresiz
-  const m3b3 = rastgeleTarih(200);
+  const m4b2 = rastgeleTarih(90);
   await prisma.lisans.create({
     data: {
-      musteri_id: musteri3.id,
-      bayi_id: bayi3.id,
-      urun_id: urunMap["Kurumsal E-Posta"],
-      lisans_tipi_id: lisansTipiMap["suresiz"],
-      lisans_tipi: "suresiz",
-      suresiz: 1,
-      lisans_anahtari: lisansAnahtari("MAIL"),
-      baslangic_tarihi: m3b3,
-      bitis_tarihi: null,
-      kullanim_gunu: 0,
-      durum: "aktif",
-      domain: "nimetdemir.com",
-      fiyat: 500,
-      net_tutar: 500,
-      kullanici_sayisi: 5,
-      odeme_durumu: "odendi",
-      odenen_tutar: 500,
+      musteri_id: musteri4.id, bayi_id: bayi2.id,
+      urun_id: urunMap["E-Fatura Portal"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("EF"), baslangic_tarihi: m4b2, bitis_tarihi: bitisTarihiHesapla(m4b2, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "4445556667",
+      fiyat: 1500, net_tutar: 1500, odeme_durumu: "odendi", odenen_tutar: 1500,
     }
   });
   lisansSayisi++;
-  console.log(`   ✓ Nimet Demir için ${lisansSayisi - m3Onceki} lisans oluşturuldu (Bayi: Kodgem)`);
+
+  const m4b3 = rastgeleTarih(90);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri4.id, bayi_id: bayi2.id,
+      urun_id: urunMap["E-İrsaliye"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("EIR"), baslangic_tarihi: m4b3, bitis_tarihi: bitisTarihiHesapla(m4b3, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "4445556667",
+      fiyat: 800, net_tutar: 800, odeme_durumu: "odendi", odenen_tutar: 800,
+    }
+  });
+  lisansSayisi++;
+
+  const m4b4 = rastgeleTarih(150);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri4.id, bayi_id: bayi2.id,
+      urun_id: urunMap["Domain Tescil"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("DOM"), baslangic_tarihi: m4b4, bitis_tarihi: bitisTarihiHesapla(m4b4, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "egelojistik.com",
+      fiyat: 350, net_tutar: 350, odeme_durumu: "odendi", odenen_tutar: 350,
+    }
+  });
+  lisansSayisi++;
+  console.log(`   ✓ Ege Lojistik: 4 lisans (Bayi: Panu Teknoloji)`);
+
+  // --- Müşteri 5: Canan Demir (Bayi: Panu Teknoloji) ---
+  const m5b1 = rastgeleTarih(45);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri5.id, bayi_id: bayi2.id,
+      urun_id: urunMap["VegaCari"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("VC"), baslangic_tarihi: m5b1, bitis_tarihi: bitisTarihiHesapla(m5b1, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "30340350360",
+      fiyat: 2500, net_tutar: 2500, kullanici_sayisi: 1, odeme_durumu: "odendi", odenen_tutar: 2500,
+    }
+  });
+  lisansSayisi++;
+
+  const m5b2 = rastgeleTarih(45);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri5.id, bayi_id: bayi2.id,
+      urun_id: urunMap["E-Arşiv Fatura"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("EA"), baslangic_tarihi: m5b2, bitis_tarihi: bitisTarihiHesapla(m5b2, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "30340350360",
+      fiyat: 1000, net_tutar: 1000, odeme_durumu: "odendi", odenen_tutar: 1000,
+    }
+  });
+  lisansSayisi++;
+  console.log(`   ✓ Canan Demir: 2 lisans (Bayi: Panu Teknoloji)`);
+
+  // --- Müşteri 6: Başkent Medikal (Bayi: Kodgem) ---
+  const m6b1 = rastgeleTarih(60);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri6.id, bayi_id: bayi3.id,
+      urun_id: urunMap["VegaPos"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("VP"), baslangic_tarihi: m6b1, bitis_tarihi: bitisTarihiHesapla(m6b1, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "6667778889",
+      fiyat: 5000, net_tutar: 5000, kullanici_sayisi: 3, odeme_durumu: "odendi", odenen_tutar: 5000,
+    }
+  });
+  lisansSayisi++;
+
+  const m6b2 = rastgeleTarih(60);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri6.id, bayi_id: bayi3.id,
+      urun_id: urunMap["E-Fatura Portal"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("EF"), baslangic_tarihi: m6b2, bitis_tarihi: bitisTarihiHesapla(m6b2, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "6667778889",
+      fiyat: 2000, net_tutar: 2000, odeme_durumu: "odendi", odenen_tutar: 2000,
+    }
+  });
+  lisansSayisi++;
+
+  const m6b3 = rastgeleTarih(60);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri6.id, bayi_id: bayi3.id,
+      urun_id: urunMap["E-Arşiv Fatura"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("EA"), baslangic_tarihi: m6b3, bitis_tarihi: bitisTarihiHesapla(m6b3, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "6667778889",
+      fiyat: 1000, net_tutar: 1000, odeme_durumu: "odendi", odenen_tutar: 1000,
+    }
+  });
+  lisansSayisi++;
+
+  const m6b4 = rastgeleTarih(100);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri6.id, bayi_id: bayi3.id,
+      urun_id: urunMap["E-Mutabakat Kontör"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("EMK"), baslangic_tarihi: m6b4, bitis_tarihi: bitisTarihiHesapla(m6b4, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "6667778889",
+      fiyat: 1750, net_tutar: 1750, odeme_durumu: "odendi", odenen_tutar: 1750, notlar: "500 Kontör paketi",
+    }
+  });
+  lisansSayisi++;
+
+  const m6b5 = rastgeleTarih(150);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri6.id, bayi_id: bayi3.id,
+      urun_id: urunMap["Web Hosting"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("HOST"), baslangic_tarihi: m6b5, bitis_tarihi: bitisTarihiHesapla(m6b5, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "baskentmedikal.com",
+      fiyat: 500, net_tutar: 500, odeme_durumu: "odendi", odenen_tutar: 500,
+    }
+  });
+  lisansSayisi++;
+
+  const m6b6 = rastgeleTarih(150);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri6.id, bayi_id: bayi3.id,
+      urun_id: urunMap["Kurumsal E-Posta"], lisans_tipi_id: lisansTipiMap["suresiz"], lisans_tipi: "suresiz", suresiz: 1,
+      lisans_anahtari: lisansAnahtari("MAIL"), baslangic_tarihi: m6b5, bitis_tarihi: null,
+      kullanim_gunu: 0, durum: "aktif", domain: "baskentmedikal.com",
+      fiyat: 500, net_tutar: 500, kullanici_sayisi: 5, odeme_durumu: "odendi", odenen_tutar: 500,
+    }
+  });
+  lisansSayisi++;
+  console.log(`   ✓ Başkent Medikal: 6 lisans (Bayi: Kodgem)`);
+
+  // --- Müşteri 7: Elif Arslan (Bayi: Kodgem) ---
+  const m7b1 = rastgeleTarih(200);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri7.id, bayi_id: bayi3.id,
+      urun_id: urunMap["VegaPos"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("VP"), baslangic_tarihi: m7b1, bitis_tarihi: bitisTarihiHesapla(m7b1, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "40450460470",
+      fiyat: 3500, net_tutar: 3500, kullanici_sayisi: 1, odeme_durumu: "odendi", odenen_tutar: 3500,
+    }
+  });
+  lisansSayisi++;
+  console.log(`   ✓ Elif Arslan: 1 lisans (Bayi: Kodgem)`);
+
+  // --- Müşteri 8: Nilüfer Otomotiv (Bayi: Mega Yazılım) ---
+  const m8b1 = rastgeleTarih(30);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri8.id, bayi_id: bayi4.id,
+      urun_id: urunMap["VegaPos"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("VP"), baslangic_tarihi: m8b1, bitis_tarihi: bitisTarihiHesapla(m8b1, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "8889990001",
+      fiyat: 8000, net_tutar: 8000, kullanici_sayisi: 10, odeme_durumu: "odendi", odenen_tutar: 8000,
+    }
+  });
+  lisansSayisi++;
+
+  const m8b2 = rastgeleTarih(30);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri8.id, bayi_id: bayi4.id,
+      urun_id: urunMap["VegaCari"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("VC"), baslangic_tarihi: m8b2, bitis_tarihi: bitisTarihiHesapla(m8b2, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "8889990001",
+      fiyat: 3500, net_tutar: 3500, kullanici_sayisi: 5, odeme_durumu: "odendi", odenen_tutar: 3500,
+    }
+  });
+  lisansSayisi++;
+
+  const m8b3 = rastgeleTarih(30);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri8.id, bayi_id: bayi4.id,
+      urun_id: urunMap["E-Fatura Portal"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("EF"), baslangic_tarihi: m8b3, bitis_tarihi: bitisTarihiHesapla(m8b3, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "8889990001",
+      fiyat: 2000, net_tutar: 2000, odeme_durumu: "odendi", odenen_tutar: 2000,
+    }
+  });
+  lisansSayisi++;
+
+  const m8b4 = rastgeleTarih(30);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri8.id, bayi_id: bayi4.id,
+      urun_id: urunMap["E-İrsaliye"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("EIR"), baslangic_tarihi: m8b4, bitis_tarihi: bitisTarihiHesapla(m8b4, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "8889990001",
+      fiyat: 800, net_tutar: 800, odeme_durumu: "odendi", odenen_tutar: 800,
+    }
+  });
+  lisansSayisi++;
+
+  const m8b5 = rastgeleTarih(30);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri8.id, bayi_id: bayi4.id,
+      urun_id: urunMap["PAVO SmartPos"], lisans_tipi_id: lisansTipiMap["suresiz"], lisans_tipi: "suresiz", suresiz: 1,
+      lisans_anahtari: lisansAnahtari("PAVO"), baslangic_tarihi: m8b5, bitis_tarihi: null,
+      kullanim_gunu: 0, durum: "aktif", domain: "OKC-2025-003",
+      fiyat: 8500, net_tutar: 8500, odeme_durumu: "odendi", odenen_tutar: 8500,
+    }
+  });
+  lisansSayisi++;
+  console.log(`   ✓ Nilüfer Otomotiv: 5 lisans (Bayi: Mega Yazılım)`);
+
+  // --- Müşteri 9: Serkan Polat (Bayi: Doruk Bilişim) ---
+  const m9b1 = rastgeleTarih(120);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri9.id, bayi_id: bayi5.id,
+      urun_id: urunMap["VegaPos"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("VP"), baslangic_tarihi: m9b1, bitis_tarihi: bitisTarihiHesapla(m9b1, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "50560570580",
+      fiyat: 3500, net_tutar: 3500, kullanici_sayisi: 1, odeme_durumu: "odendi", odenen_tutar: 3500,
+    }
+  });
+  lisansSayisi++;
+
+  const m9b2 = rastgeleTarih(120);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri9.id, bayi_id: bayi5.id,
+      urun_id: urunMap["E-Arşiv Fatura"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("EA"), baslangic_tarihi: m9b2, bitis_tarihi: bitisTarihiHesapla(m9b2, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "50560570580",
+      fiyat: 1000, net_tutar: 1000, odeme_durumu: "odendi", odenen_tutar: 1000,
+    }
+  });
+  lisansSayisi++;
+  console.log(`   ✓ Serkan Polat: 2 lisans (Bayi: Doruk Bilişim)`);
+
+  // --- Müşteri 10: Akdeniz Gıda (Bağımsız) ---
+  const m10b1 = rastgeleTarih(50);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri10.id, bayi_id: null,
+      urun_id: urunMap["VegaPos"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("VP"), baslangic_tarihi: m10b1, bitis_tarihi: bitisTarihiHesapla(m10b1, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "3334445556",
+      fiyat: 5000, net_tutar: 5000, kullanici_sayisi: 3, odeme_durumu: "odendi", odenen_tutar: 5000,
+    }
+  });
+  lisansSayisi++;
+
+  const m10b2 = rastgeleTarih(50);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri10.id, bayi_id: null,
+      urun_id: urunMap["VegaCari"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("VC"), baslangic_tarihi: m10b2, bitis_tarihi: bitisTarihiHesapla(m10b2, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "3334445556",
+      fiyat: 3500, net_tutar: 3500, kullanici_sayisi: 5, odeme_durumu: "odendi", odenen_tutar: 3500,
+    }
+  });
+  lisansSayisi++;
+
+  const m10b3 = rastgeleTarih(50);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri10.id, bayi_id: null,
+      urun_id: urunMap["E-Fatura Portal"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("EF"), baslangic_tarihi: m10b3, bitis_tarihi: bitisTarihiHesapla(m10b3, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "3334445556",
+      fiyat: 2000, net_tutar: 2000, odeme_durumu: "odendi", odenen_tutar: 2000,
+    }
+  });
+  lisansSayisi++;
+
+  const m10b4 = rastgeleTarih(50);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri10.id, bayi_id: null,
+      urun_id: urunMap["Domain Tescil"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("DOM"), baslangic_tarihi: m10b4, bitis_tarihi: bitisTarihiHesapla(m10b4, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "akdenizgida.com.tr",
+      fiyat: 150, net_tutar: 150, odeme_durumu: "odendi", odenen_tutar: 150,
+    }
+  });
+  lisansSayisi++;
+
+  const m10b5 = rastgeleTarih(50);
+  await prisma.lisans.create({
+    data: {
+      musteri_id: musteri10.id, bayi_id: null,
+      urun_id: urunMap["Web Hosting"], lisans_tipi_id: lisansTipiMap["yillik"], lisans_tipi: "yillik",
+      lisans_anahtari: lisansAnahtari("HOST"), baslangic_tarihi: m10b5, bitis_tarihi: bitisTarihiHesapla(m10b5, 365),
+      kullanim_gunu: 365, durum: "aktif", domain: "akdenizgida.com.tr",
+      fiyat: 500, net_tutar: 500, odeme_durumu: "odendi", odenen_tutar: 500,
+    }
+  });
+  lisansSayisi++;
+  console.log(`   ✓ Akdeniz Gıda: 5 lisans (Bağımsız)`);
 
   // =============================================
   // ÖZET
@@ -1162,17 +1677,24 @@ async function main() {
    ├─ Ürün Şablonları: ${sablonSayisi}
    ├─ Ürünler: ${Object.keys(urunMap).length}
    ├─ Paketler: ${paketSayisi}
-   ├─ Bayiler: 3
-   │   ├─ Güzel Teknoloji (İstanbul)
+   ├─ Bayiler: 5
+   │   ├─ Güzel Teknoloji (İstanbul) — Ana Bayi
    │   ├─ Panu Teknoloji (İzmir)
-   │   └─ Kodgem (Ankara)
-   ├─ Müşteriler: 3
-   │   ├─ Baran Ürüncan (Bağımsız)
-   │   ├─ Ali Köse (Bayi: Güzel Teknoloji)
-   │   └─ Nimet Demir (Bayi: Kodgem)
+   │   ├─ Kodgem Bilişim (Ankara)
+   │   ├─ Mega Yazılım (Bursa)
+   │   └─ Doruk Bilişim (Antalya) — Bireysel
+   ├─ Müşteriler: 10
+   │   ├─ Mehmet Yıldız — Bağımsız (4 lisans)
+   │   ├─ Anadolu Market Zinciri — Güzel Teknoloji (7 lisans)
+   │   ├─ Ahmet Kaya — Güzel Teknoloji (2 lisans)
+   │   ├─ Ege Lojistik — Panu Teknoloji (4 lisans)
+   │   ├─ Canan Demir — Panu Teknoloji (2 lisans)
+   │   ├─ Başkent Medikal — Kodgem (6 lisans)
+   │   ├─ Elif Arslan — Kodgem (1 lisans)
+   │   ├─ Nilüfer Otomotiv — Mega Yazılım (5 lisans)
+   │   ├─ Serkan Polat — Doruk Bilişim (2 lisans)
+   │   └─ Akdeniz Gıda — Bağımsız (5 lisans)
    └─ Lisanslar: ${lisansSayisi}
-       ├─ 2 adet süresiz lisans (PAVO SmartPos + E-Posta)
-       └─ ${lisansSayisi - 2} adet yıllık lisans
 `);
 }
 

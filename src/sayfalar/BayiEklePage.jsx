@@ -159,7 +159,7 @@ export default function BayiEklePage() {
           adres: b.adres || "",
           kisiler: [],
           notlar: b.notlar || "",
-          etiketler: b.etiketler ? (typeof b.etiketler === "string" ? JSON.parse(b.etiketler) : b.etiketler) : [],
+          etiketler: Array.isArray(b.etiketler) ? b.etiketler : (b.etiketler ? (typeof b.etiketler === "string" ? (JSON.parse(b.etiketler) || []) : b.etiketler) : []),
           yeniEtiket: "",
           durum: b.durum === "aktif",
         });
@@ -223,10 +223,10 @@ export default function BayiEklePage() {
   const etiketEkle = () => {
     const yeni = form.yeniEtiket.trim();
     if (!yeni) return;
-    if (form.etiketler.includes(yeni)) { alanGuncelle("yeniEtiket", ""); return; }
-    setForm((o) => ({ ...o, etiketler: [...o.etiketler, yeni], yeniEtiket: "" }));
+    if ((form.etiketler || []).includes(yeni)) { alanGuncelle("yeniEtiket", ""); return; }
+    setForm((o) => ({ ...o, etiketler: [...(o.etiketler || []), yeni], yeniEtiket: "" }));
   };
-  const etiketSil = (idx) => setForm((o) => ({ ...o, etiketler: o.etiketler.filter((_, i) => i !== idx) }));
+  const etiketSil = (idx) => setForm((o) => ({ ...o, etiketler: (o.etiketler || []).filter((_, i) => i !== idx) }));
   const etiketKeyDown = (e) => { if (e.key === "Enter") { e.preventDefault(); etiketEkle(); } };
 
   /* ============================================= */
@@ -298,7 +298,7 @@ export default function BayiEklePage() {
         sirket_adi: form.sirketAdi,
         adres: form.adres || null,
         notlar: form.notlar || null,
-        etiketler: form.etiketler.length > 0 ? form.etiketler : null,
+        etiketler: (form.etiketler || []).length > 0 ? form.etiketler : null,
       };
 
       let yanit;
@@ -813,9 +813,9 @@ export default function BayiEklePage() {
           {/* ---- Etiketler ---- */}
           <div>
             <label className={LABEL_STIL}>Etiketler</label>
-            {form.etiketler.length > 0 && (
+            {(form.etiketler || []).length > 0 && (
               <div className="flex flex-wrap gap-2 mb-3">
-                {form.etiketler.map((etiket, idx) => (
+                {(form.etiketler || []).map((etiket, idx) => (
                   <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-sm font-medium">
                     {etiket}
                     <button type="button" onClick={() => etiketSil(idx)} className="hover:text-red-500 transition-colors cursor-pointer">
