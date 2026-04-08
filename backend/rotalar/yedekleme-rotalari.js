@@ -166,8 +166,15 @@ router.post("/yukle-sql", hataYakala(async (req, res) => {
   let basariliSayi = 0;
   let hataSayi = 0;
 
+  /* Guvenlik: Sadece INSERT, UPDATE, DELETE, SET, CREATE TABLE, ALTER TABLE, DROP TABLE izinli */
+  const izinliKomutlar = /^\s*(INSERT|UPDATE|DELETE|SET|CREATE\s+TABLE|ALTER\s+TABLE|DROP\s+TABLE|TRUNCATE)/i;
+
   await prisma.$transaction(async (tx) => {
     for (const satir of satirlar) {
+      if (!izinliKomutlar.test(satir)) {
+        hataSayi++;
+        continue;
+      }
       try {
         await tx.$executeRawUnsafe(satir);
         basariliSayi++;

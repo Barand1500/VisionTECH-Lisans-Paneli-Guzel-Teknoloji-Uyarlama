@@ -5,7 +5,8 @@
 
 const jwt = require("jsonwebtoken");
 
-const JWT_GIZLI = process.env.JWT_SECRET || "guzel-teknoloji-gizli-anahtar-2026";
+const JWT_GIZLI = process.env.JWT_SECRET;
+if (!JWT_GIZLI) throw new Error("JWT_SECRET ortam degiskeni tanimlanmamis! Sunucu guvenli calisamaz.");
 
 /* ---- Token Dogrulama ---- */
 function yetkiKontrol(req, res, next) {

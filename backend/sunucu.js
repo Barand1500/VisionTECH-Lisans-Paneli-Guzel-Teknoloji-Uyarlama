@@ -11,6 +11,7 @@ const rateLimit = require("express-rate-limit");
 
 /* ---- Veritabani (Prisma) ---- */
 const { prisma } = require("./veritabani/prisma");
+const { yetkiKontrol, sadaceAdmin } = require("./yardimcilar/yetki-middleware");
 
 /* ---- Express Uygulamasi ---- */
 const uygulama = express();
@@ -40,6 +41,19 @@ uygulama.use(express.json({ limit: "50mb" }));
 uygulama.use(express.urlencoded({ limit: "50mb", extended: true }));
 uygulama.use("/api", genelLimit);
 
+/* ---- Global Auth Middleware ---- */
+/* Giris, sifre sifirlama ve durum haric tum API rotalari icin token zorunlu */
+const acikRotalar = [
+  "/api/yetki/giris",
+  "/api/yetki/sifre-sifirla",
+  "/api/iletisim/sifremi-unuttum",
+  "/api/durum",
+];
+uygulama.use("/api", (req, res, next) => {
+  if (acikRotalar.some((r) => req.path === r || req.originalUrl === r)) return next();
+  yetkiKontrol(req, res, next);
+});
+
 /* ---- API Rotalari ---- */
 uygulama.use("/api/yetki", yetkiLimit, require("./rotalar/yetki-rotalari"));
 uygulama.use("/api/musteriler", require("./rotalar/musteri-rotalari"));
@@ -54,14 +68,14 @@ uygulama.use("/api/dashboard", require("./rotalar/dashboard-rotalari"));
 uygulama.use("/api/surumler", require("./rotalar/surum-rotalari"));
 uygulama.use("/api/roller", require("./rotalar/rol-rotalari"));
 uygulama.use("/api/raporlar", require("./rotalar/rapor-rotalari"));
-uygulama.use("/api/yedekleme", require("./rotalar/yedekleme-rotalari"));
+uygulama.use("/api/yedekleme", sadaceAdmin, require("./rotalar/yedekleme-rotalari"));
 uygulama.use("/api/sektorler", require("./rotalar/sektor-rotalari"));
 uygulama.use("/api/sablonlar", require("./rotalar/sablon-rotalari"));
 uygulama.use("/api/paket-tipleri", require("./rotalar/paket-tipi-rotalari"));
 uygulama.use("/api/dosyalar", require("./rotalar/dosya-rotalari"));
 uygulama.use("/api/iletisim", require("./rotalar/iletisim-rotalari"));
 uygulama.use("/api/kisiler", require("./rotalar/iletisim-kisileri-rotalari"));
-uygulama.use("/api/cop-kutusu", require("./rotalar/cop-kutusu-rotalari"));
+uygulama.use("/api/cop-kutusu", sadaceAdmin, require("./rotalar/cop-kutusu-rotalari"));
 
 /* ---- Statik dosya servisi (uploads) ---- */
 uygulama.use("/uploads", express.static(path.join(__dirname, "uploads")));

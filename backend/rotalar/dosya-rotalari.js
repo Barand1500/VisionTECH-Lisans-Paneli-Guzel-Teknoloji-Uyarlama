@@ -55,7 +55,7 @@ router.post("/:musteriId/dosyalar", yetkiKontrol, yukleme.array("dosyalar", 10),
 
 /* ---- Dosya İndir ---- */
 router.get("/:musteriId/dosyalar/:dosyaId/indir", yetkiKontrol, hataYakala(async (req, res) => {
-  const dosya = await prisma.musteriDosya.findUnique({ where: { id: Number(req.params.dosyaId) }, select: { dosya_adi: true, orijinal_ad: true } });
+  const dosya = await prisma.musteriDosya.findFirst({ where: { id: Number(req.params.dosyaId), musteri_id: Number(req.params.musteriId) }, select: { dosya_adi: true, orijinal_ad: true } });
   if (!dosya) return bulunamadiHatasi(res, "Dosya bulunamadı.");
   const dosyaYolu = path.join(UPLOAD_DIR, dosya.dosya_adi);
   if (!fs.existsSync(dosyaYolu)) return bulunamadiHatasi(res, "Dosya sunucuda bulunamadı.");
@@ -64,7 +64,7 @@ router.get("/:musteriId/dosyalar/:dosyaId/indir", yetkiKontrol, hataYakala(async
 
 /* ---- Dosya Sil ---- */
 router.delete("/:musteriId/dosyalar/:dosyaId", yetkiKontrol, hataYakala(async (req, res) => {
-  const dosya = await prisma.musteriDosya.findUnique({ where: { id: Number(req.params.dosyaId) }, select: { dosya_adi: true } });
+  const dosya = await prisma.musteriDosya.findFirst({ where: { id: Number(req.params.dosyaId), musteri_id: Number(req.params.musteriId) }, select: { dosya_adi: true } });
   if (!dosya) return bulunamadiHatasi(res, "Dosya bulunamadı.");
   const dosyaYolu = path.join(UPLOAD_DIR, dosya.dosya_adi);
   if (fs.existsSync(dosyaYolu)) fs.unlinkSync(dosyaYolu);
@@ -105,7 +105,7 @@ router.post("/bayi/:bayiId/dosyalar", yetkiKontrol, yukleme.array("dosyalar", 10
 
 /* ---- Bayi Dosya İndir ---- */
 router.get("/bayi/:bayiId/dosyalar/:dosyaId/indir", yetkiKontrol, hataYakala(async (req, res) => {
-  const dosya = await prisma.bayiDosya.findUnique({ where: { id: Number(req.params.dosyaId) }, select: { dosya_adi: true, orijinal_ad: true } });
+  const dosya = await prisma.bayiDosya.findFirst({ where: { id: Number(req.params.dosyaId), bayi_id: Number(req.params.bayiId) }, select: { dosya_adi: true, orijinal_ad: true } });
   if (!dosya) return bulunamadiHatasi(res, "Dosya bulunamadı.");
   const dosyaYolu = path.join(UPLOAD_DIR, dosya.dosya_adi);
   if (!fs.existsSync(dosyaYolu)) return bulunamadiHatasi(res, "Dosya sunucuda bulunamadı.");
@@ -114,7 +114,7 @@ router.get("/bayi/:bayiId/dosyalar/:dosyaId/indir", yetkiKontrol, hataYakala(asy
 
 /* ---- Bayi Dosya Sil ---- */
 router.delete("/bayi/:bayiId/dosyalar/:dosyaId", yetkiKontrol, hataYakala(async (req, res) => {
-  const dosya = await prisma.bayiDosya.findUnique({ where: { id: Number(req.params.dosyaId) }, select: { dosya_adi: true } });
+  const dosya = await prisma.bayiDosya.findFirst({ where: { id: Number(req.params.dosyaId), bayi_id: Number(req.params.bayiId) }, select: { dosya_adi: true } });
   if (!dosya) return bulunamadiHatasi(res, "Dosya bulunamadı.");
   const dosyaYolu = path.join(UPLOAD_DIR, dosya.dosya_adi);
   if (fs.existsSync(dosyaYolu)) fs.unlinkSync(dosyaYolu);
