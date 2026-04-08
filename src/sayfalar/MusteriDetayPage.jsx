@@ -265,14 +265,26 @@ export default function MusteriDetayPage() {
               <span className={`mt-2 px-3 py-1 rounded-full text-xs font-medium ${tip.renk}`}>{tip.ad}</span>
             </div>
 
-            {/* Durum */}
+            {/* Durum Toggle */}
             <div className="flex items-center justify-center gap-2 mb-6">
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${
-                musteri.durum === "aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-400"
-              }`}>
+              <button
+                onClick={async () => {
+                  const yeniDurum = musteri.durum === "aktif" ? "pasif" : "aktif";
+                  try {
+                    await apiPut(`/musteriler/${id}`, { durum: yeniDurum });
+                    setMusteri((o) => ({ ...o, durum: yeniDurum }));
+                  } catch (e) { console.error("Durum güncellenemedi:", e); }
+                }}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-all hover:shadow-md ${
+                  musteri.durum === "aktif"
+                    ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-500/30"
+                    : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-white/20"
+                }`}
+                title={musteri.durum === "aktif" ? "Pasif yapmak için tıklayın" : "Aktif yapmak için tıklayın"}
+              >
                 <span className={`w-2 h-2 rounded-full ${musteri.durum === "aktif" ? "bg-emerald-500" : "bg-gray-400"}`} />
                 {musteri.durum === "aktif" ? "Aktif" : "Pasif"}
-              </span>
+              </button>
             </div>
 
             {/* Hizli Bilgiler */}
@@ -281,7 +293,7 @@ export default function MusteriDetayPage() {
                 <div>
                   <p className="text-xs text-gray-400 dark:text-slate-500 mb-1">E-posta</p>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm text-gray-900 dark:text-white break-all">{musteri.eposta}</p>
+                    <a href={`mailto:${musteri.eposta}`} className="text-sm text-blue-600 dark:text-blue-400 hover:underline break-all" title="Mail göndermek için tıklayın">{musteri.eposta}</a>
                     <KopyalaButonu metin={musteri.eposta} />
                   </div>
                 </div>

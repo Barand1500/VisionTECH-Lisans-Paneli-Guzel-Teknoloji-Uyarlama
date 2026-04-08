@@ -252,14 +252,26 @@ export default function BayiDetayPage() {
               </span>
             </div>
 
-            {/* Durum */}
+            {/* Durum Toggle */}
             <div className="flex items-center justify-center gap-2 mb-6">
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${
-                bayi.durum === "aktif" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-400"
-              }`}>
+              <button
+                onClick={async () => {
+                  const yeniDurum = bayi.durum === "aktif" ? "pasif" : "aktif";
+                  try {
+                    await apiPut(`/bayiler/${id}`, { durum: yeniDurum });
+                    setBayi((o) => ({ ...o, durum: yeniDurum }));
+                  } catch (e) { console.error("Durum güncellenemedi:", e); }
+                }}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-all hover:shadow-md ${
+                  bayi.durum === "aktif"
+                    ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-500/30"
+                    : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-white/20"
+                }`}
+                title={bayi.durum === "aktif" ? "Pasif yapmak için tıklayın" : "Aktif yapmak için tıklayın"}
+              >
                 <span className={`w-2 h-2 rounded-full ${bayi.durum === "aktif" ? "bg-emerald-500" : "bg-gray-400"}`} />
                 {bayi.durum === "aktif" ? "Aktif" : "Pasif"}
-              </span>
+              </button>
             </div>
 
             {/* Hizli Bilgiler */}
@@ -268,7 +280,7 @@ export default function BayiDetayPage() {
                 <div>
                   <p className="text-xs text-gray-400 dark:text-slate-500 mb-1">E-posta</p>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm text-gray-900 dark:text-white break-all">{bayi.eposta}</p>
+                    <a href={`mailto:${bayi.eposta}`} className="text-sm text-blue-600 dark:text-blue-400 hover:underline break-all" title="Mail göndermek için tıklayın">{bayi.eposta}</a>
                     <KopyalaButonu metin={bayi.eposta} />
                   </div>
                 </div>
