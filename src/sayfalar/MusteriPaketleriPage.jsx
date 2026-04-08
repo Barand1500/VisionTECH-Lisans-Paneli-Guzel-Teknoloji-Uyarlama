@@ -61,7 +61,7 @@ const rastgeleLisansAnahtari = () => {
     }
     gruplar.push(grup);
   }
-  return gruplar.join("-");
+  return "GT-" + gruplar.join("-");
 };
 
 /* ---- Sallanma Animasyonu ---- */
@@ -1168,6 +1168,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
   const [sablon, setSablon] = useState(null);
   const [sablonDegerler, setSablonDegerler] = useState({});
   const [fiyatBreakdown, setFiyatBreakdown] = useState({ temelFiyat: 0, paketFiyat: 0, ekKullaniciFiyat: 0, ekKullaniciAdet: 0, ekKullaniciBirim: 0, toplam: 0 });
+  const [suresizTarihAcik, setSuresizTarihAcik] = useState(false);
 
   /* Form state */
   const [form, setForm] = useState({
@@ -1512,6 +1513,26 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
       });
     }
   }, [sablon, sablonDegerler, seciliPaket, form.ekKullanici]);
+
+  /* Paket seçildiğinde şablon değerlerini paket özelliklerinden doldur */
+  useEffect(() => {
+    if (!seciliPaket || !sablon || !sablon.ozellikler) return;
+    let paketOz = [];
+    try {
+      paketOz = typeof seciliPaket.ozellikler === 'string' ? JSON.parse(seciliPaket.ozellikler) : (seciliPaket.ozellikler || []);
+    } catch { paketOz = []; }
+    if (paketOz.length === 0) return;
+    setSablonDegerler((prev) => {
+      const yeni = { ...prev };
+      paketOz.forEach((poz) => {
+        const sablonOz = sablon.ozellikler.find((s) => s.ozellik_tipi === poz.tip || s.ozellik_tipi === poz.ozellik_tipi);
+        if (sablonOz && poz.deger) {
+          yeni[sablonOz.id] = { ...(poz.deger || {}) };
+        }
+      });
+      return yeni;
+    });
+  }, [seciliPaket, sablon]);
 
   /* Ürün seçildiğinde */
   const urunSec = async (urunId) => {
@@ -1903,24 +1924,26 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                   </div>
                 </div>
               ) : (
-                <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Süresiz Lisans</p>
-                      <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70 mt-1">Bu lisans süresiz olarak tanımlanacaktır. Bitiş tarihi olmadan geçerli kalacaktır.</p>
-                      <div className="mt-3 flex gap-4">
-                        <div>
-                          <label className={`${LABEL_STIL} text-emerald-700 dark:text-emerald-400`}>Başlangıç Tarihi</label>
-                          <input type="date" value={form.baslangicTarihi} onChange={(e) => guncelle("baslangicTarihi", e.target.value)} className={`${INPUT_STIL} border-emerald-300 dark:border-emerald-500/30 max-w-[160px]`} />
-                        </div>
-                      </div>
-                    </div>
+                <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
+                  <div className="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 flex-1">Süresiz lisans — başlangıç tarihi otomatik bugün alınır.</p>
+                    <button
+                      type="button"
+                      onClick={() => setSuresizTarihAcik(!suresizTarihAcik)}
+                      className="text-[11px] text-emerald-700 dark:text-emerald-400 underline hover:no-underline shrink-0"
+                    >
+                      {suresizTarihAcik ? "Gizle" : "Tarihi Değiştir"}
+                    </button>
                   </div>
+                  {suresizTarihAcik && (
+                    <div className="mt-2 pt-2 border-t border-emerald-200 dark:border-emerald-500/20">
+                      <label className={`${LABEL_STIL} text-emerald-700 dark:text-emerald-400`}>Başlangıç Tarihi</label>
+                      <input type="date" value={form.baslangicTarihi} onChange={(e) => guncelle("baslangicTarihi", e.target.value)} className={`${INPUT_STIL} border-emerald-300 dark:border-emerald-500/30 max-w-[160px]`} />
+                    </div>
+                  )}
                 </div>
               )}
 

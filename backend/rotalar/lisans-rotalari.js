@@ -5,7 +5,16 @@ const { prisma, temizle } = require("../veritabani/prisma");
 const { hataYakala, dogrulamaHatasi, bulunamadiHatasi } = require("../yardimcilar/hata-yonetimi");
 
 function rastgeleLisansAnahtari() {
-  return crypto.randomBytes(16).toString("hex").toUpperCase().replace(/(.{4})/g, "$1-").slice(0, -1);
+  const karakterler = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const gruplar = [];
+  for (let g = 0; g < 4; g++) {
+    let grup = "";
+    for (let i = 0; i < 4; i++) {
+      grup += karakterler.charAt(Math.floor(Math.random() * karakterler.length));
+    }
+    gruplar.push(grup);
+  }
+  return "GT-" + gruplar.join("-");
 }
 
 /* ---- Tum Lisanslar (bayi_id filtresi destekli) ---- */
