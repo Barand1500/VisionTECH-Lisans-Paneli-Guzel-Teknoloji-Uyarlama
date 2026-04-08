@@ -78,6 +78,7 @@ function AgacDugumu({ bayi, tumBayiler, seviye = 0, odakliId, setOdakliId }) {
   const odakli = odakliId === bayi.id;
   const altSirket = odakliAltMi(bayi.id, odakliId, tumBayiler);
   const soluk = odakliId !== null && odakliId !== bayi.id && !altSirket;
+  const pasif = bayi.durum !== "aktif";
 
   return (
     <div>
@@ -88,7 +89,7 @@ function AgacDugumu({ bayi, tumBayiler, seviye = 0, odakliId, setOdakliId }) {
         } ${
           odakli
             ? "bg-blue-50 dark:bg-blue-500/10 ring-2 ring-blue-400 dark:ring-blue-500/50 shadow-md"
-            : soluk
+            : soluk || pasif
             ? "opacity-40 hover:opacity-70"
             : "hover:bg-gray-50 dark:hover:bg-white/5"
         }`}

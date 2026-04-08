@@ -255,7 +255,9 @@ export default function MusteriDetayPage() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Sol Panel - Ozet */}
         <div className="lg:col-span-1">
-          <div className="rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-6 sticky top-6">
+          <div className={`rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-6 sticky top-6 transition-opacity ${
+            musteri.durum !== "aktif" ? "opacity-60 border-gray-300 dark:border-white/5" : ""
+          }`}>
             {/* Avatar */}
             <div className="flex flex-col items-center mb-6">
               <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-3">

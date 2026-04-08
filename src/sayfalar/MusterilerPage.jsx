@@ -104,6 +104,7 @@ function MusteriAgacDugumu({ musteri, tumMusteriler, seviye = 0, odakliId, setOd
   const odakli = odakliId === musteri.id;
   const altSirket = odakliAltMi(musteri.id, odakliId, tumMusteriler);
   const soluk = odakliId !== null && odakliId !== musteri.id && !altSirket;
+  const pasif = (musteri.durum || "").toLowerCase() !== "aktif";
 
   const tipRenkAgac = (tur) => {
     if (tur === "gercek") return "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400";
@@ -126,7 +127,7 @@ function MusteriAgacDugumu({ musteri, tumMusteriler, seviye = 0, odakliId, setOd
         } ${
           odakli
             ? "bg-blue-50 dark:bg-blue-500/10 ring-2 ring-blue-400 dark:ring-blue-500/50 shadow-md"
-            : soluk
+            : soluk || pasif
             ? "opacity-40 hover:opacity-70"
             : "hover:bg-gray-50 dark:hover:bg-white/5"
         }`}
@@ -195,7 +196,9 @@ function MusteriPaketDugumu({ musteri, lisanslar, genislemis, setGenislemis, onU
           else yeni.add(musteri.id);
           return yeni;
         })}
-        className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+        className={`flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${
+          (musteri.durum || "").toLowerCase() !== "aktif" ? "opacity-50" : ""
+        }`}
       >
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${tipRenk(musteri.tur)}`}>
           <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
