@@ -791,6 +791,8 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
   const [yeniTipModal, setYeniTipModal] = useState(false);
   const [yeniTip, setYeniTip] = useState("");
   const [tipYonetimModal, setTipYonetimModal] = useState(false);
+  const [sablonYukleniyor, setSablonYukleniyor] = useState(false);
+  const [sablonBilgi, setSablonBilgi] = useState(null);
   const ref = useRef(null);
   const sallanma = () => { if (ref.current) { ref.current.classList.remove("sallan"); void ref.current.offsetWidth; ref.current.classList.add("sallan"); } };
 
@@ -802,6 +804,40 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
     } catch { setPaketTipleri([]); }
   };
   useEffect(() => { paketTipleriniYukle(); }, []);
+
+  // Ürün değiştiğinde şablon özelliklerini otomatik doldur
+  useEffect(() => {
+    if (!form.urunId || duzenle) return;
+    let iptal = false;
+    const sablonuGetir = async () => {
+      setSablonYukleniyor(true);
+      try {
+        const res = await apiGet(`/urunler/${form.urunId}/sablon`);
+        if (iptal) return;
+        if (res.basarili && res.veri && res.veri.ozellikler?.length > 0) {
+          setSablonBilgi(res.veri);
+          // Mevcut özellikler boşsa şablondan otomatik doldur
+          if (ozellikler.length === 0) {
+            const sablonOzellikler = res.veri.ozellikler.map((oz) => ({
+              id: Date.now() + Math.random(),
+              ozellik_tipi: oz.ozellik_tipi,
+              tip: oz.ozellik_tipi, // geriye uyumluluk
+              deger: oz.deger || {},
+            }));
+            setOzellikler(sablonOzellikler);
+          }
+        } else {
+          setSablonBilgi(null);
+        }
+      } catch {
+        if (!iptal) setSablonBilgi(null);
+      } finally {
+        if (!iptal) setSablonYukleniyor(false);
+      }
+    };
+    sablonuGetir();
+    return () => { iptal = true; };
+  }, [form.urunId]);
 
   // Paket tipi sil
   const paketTipiSil = async (tipId) => {
@@ -873,7 +909,8 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
   // Özellik değerini formatlı göster
   const ozellikDegerGoster = (oz) => {
     const d = oz.deger;
-    switch (oz.tip) {
+    const t = oz.ozellik_tipi || oz.tip;
+    switch (t) {
       case "hediye_urun": return oz.urunAdi || "Ürün seçildi";
       case "ek_kullanici_fiyat": return `${Number(d).toLocaleString("tr-TR")} ₺`;
       case "indirim": return `%${d}`;
@@ -925,6 +962,23 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
             </p>
           </div>
         </div>
+
+        {/* Şablon Bilgi Kutusu */}
+        {sablonYukleniyor && (
+          <div className="mx-6 mt-2 p-3 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+            <p className="text-xs text-gray-500 dark:text-slate-400 animate-pulse">Şablon bilgileri yükleniyor...</p>
+          </div>
+        )}
+        {!duzenle && sablonBilgi && !sablonYukleniyor && (
+          <div className="mx-6 mt-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
+            <div className="flex items-start gap-2">
+              <span className="text-sm shrink-0">✨</span>
+              <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                <strong>"{sablonBilgi.ad}"</strong> şablonundan <strong>{sablonBilgi.ozellikler.length}</strong> özellik otomatik dolduruldu. Değerleri aşağıdan düzenleyebilirsiniz.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* İçerik - Yan Yana Layout */}
         <div className="flex flex-1 overflow-hidden">
@@ -1082,7 +1136,8 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
             {ozellikler.length > 0 ? (
               <div className="space-y-1.5">
                 {ozellikler.map((oz) => {
-                  const stil = ozellikStilleri[oz.tip] || { renk: "gray", icon: "⚙️", baslik: oz.tip };
+                  const ozTip = oz.ozellik_tipi || oz.tip;
+                  const stil = ozellikStilleri[ozTip] || { renk: "gray", icon: "⚙️", baslik: ozTip };
                   const renkSinif = renkler[stil.renk] || renkler.gray;
                   
                   return (
@@ -1189,7 +1244,7 @@ function OzellikEklePanel({ ozellikEkle, tumUrunler }) {
 
   const kaydet = () => {
     if (!tip) return;
-    let yeniOzellik = { tip };
+    let yeniOzellik = { ozellik_tipi: tip, tip };
 
     switch (tip) {
       case "hediye_urun":

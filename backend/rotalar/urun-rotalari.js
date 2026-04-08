@@ -358,14 +358,37 @@ router.post("/paketler", hataYakala(async (req, res) => {
   const { urun_id, ad, tipi, kullanim_gunu, fiyat, kullanici_sayisi, aktif, ozellikler } = req.body;
   if (!urun_id || !ad) return dogrulamaHatasi(res, "Urun ve paket adi zorunludur.");
 
+  let nihaiFiyat = guvenliSayi(fiyat, 0);
+  let nihaiOzellikler = ozellikler || null;
+
+  // Eğer özellikler gönderilmemişse ve ürünün şablonu varsa, şablon özelliklerini otomatik doldur
+  if (!nihaiOzellikler) {
+    try {
+      const urun = await prisma.urun.findUnique({ where: { id: Number(urun_id) }, select: { sablon_id: true } });
+      if (urun && urun.sablon_id) {
+        const sablon = await prisma.urunSablon.findUnique({
+          where: { id: urun.sablon_id },
+          include: { ozellikler: { where: { aktif: 1 }, orderBy: { sira: "asc" } } },
+        });
+        if (sablon && sablon.ozellikler?.length > 0) {
+          nihaiOzellikler = sablon.ozellikler.map((oz) => ({
+            ozellik_tipi: oz.ozellik_tipi,
+            tip: oz.ozellik_tipi,
+            deger: oz.deger || {},
+          }));
+        }
+      }
+    } catch { /* şablon yoksa devam et */ }
+  }
+
   const sonuc = await prisma.paket.create({
     data: {
       urun_id: Number(urun_id), ad, tipi: tipi || null,
       kullanim_gunu: guvenliSayi(kullanim_gunu, 365),
-      fiyat: guvenliSayi(fiyat, 0),
+      fiyat: nihaiFiyat,
       kullanici_sayisi: guvenliSayi(kullanici_sayisi, 1),
       aktif: aktif !== undefined ? (aktif ? 1 : 0) : 1,
-      ozellikler: ozellikler || null,
+      ozellikler: nihaiOzellikler,
     },
   });
   res.status(201).json({ basarili: true, mesaj: "Paket basariyla eklendi.", id: sonuc.id });
