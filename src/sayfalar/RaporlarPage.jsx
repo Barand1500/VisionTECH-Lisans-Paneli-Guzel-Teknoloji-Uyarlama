@@ -217,7 +217,7 @@ function SatislarSekmesi() {
           { baslik: "Ünvanı", al: (s) => s.musteri },
           { baslik: "Ürün", al: (s) => s.urun },
           { baslik: "Paket", al: (s) => s.paket },
-          { baslik: "Domain", al: (s) => s.domain || "" },
+          { baslik: "Domain / Sicil", al: (s) => s.domain || "" },
           { baslik: "Kullanıcı", al: (s) => s.kullanici || "" },
           { baslik: "Tutar", al: (s) => s.tutar },
           { baslik: "Tarih", al: (s) => s.tarih },
@@ -232,18 +232,36 @@ function SatislarSekmesi() {
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50 dark:bg-white/[0.03]">
-                {["Ünvanı", "Ürün", "Paket", "Domain", "Kullanıcı", "Tutar", "Tarih", "Durum"].map((h) => (
+                {["Ünvanı", "Ürün", "Paket", "Domain / Sicil", "Kullanıcı", "Tutar", "Tarih", "Durum"].map((h) => (
                   <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-              {sayfaVeriler.map((s) => (
+              {sayfaVeriler.map((s) => {
+                const isDomain = s.domain && /[a-zA-Z]/.test(s.domain);
+                return (
                 <tr key={s.id} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors">
                   <td className="px-3 py-3 font-medium text-gray-900 dark:text-white text-xs">{s.musteri}</td>
                   <td className="px-3 py-3 text-gray-600 dark:text-slate-400 text-xs">{s.urun}</td>
                   <td className="px-3 py-3 text-gray-600 dark:text-slate-400 text-xs">{s.paket}</td>
-                  <td className="px-3 py-3 text-xs max-w-[180px]"><span className="inline-flex items-center group truncate">{s.domain ? <span className="text-blue-600 dark:text-blue-400 truncate">{s.domain}</span> : <span className="text-gray-400 dark:text-slate-600">—</span>}<KopyalaButonu metin={s.domain} /></span></td>
+                  <td className="px-3 py-3 text-xs max-w-[180px]">
+                    {s.domain ? (
+                      <span className="inline-flex items-center gap-1.5 group">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                          isDomain
+                            ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                            : "bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400"
+                        }`}>
+                          <span className="text-[10px]">{isDomain ? "🌐" : "🔢"}</span>
+                          <span className="truncate max-w-[140px]">{s.domain}</span>
+                        </span>
+                        <KopyalaButonu metin={s.domain} />
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 dark:text-slate-600">—</span>
+                    )}
+                  </td>
                   <td className="px-3 py-3 text-gray-600 dark:text-slate-400 text-xs">{s.kullanici || "—"}</td>
                   <td className="px-3 py-3 font-semibold text-gray-900 dark:text-white text-xs">₺{(s.tutar || 0).toLocaleString("tr-TR")}</td>
                   <td className="px-3 py-3 text-gray-600 dark:text-slate-400 text-xs">{s.tarih}</td>
@@ -255,7 +273,8 @@ function SatislarSekmesi() {
                     }`}>{s.durum}</span>
                   </td>
                 </tr>
-              ))}
+              );
+              })}
             </tbody>
           </table>
         </div>
