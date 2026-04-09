@@ -7,6 +7,7 @@
 /* ============================================= */
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "../baglam/ThemeContext";
 import { useAuth } from "../baglam/AuthContext";
@@ -268,8 +269,8 @@ export default function Sidebar({ daraltilmis, daraltToggle }) {
         </button>
       </div>
 
-      {/* ---- Çıkış Onay Modalı ---- */}
-      {cikisOnay && (
+      {/* ---- Çıkış Onay Modalı (Portal ile body'ye render edilir) ---- */}
+      {cikisOnay && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3 mb-4">
@@ -296,7 +297,8 @@ export default function Sidebar({ daraltilmis, daraltToggle }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </aside>
   );

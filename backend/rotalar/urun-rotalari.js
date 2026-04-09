@@ -37,10 +37,14 @@ router.post("/tipler", hataYakala(async (req, res) => {
 router.put("/tipler/:id", hataYakala(async (req, res) => {
   const id = Number(req.params.id);
   const { ad, grup_id, aktif } = req.body;
+  if (ad) {
+    const mevcut = await prisma.urunTipi.findFirst({ where: { ad: ad.trim(), silinme_tarihi: null, id: { not: id } } });
+    if (mevcut) return res.status(400).json({ basarili: false, mesaj: "Bu isimde bir ürün tipi zaten mevcut." });
+  }
   await prisma.urunTipi.update({
     where: { id },
     data: {
-      ad: ad || undefined,
+      ad: ad ? ad.trim() : undefined,
       grup_id: grup_id !== undefined ? (grup_id || null) : undefined,
       aktif: aktif !== undefined ? (aktif ? 1 : 0) : undefined,
     },
@@ -95,10 +99,14 @@ router.post("/uygulama-tipler/toplu", hataYakala(async (req, res) => {
 router.put("/uygulama-tipler/:id", hataYakala(async (req, res) => {
   const id = Number(req.params.id);
   const { ad, urun_tipi_id, aktif } = req.body;
+  if (ad) {
+    const mevcut = await prisma.uygulamaTipi.findFirst({ where: { ad: ad.trim(), silinme_tarihi: null, id: { not: id } } });
+    if (mevcut) return res.status(400).json({ basarili: false, mesaj: "Bu isimde bir uygulama tipi zaten mevcut." });
+  }
   await prisma.uygulamaTipi.update({
     where: { id },
     data: {
-      ad: ad || undefined,
+      ad: ad ? ad.trim() : undefined,
       urun_tipi_id: urun_tipi_id !== undefined ? (urun_tipi_id || null) : undefined,
       aktif: aktif !== undefined ? (aktif ? 1 : 0) : undefined,
     },
@@ -152,10 +160,14 @@ router.post("/gruplar", hataYakala(async (req, res) => {
 router.put("/gruplar/:id", hataYakala(async (req, res) => {
   const id = Number(req.params.id);
   const { ad, aciklama, aktif } = req.body;
+  if (ad) {
+    const mevcut = await prisma.urunGrubu.findFirst({ where: { ad: ad.trim(), silinme_tarihi: null, id: { not: id } } });
+    if (mevcut) return res.status(400).json({ basarili: false, mesaj: "Bu isimde bir grup zaten mevcut." });
+  }
   await prisma.urunGrubu.update({
     where: { id },
     data: {
-      ad: ad || undefined,
+      ad: ad ? ad.trim() : undefined,
       aciklama: aciklama !== undefined ? (aciklama || null) : undefined,
       aktif: aktif !== undefined ? (aktif ? 1 : 0) : undefined,
     },

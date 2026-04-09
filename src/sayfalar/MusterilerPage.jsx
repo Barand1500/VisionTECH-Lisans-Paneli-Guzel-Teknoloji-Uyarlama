@@ -1414,6 +1414,34 @@ export default function MusterilerPage() {
             </div>
           )}
 
+          {/* Kontroller - Üst Bar */}
+          <div className="px-6 py-4 flex items-center justify-between border-b border-gray-200 dark:border-white/10">
+            <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-slate-400">
+              <select value={sayfaBoyutu} onChange={(e) => { setSayfaBoyutu(Number(e.target.value)); setAktifSayfa(1); }}
+                className="px-2 py-1.5 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-sm cursor-pointer text-gray-900 dark:text-white">
+                {[5, 10, 25, 50].map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+              <span>kayıt göster</span>
+              {/* Çizgi Stili Toggle */}
+              <div className="flex items-center gap-1 ml-2 border-l border-gray-200 dark:border-white/10 pl-3">
+                <span className="text-xs text-gray-400 dark:text-slate-500 mr-1">Çizgi:</span>
+                {[
+                  { key: "yok", title: "Çizgi Yok", ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg> },
+                  { key: "yatay", title: "Yatay Çizgiler", ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path d="M2 5h16v1H2zM2 9.5h16v1H2zM2 14h16v1H2z" /></svg> },
+                  { key: "dikey", title: "Dikey Çizgiler", ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path d="M5 2v16h1V2zM9.5 2v16h1V2zM14 2v16h1V2z" /></svg> },
+                  { key: "tam", title: "Tam Izgara", ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path d="M1 1h18v18H1V1zm1 1v5h5V2H2zm6 0v5h4V2H8zm5 0v5h5V2h-5zM2 8v4h5V8H2zm6 0v4h4V8H8zm5 0v4h5V8h-5zM2 13v5h5v-5H2zm6 0v5h4v-5H8zm5 0v5h5v-5h-5z" /></svg> },
+                ].map((opt) => (
+                  <button key={opt.key} onClick={() => setCizgiStil(opt.key)} title={opt.title}
+                    className={`w-7 h-7 rounded-md flex items-center justify-center cursor-pointer transition-all ${
+                      cizgiStil === opt.key
+                        ? "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 ring-1 ring-blue-300 dark:ring-blue-500/30"
+                        : "text-gray-400 dark:text-slate-500 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-600 dark:hover:text-slate-300"
+                    }`}>{opt.ikon}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {/* Tablo Görünümü */}
           {aktifGorunum === "tablo" && (
           <>
@@ -1504,35 +1532,9 @@ export default function MusterilerPage() {
 
           {/* Sayfalama */}
           <div className="px-6 py-4 flex items-center justify-between border-t border-gray-200 dark:border-white/10">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-slate-400">
-                <select value={sayfaBoyutu} onChange={(e) => { setSayfaBoyutu(Number(e.target.value)); setAktifSayfa(1); }}
-                  className="px-2 py-1.5 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white text-sm cursor-pointer">
-                  {[5, 10, 25, 50].map((n) => <option key={n} value={n}>{n}</option>)}
-                </select>
-                <span>kayıt göster</span>
-                {/* Çizgi Stili Toggle */}
-                <div className="flex items-center gap-1 ml-2 border-l border-gray-200 dark:border-white/10 pl-3">
-                  <span className="text-xs text-gray-400 dark:text-slate-500 mr-1">Çizgi:</span>
-                  {[
-                    { key: "yok", title: "Çizgi Yok", ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg> },
-                    { key: "yatay", title: "Yatay Çizgiler", ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path d="M2 5h16v1H2zM2 9.5h16v1H2zM2 14h16v1H2z" /></svg> },
-                    { key: "dikey", title: "Dikey Çizgiler", ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path d="M5 2v16h1V2zM9.5 2v16h1V2zM14 2v16h1V2z" /></svg> },
-                    { key: "tam", title: "Tam Izgara", ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path d="M1 1h18v18H1V1zm1 1v5h5V2H2zm6 0v5h4V2H8zm5 0v5h5V2h-5zM2 8v4h5V8H2zm6 0v4h4V8H8zm5 0v4h5V8h-5zM2 13v5h5v-5H2zm6 0v5h4v-5H8zm5 0v5h5v-5h-5z" /></svg> },
-                  ].map((opt) => (
-                    <button key={opt.key} onClick={() => setCizgiStil(opt.key)} title={opt.title}
-                      className={`w-7 h-7 rounded-md flex items-center justify-center cursor-pointer transition-all ${
-                        cizgiStil === opt.key
-                          ? "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 ring-1 ring-blue-300 dark:ring-blue-500/30"
-                          : "text-gray-400 dark:text-slate-500 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-600 dark:hover:text-slate-300"
-                      }`}>{opt.ikon}</button>
-                  ))}
-                </div>
-              </div>
-              <span className="text-sm text-gray-500 dark:text-slate-400">
-                — Toplam {siraliListe.length} kayıttan {Math.min((aktifSayfa - 1) * sayfaBoyutu + 1, siraliListe.length)}-{Math.min(aktifSayfa * sayfaBoyutu, siraliListe.length)} arası
-              </span>
-            </div>
+            <span className="text-sm text-gray-500 dark:text-slate-400">
+              Toplam {siraliListe.length} kayıttan {Math.min((aktifSayfa - 1) * sayfaBoyutu + 1, siraliListe.length)}-{Math.min(aktifSayfa * sayfaBoyutu, siraliListe.length)} arası
+            </span>
             <div className="flex items-center gap-1">
               <button onClick={() => setAktifSayfa((o) => Math.max(1, o - 1))} disabled={aktifSayfa === 1}
                 className="px-3 py-1.5 rounded-lg text-sm text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-40 cursor-pointer">Önceki</button>

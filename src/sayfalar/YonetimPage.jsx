@@ -411,18 +411,9 @@ function UrunlerSekmesi() {
           {/* Ürün Tipi Filtresi */}
           <div className="flex-1 min-w-[140px]">
             <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ürün Tipi</label>
-            <select value={filtreTip} onChange={(e) => { setFiltreTip(e.target.value); setFiltreUygulamaTip(""); setSayfa(1); }} className={INPUT_STIL}>
+            <select value={filtreTip} onChange={(e) => { setFiltreTip(e.target.value); setFiltreUygulamaTip(""); setSayfa(1); }} disabled={!filtreGrup} className={`${INPUT_STIL} ${!filtreGrup ? "opacity-50 cursor-not-allowed" : ""}`}>
               <option value="">Tümü</option>
               {filtreliUrunTipleri.map((t) => <option key={t.id} value={t.ad}>{t.ad}</option>)}
-            </select>
-          </div>
-
-          {/* Uygulama Tipi Filtresi */}
-          <div className="flex-1 min-w-[140px]">
-            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Uygulama Tipi</label>
-            <select value={filtreUygulamaTip} onChange={(e) => { setFiltreUygulamaTip(e.target.value); setSayfa(1); }} className={INPUT_STIL}>
-              <option value="">Tümü</option>
-              {filtreliUygulamaTipleri.map((t) => <option key={t.id} value={t.ad}>{t.ad}</option>)}
             </select>
           </div>
 
@@ -627,7 +618,7 @@ function PaketlerModal({ urun, kapat, paketler, setPaketler, tumUrunler, paketle
 
   const urunPaketleri = paketler.filter((p) => p.urunId === urun.id);
   const filtrelenmis = arama
-    ? urunPaketleri.filter((p) => p.adi.toLowerCase().includes(arama.toLowerCase()) || p.tipi.toLowerCase().includes(arama.toLowerCase()))
+    ? urunPaketleri.filter((p) => p.adi.toLowerCase().includes(arama.toLowerCase()))
     : urunPaketleri;
 
   const toplamSayfa = Math.ceil(filtrelenmis.length / sayfaBasi);
@@ -715,20 +706,17 @@ function PaketlerModal({ urun, kapat, paketler, setPaketler, tumUrunler, paketle
           <table className="w-full">
             <thead className="sticky top-0 z-10">
               <tr className="bg-gray-50 dark:bg-white/[0.03]">
-                {["Ürün Adı", "Tipi", "Adı", "Fiyatı", "Kullanıcı Sayısı", "Aktif", "İşlemler"].map((h) => (
+                {["Ürün Adı", "Adı", "Fiyatı", "Kullanıcı Sayısı", "Aktif", "İşlemler"].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-white/5">
               {sayfaPaketler.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-400 dark:text-slate-500">Bu ürüne ait paket bulunamadı.</td></tr>
+                <tr><td colSpan={6} className="px-4 py-12 text-center text-gray-400 dark:text-slate-500">Bu ürüne ait paket bulunamadı.</td></tr>
               ) : sayfaPaketler.map((p) => (
                 <tr key={p.id} className={`hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors ${!p.aktif ? "opacity-50" : ""}`}>
                   <td className="px-4 py-3 font-medium text-gray-900 dark:text-white text-sm">{p.urunAdi}</td>
-                  <td className="px-4 py-3">
-                    <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400">{p.tipi}</span>
-                  </td>
                   <td className="px-4 py-3 text-gray-600 dark:text-slate-400 text-sm">{p.adi}</td>
                   <td className="px-4 py-3 text-gray-600 dark:text-slate-400 text-sm">{Number(p.fiyati).toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</td>
                   <td className="px-4 py-3 text-gray-600 dark:text-slate-400 text-sm text-center">{p.kullaniciSayisi || "-"}</td>
@@ -1746,21 +1734,16 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
             ) : (
               <>
                 {/* Şablon seçiliyken bilgilendirme */}
-                {form.sablonId ? (
-                  <div className="p-6 rounded-xl bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/20 text-center">
-                    <div className="w-14 h-14 rounded-full bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center mx-auto mb-3">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <h4 className="text-sm font-bold text-purple-700 dark:text-purple-300 mb-2">Şablon Kullanılıyor</h4>
-                    <p className="text-xs text-purple-600 dark:text-purple-400 leading-relaxed">
-                      Şablon seçildiğinde gelişmiş ayarlar (kullanıcı limitleri, demo & fiyat, bildirim & yenileme) 
-                      şablondan otomatik olarak uygulanır. Bu ayarları değiştirmek için şablon seçimini kaldırın.
+                {form.sablonId && (
+                  <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/20 flex items-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-xs text-purple-600 dark:text-purple-400">
+                      Şablon seçili olduğunda bu ayarlar şablondan gelir. Değiştirmek için şablon seçimini kaldırın.
                     </p>
                   </div>
-                ) : (
-                <>
+                )}
 
                 {/* Kullanıcı Limitleri - Toggle */}
                 <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
@@ -1866,8 +1849,6 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                 </div>
 
 
-              </>
-                )}
               </>
             )}
           </div>
@@ -2010,7 +1991,7 @@ function TipYonetimiSekmesi() {
   // CRUD İşlemleri
   const grupEkle = async () => {
     if (!yeniGrup.trim()) return;
-    if (gruplar.some(g => g.ad.toLowerCase() === yeniGrup.trim().toLowerCase())) {
+    if (gruplar.some(g => g.ad.toLocaleLowerCase('tr') === yeniGrup.trim().toLocaleLowerCase('tr'))) {
       setGrupUyari("Bu isimde bir grup zaten mevcut.");
       setTimeout(() => setGrupUyari(""), 3000);
       return;
@@ -2038,6 +2019,7 @@ function TipYonetimiSekmesi() {
       await gruplariYukle();
       setGrupModal(null);
     } catch (e) {
+      if (e?.mesaj) { setGrupUyari(e.mesaj); setTimeout(() => setGrupUyari(""), 3000); }
       console.error("Grup kaydetme hatasi:", e);
     }
   };
@@ -2059,7 +2041,7 @@ function TipYonetimiSekmesi() {
 
   const urunTipiEkle = async (grupIdOverride = null) => {
     if (!yeniUrunTipi.trim()) return;
-    if (urunTipleri.some(t => t.ad.toLowerCase() === yeniUrunTipi.trim().toLowerCase())) {
+    if (urunTipleri.some(t => t.ad.toLocaleLowerCase('tr') === yeniUrunTipi.trim().toLocaleLowerCase('tr'))) {
       setUrunTipiUyari("Bu isimde bir ürün tipi zaten mevcut.");
       setTimeout(() => setUrunTipiUyari(""), 3000);
       return;
@@ -2103,13 +2085,14 @@ function TipYonetimiSekmesi() {
       setSeciliUrunTipleri(prev => prev.map(t => t.id === veri.id ? { ...t, ad: veri.ad } : t));
       setDuzenleUrunTipi(null);
     } catch (e) {
+      if (e?.mesaj) { setUrunTipiUyari(e.mesaj); setTimeout(() => setUrunTipiUyari(""), 3000); }
       console.error("Urun tipi kaydetme hatasi:", e);
     }
   };
 
   const uygulamaTipiEkle = async (urunTipiIdOverride = null) => {
     if (!yeniUygulamaTipi.trim()) return;
-    if (uygulamaTipleri.some(t => t.ad.toLowerCase() === yeniUygulamaTipi.trim().toLowerCase())) {
+    if (uygulamaTipleri.some(t => t.ad.toLocaleLowerCase('tr') === yeniUygulamaTipi.trim().toLocaleLowerCase('tr'))) {
       setUygulamaTipiUyari("Bu isimde bir uygulama tipi zaten mevcut.");
       setTimeout(() => setUygulamaTipiUyari(""), 3000);
       return;
@@ -2161,6 +2144,7 @@ function TipYonetimiSekmesi() {
       }
       setDuzenleUygulamaTipi(null);
     } catch (e) {
+      if (e?.mesaj) { setUygulamaTipiUyari(e.mesaj); setTimeout(() => setUygulamaTipiUyari(""), 3000); }
       console.error("Uygulama tipi kaydetme hatasi:", e);
     }
   };
@@ -2603,24 +2587,24 @@ const TipListeOgesi = memo(function TipListeOgesi({ oge, secili, onClick, onEdit
           </span>
         )}
       </div>
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
         {onEdit && (
           <button
             onClick={(e) => { e.stopPropagation(); onEdit(oge); }}
-            className="w-6 h-6 rounded bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center cursor-pointer"
+            className="w-7 h-7 rounded-lg bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center cursor-pointer transition-colors shadow-sm"
             title="Düzenle"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
           </button>
         )}
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(oge); }}
-          className="w-6 h-6 rounded bg-red-500 hover:bg-red-600 text-white flex items-center justify-center cursor-pointer"
+          className="w-7 h-7 rounded-lg bg-red-500 hover:bg-red-600 text-white flex items-center justify-center cursor-pointer transition-colors shadow-sm"
           title="Sil"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
         </button>

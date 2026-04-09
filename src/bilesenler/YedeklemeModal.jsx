@@ -6,7 +6,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { apiPost, BASE_URL } from "../yardimcilar/api";
+import { apiPost, API_URL } from "../yardimcilar/api";
 import { useAktiviteLog } from "../baglam/AktiviteLogContext";
 
 export default function YedeklemeModal({ acik, kapat }) {
@@ -39,7 +39,7 @@ export default function YedeklemeModal({ acik, kapat }) {
     setSonuc(null);
     try {
       const token = localStorage.getItem("gt_token");
-      const res = await fetch(`${BASE_URL}/api/yedekleme/indir?format=${yedekFormati}`, {
+      const res = await fetch(`${API_URL}/yedekleme/indir?format=${yedekFormati}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) throw new Error("İndirme başarısız");

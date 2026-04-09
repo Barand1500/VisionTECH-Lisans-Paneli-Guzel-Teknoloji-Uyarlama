@@ -2277,7 +2277,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                     {seciliPaket ? seciliPaket.adi : "Paket Seçilmedi"}
                   </h4>
                   {seciliPaket && (
-                    <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{seciliPaket.tipi} • {seciliPaket.kullanimGunu} gün</p>
+                    <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{seciliPaket.kullanimGunu} gün</p>
                   )}
                 </div>
 
@@ -2304,6 +2304,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                     kademeli_fiyat: { icon: "📊", baslik: "Kademeli", renk: "purple" },
                     domain_fiyat: { icon: "🔗", baslik: "Domain Fiyat", renk: "teal" },
                     demo_suresi: { icon: "⏰", baslik: "Demo", renk: "rose" },
+                    metin_karti: { icon: "📝", baslik: "Metin Kartı", renk: "violet" },
                   };
 
                   const degerGoster = (oz) => {
