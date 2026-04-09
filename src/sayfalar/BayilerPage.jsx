@@ -225,7 +225,7 @@ export default function BayilerPage() {
         sirketAdi: b.sirket_adi || "",
         telefonlar: b.telefon ? [b.telefon] : [],
         adresler: b.sektor ? [b.sektor] : [],
-        etiketler: Array.isArray(b.etiketler) ? b.etiketler : (b.etiketler ? JSON.parse(b.etiketler) : []),
+        etiketler: Array.isArray(b.etiketler) ? b.etiketler : (b.etiketler ? (() => { try { const p = JSON.parse(b.etiketler); return Array.isArray(p) ? p : b.etiketler.split(",").map(s => s.trim()).filter(Boolean); } catch { return b.etiketler.split(",").map(s => s.trim()).filter(Boolean); } })() : []),
       })));
     } catch (e) {
       console.error("Bayiler yuklenemedi:", e);
