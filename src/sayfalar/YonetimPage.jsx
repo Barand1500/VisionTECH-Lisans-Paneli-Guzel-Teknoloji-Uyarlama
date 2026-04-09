@@ -278,12 +278,17 @@ function UrunlerSekmesi() {
   /* ---- Ürün Kaydet (Ekle veya Güncelle) ---- */
   const urunKaydet = async (veri) => {
     try {
+      /* FK ID'leri isim eşleşmesiyle çöz */
+      const urunTipiObj = urunTipleri.find(t => t.ad === veri.urunTipi);
+      const uygulamaTipiObj = uygulamaTipleri.find(t => t.ad === veri.uygulamaTipi);
       const gonder = {
         grup_id: veri.grup_id || null,
         ad: veri.adi,
         aciklama: veri.aciklama || null,
         urun_tipi: veri.urunTipi,
         uygulama_tipi: veri.uygulamaTipi,
+        urun_tipi_id: urunTipiObj?.id || null,
+        uygulama_tipi_id: uygulamaTipiObj?.id || null,
         ozel_proje: veri.ozelProje,
         aktif: veri.aktif,
         varsayilan_gun: veri.varsayilanGun || 365,
@@ -2003,7 +2008,9 @@ function TipYonetimiSekmesi() {
       await gruplariYukle();
       grupInputRef.current?.focus();
     } catch (e) {
-      if (e?.mesaj) setGrupUyari(e.mesaj);
+      const msg = e?.message || e?.mesaj || "Bir hata oluştu.";
+      setGrupUyari(msg);
+      setTimeout(() => setGrupUyari(""), 4000);
       console.error("Grup ekleme hatasi:", e);
     }
   };
@@ -2019,7 +2026,8 @@ function TipYonetimiSekmesi() {
       await gruplariYukle();
       setGrupModal(null);
     } catch (e) {
-      if (e?.mesaj) { setGrupUyari(e.mesaj); setTimeout(() => setGrupUyari(""), 3000); }
+      const msg = e?.message || e?.mesaj || "Bir hata oluştu.";
+      setGrupUyari(msg); setTimeout(() => setGrupUyari(""), 4000);
       console.error("Grup kaydetme hatasi:", e);
     }
   };
@@ -2056,7 +2064,9 @@ function TipYonetimiSekmesi() {
       }
       urunTipiInputRef.current?.focus();
     } catch (e) {
-      if (e?.mesaj) setUrunTipiUyari(e.mesaj);
+      const msg = e?.message || e?.mesaj || "Bir hata oluştu.";
+      setUrunTipiUyari(msg);
+      setTimeout(() => setUrunTipiUyari(""), 4000);
       console.error("Urun tipi ekleme hatasi:", e);
     }
   };
@@ -2085,7 +2095,8 @@ function TipYonetimiSekmesi() {
       setSeciliUrunTipleri(prev => prev.map(t => t.id === veri.id ? { ...t, ad: veri.ad } : t));
       setDuzenleUrunTipi(null);
     } catch (e) {
-      if (e?.mesaj) { setUrunTipiUyari(e.mesaj); setTimeout(() => setUrunTipiUyari(""), 3000); }
+      const msg = e?.message || e?.mesaj || "Bir hata oluştu.";
+      setUrunTipiUyari(msg); setTimeout(() => setUrunTipiUyari(""), 4000);
       console.error("Urun tipi kaydetme hatasi:", e);
     }
   };
@@ -2115,7 +2126,9 @@ function TipYonetimiSekmesi() {
       }
       uygulamaTipiInputRef.current?.focus();
     } catch (e) {
-      if (e?.mesaj) setUygulamaTipiUyari(e.mesaj);
+      const msg = e?.message || e?.mesaj || "Bir hata oluştu.";
+      setUygulamaTipiUyari(msg);
+      setTimeout(() => setUygulamaTipiUyari(""), 4000);
       console.error("Uygulama tipi ekleme hatasi:", e);
     }
   };
@@ -2144,7 +2157,8 @@ function TipYonetimiSekmesi() {
       }
       setDuzenleUygulamaTipi(null);
     } catch (e) {
-      if (e?.mesaj) { setUygulamaTipiUyari(e.mesaj); setTimeout(() => setUygulamaTipiUyari(""), 3000); }
+      const msg = e?.message || e?.mesaj || "Bir hata oluştu.";
+      setUygulamaTipiUyari(msg); setTimeout(() => setUygulamaTipiUyari(""), 4000);
       console.error("Uygulama tipi kaydetme hatasi:", e);
     }
   };

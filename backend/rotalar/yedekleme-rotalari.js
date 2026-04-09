@@ -11,7 +11,8 @@ const TABLO_SIRASI = [
   "musteriler", "musteri_telefonlari", "musteri_adresleri", "musteri_dosyalar",
   "bayiler", "bayi_dosyalar", "iletisim_kisileri",
   "urun_gruplari", "urun_tipleri", "uygulama_tipleri",
-  "urunler", "paketler", "lisans_tipleri", "lisanslar",
+  "urun_sablonlari", "sablon_ozellikleri",
+  "urunler", "bayi_urunler", "paketler", "paket_tipleri", "lisans_tipleri", "lisanslar",
   "surumler", "notlar", "iletisim_kayitlari", "aktivite_loglari", "yedekleme_loglari",
 ];
 
@@ -96,12 +97,19 @@ router.post("/yukle", hataYakala(async (req, res) => {
   await prisma.$transaction(async (tx) => {
     await tx.$executeRawUnsafe("SET FOREIGN_KEY_CHECKS = 0");
 
+    /* Önce TÜM tabloları temizle (ters sırada - FK uyumu) */
+    for (const tablo of [...TABLO_SIRASI].reverse()) {
+      try {
+        await tx.$executeRawUnsafe(`DELETE FROM \`${tablo}\``);
+      } catch (_) {}
+    }
+
+    /* Sonra verileri yükle */
     for (const tablo of TABLO_SIRASI) {
       const rows = tablolar[tablo];
       if (!Array.isArray(rows) || rows.length === 0) continue;
 
       try {
-        await tx.$executeRawUnsafe(`DELETE FROM \`${tablo}\``);
         for (const row of rows) {
           const kolonlar = Object.keys(row);
           const placeholders = kolonlar.map(() => "?").join(", ");

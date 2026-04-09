@@ -139,15 +139,15 @@ router.post("/gruplar", hataYakala(async (req, res) => {
   
   /* Çöp kutusunda aynı isimle kayıt var mı kontrol et */
   const copKutusundaVar = await prisma.urunGrubu.findFirst({
-    where: { ad, silinme_tarihi: { not: null } },
+    where: { ad: ad.trim(), silinme_tarihi: { not: null } },
   });
   if (copKutusundaVar) {
-    return dogrulamaHatasi(res, `Bu isim cop kutusunda mevcut. Lutfen cop kutusundan kalici olarak silin veya farkli bir isim kullanin.`);
+    return dogrulamaHatasi(res, `"${ad.trim()}" ismi çöp kutusunda mevcut. Lütfen çöp kutusundan kalıcı olarak silin veya farklı bir isim kullanın.`);
   }
   
   /* Aktif kayıtlarda aynı isim var mı */
   const mevcutAktif = await prisma.urunGrubu.findFirst({
-    where: { ad, silinme_tarihi: null },
+    where: { ad: ad.trim(), silinme_tarihi: null },
   });
   if (mevcutAktif) {
     return dogrulamaHatasi(res, "Bu isimde bir grup zaten mevcut.");
@@ -190,15 +190,19 @@ router.get("/", hataYakala(async (_req, res) => {
     include: {
       grup: { select: { ad: true } },
       sablon: { select: { id: true, ad: true } },
+      urunTipFK: { select: { ad: true } },
+      uygulamaTipFK: { select: { ad: true } },
       _count: { select: { paketler: true, lisanslar: true } },
     },
     orderBy: { id: "desc" },
   });
-  const sonuc = veriler.map(({ grup, sablon, _count, ...u }) => ({
+  const sonuc = veriler.map(({ grup, sablon, urunTipFK, uygulamaTipFK, _count, ...u }) => ({
     ...u,
     grup_adi: grup?.ad || null,
     sablon_id: sablon?.id || null,
     sablon_adi: sablon?.ad || null,
+    urun_tipi: urunTipFK?.ad || u.urun_tipi || null,
+    uygulama_tipi: uygulamaTipFK?.ad || u.uygulama_tipi || null,
     paket_sayisi: _count.paketler,
     lisans_sayisi: _count.lisanslar,
   }));
@@ -282,13 +286,14 @@ router.get("/:id/kullanim", hataYakala(async (req, res) => {
 }));
 
 router.post("/", hataYakala(async (req, res) => {
-  const { ad, grup_id, sablon_id, urun_tipi, uygulama_tipi, varsayilan_gun, ozel_proje, aktif, aciklama, min_kullanici, max_kullanici, demo_gun, temel_fiyat, versiyon, logo_url, ozellikler } = req.body;
+  const { ad, grup_id, sablon_id, urun_tipi, uygulama_tipi, urun_tipi_id, uygulama_tipi_id, varsayilan_gun, ozel_proje, aktif, aciklama, min_kullanici, max_kullanici, demo_gun, temel_fiyat, versiyon, logo_url, ozellikler } = req.body;
   if (!ad) return dogrulamaHatasi(res, "Urun adi zorunludur.");
 
   const sonuc = await prisma.urun.create({
     data: {
       ad, grup_id: grup_id || null, sablon_id: sablon_id ? Number(sablon_id) : null,
       urun_tipi: urun_tipi || null, uygulama_tipi: uygulama_tipi || null,
+      urun_tipi_id: urun_tipi_id || null, uygulama_tipi_id: uygulama_tipi_id || null,
       varsayilan_gun: guvenliSayi(varsayilan_gun, 365), ozel_proje: ozel_proje ? 1 : 0,
       aktif: aktif !== undefined ? (aktif ? 1 : 0) : 1, aciklama: aciklama || null,
       min_kullanici: guvenliSayi(min_kullanici, 1), max_kullanici: max_kullanici ? Number(max_kullanici) : null,
@@ -305,13 +310,15 @@ router.put("/:id", hataYakala(async (req, res) => {
   const mevcut = await prisma.urun.findUnique({ where: { id }, select: { id: true } });
   if (!mevcut) return bulunamadiHatasi(res, "Urun bulunamadi.");
 
-  const { ad, grup_id, sablon_id, urun_tipi, uygulama_tipi, varsayilan_gun, ozel_proje, aktif, aciklama, min_kullanici, max_kullanici, demo_gun, temel_fiyat, versiyon, logo_url, ozellikler } = req.body;
+  const { ad, grup_id, sablon_id, urun_tipi, uygulama_tipi, urun_tipi_id, uygulama_tipi_id, varsayilan_gun, ozel_proje, aktif, aciklama, min_kullanici, max_kullanici, demo_gun, temel_fiyat, versiyon, logo_url, ozellikler } = req.body;
   const data = {};
   if (ad) data.ad = ad;
   if (grup_id !== undefined) data.grup_id = grup_id || null;
   if (sablon_id !== undefined) data.sablon_id = sablon_id ? Number(sablon_id) : null;
   if (urun_tipi !== undefined) data.urun_tipi = urun_tipi || null;
   if (uygulama_tipi !== undefined) data.uygulama_tipi = uygulama_tipi || null;
+  if (urun_tipi_id !== undefined) data.urun_tipi_id = urun_tipi_id || null;
+  if (uygulama_tipi_id !== undefined) data.uygulama_tipi_id = uygulama_tipi_id || null;
   if (varsayilan_gun !== undefined) data.varsayilan_gun = guvenliSayi(varsayilan_gun, 365);
   if (ozel_proje !== undefined) data.ozel_proje = ozel_proje ? 1 : 0;
   if (aktif !== undefined) data.aktif = aktif ? 1 : 0;
