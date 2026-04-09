@@ -28,7 +28,9 @@ router.get("/tipler", hataYakala(async (req, res) => {
 router.post("/tipler", hataYakala(async (req, res) => {
   const { ad, grup_id, aktif } = req.body;
   if (!ad) return dogrulamaHatasi(res, "Tip adi zorunludur.");
-  const sonuc = await prisma.urunTipi.create({ data: { ad, grup_id: grup_id || null, aktif: aktif !== undefined ? (aktif ? 1 : 0) : 1 } });
+  const mevcut = await prisma.urunTipi.findFirst({ where: { ad: ad.trim(), silinme_tarihi: null } });
+  if (mevcut) return res.status(400).json({ basarili: false, mesaj: "Bu isimde bir ürün tipi zaten mevcut." });
+  const sonuc = await prisma.urunTipi.create({ data: { ad: ad.trim(), grup_id: grup_id || null, aktif: aktif !== undefined ? (aktif ? 1 : 0) : 1 } });
   res.status(201).json({ basarili: true, mesaj: "Urun tipi eklendi.", id: sonuc.id });
 }));
 
@@ -71,7 +73,9 @@ router.get("/uygulama-tipler", hataYakala(async (req, res) => {
 router.post("/uygulama-tipler", hataYakala(async (req, res) => {
   const { ad, urun_tipi_id, aktif } = req.body;
   if (!ad) return dogrulamaHatasi(res, "Uygulama tipi adi zorunludur.");
-  const sonuc = await prisma.uygulamaTipi.create({ data: { ad, urun_tipi_id: urun_tipi_id || null, aktif: aktif !== undefined ? (aktif ? 1 : 0) : 1 } });
+  const mevcut = await prisma.uygulamaTipi.findFirst({ where: { ad: ad.trim(), silinme_tarihi: null, ...(urun_tipi_id ? { urun_tipi_id: Number(urun_tipi_id) } : {}) } });
+  if (mevcut) return res.status(400).json({ basarili: false, mesaj: "Bu isimde bir uygulama tipi zaten mevcut." });
+  const sonuc = await prisma.uygulamaTipi.create({ data: { ad: ad.trim(), urun_tipi_id: urun_tipi_id || null, aktif: aktif !== undefined ? (aktif ? 1 : 0) : 1 } });
   res.status(201).json({ basarili: true, mesaj: "Uygulama tipi eklendi.", id: sonuc.id });
 }));
 

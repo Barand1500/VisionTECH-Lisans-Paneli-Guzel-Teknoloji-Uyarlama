@@ -138,6 +138,7 @@ function UrunlerSekmesi() {
   const [filtreTip, setFiltreTip] = useState("");
   const [filtreUygulamaTip, setFiltreUygulamaTip] = useState("");
   const [filtreDurum, setFiltreDurum] = useState("");
+  const [filtreOzelProje, setFiltreOzelProje] = useState("");
   const [sayfa, setSayfa] = useState(1);
   const [modal, setModal] = useState(null); // null | "yeni" | urunObjesi (düzenleme)
   const [paketModal, setPaketModal] = useState(null); // null | urunObjesi (paketleri göster)
@@ -222,6 +223,19 @@ function UrunlerSekmesi() {
     }
   }, [silinecekUrun]);
 
+  /* ---- Kaskat filtre listeleri ---- */
+  const filtreliUrunTipleri = useMemo(() => {
+    if (!filtreGrup) return urunTipleri;
+    const seciliGrup = urunGruplari.find(g => g.ad === filtreGrup);
+    if (!seciliGrup) return urunTipleri;
+    return urunTipleri.filter(t => t.grup_id === seciliGrup.id);
+  }, [filtreGrup, urunTipleri, urunGruplari]);
+
+  const filtreliUygulamaTipleri = useMemo(() => {
+    if (!filtreTip) return uygulamaTipleri;
+    return uygulamaTipleri.filter(t => t.urun_tipi_adi === filtreTip);
+  }, [filtreTip, uygulamaTipleri]);
+
   /* ---- Filtreleme ---- */
   const filtrelenmis = urunler.filter((u) => {
     if (filtreGrup && u.grubu !== filtreGrup) return false;
@@ -229,13 +243,15 @@ function UrunlerSekmesi() {
     if (filtreUygulamaTip && u.uygulamaTipi !== filtreUygulamaTip) return false;
     if (filtreDurum === "aktif" && !u.aktif) return false;
     if (filtreDurum === "pasif" && u.aktif) return false;
+    if (filtreOzelProje === "evet" && !u.ozelProje) return false;
+    if (filtreOzelProje === "hayir" && u.ozelProje) return false;
     return true;
   });
 
   const toplamSayfa = Math.ceil(filtrelenmis.length / sayfaBasi);
   const sayfaUrunler = filtrelenmis.slice((sayfa - 1) * sayfaBasi, sayfa * sayfaBasi);
 
-  const sifirla = () => { setFiltreGrup(""); setFiltreTip(""); setFiltreUygulamaTip(""); setFiltreDurum(""); setSayfa(1); };
+  const sifirla = () => { setFiltreGrup(""); setFiltreTip(""); setFiltreUygulamaTip(""); setFiltreDurum(""); setFiltreOzelProje(""); setSayfa(1); };
 
   /* ---- İstatistikler ---- */
   const istatistikler = useMemo(() => {
@@ -386,7 +402,7 @@ function UrunlerSekmesi() {
           {/* Grup Filtresi */}
           <div className="flex-1 min-w-[140px]">
             <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Grubu</label>
-            <select value={filtreGrup} onChange={(e) => { setFiltreGrup(e.target.value); setSayfa(1); }} className={INPUT_STIL}>
+            <select value={filtreGrup} onChange={(e) => { setFiltreGrup(e.target.value); setFiltreTip(""); setFiltreUygulamaTip(""); setSayfa(1); }} className={INPUT_STIL}>
               <option value="">Tümü</option>
               {urunGruplari.map((g) => <option key={g.id} value={g.ad}>{g.ad}</option>)}
             </select>
@@ -395,9 +411,9 @@ function UrunlerSekmesi() {
           {/* Ürün Tipi Filtresi */}
           <div className="flex-1 min-w-[140px]">
             <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ürün Tipi</label>
-            <select value={filtreTip} onChange={(e) => { setFiltreTip(e.target.value); setSayfa(1); }} className={INPUT_STIL}>
+            <select value={filtreTip} onChange={(e) => { setFiltreTip(e.target.value); setFiltreUygulamaTip(""); setSayfa(1); }} className={INPUT_STIL}>
               <option value="">Tümü</option>
-              {urunTipleri.map((t) => <option key={t.id} value={t.ad}>{t.ad}</option>)}
+              {filtreliUrunTipleri.map((t) => <option key={t.id} value={t.ad}>{t.ad}</option>)}
             </select>
           </div>
 
@@ -406,7 +422,7 @@ function UrunlerSekmesi() {
             <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Uygulama Tipi</label>
             <select value={filtreUygulamaTip} onChange={(e) => { setFiltreUygulamaTip(e.target.value); setSayfa(1); }} className={INPUT_STIL}>
               <option value="">Tümü</option>
-              {uygulamaTipleri.map((t) => <option key={t.id} value={t.ad}>{t.ad}</option>)}
+              {filtreliUygulamaTipleri.map((t) => <option key={t.id} value={t.ad}>{t.ad}</option>)}
             </select>
           </div>
 
@@ -417,6 +433,16 @@ function UrunlerSekmesi() {
               <option value="">Tümü</option>
               <option value="aktif">Aktif</option>
               <option value="pasif">Pasif</option>
+            </select>
+          </div>
+
+          {/* Özel Proje Filtresi */}
+          <div className="flex-1 min-w-[120px]">
+            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Özel Proje</label>
+            <select value={filtreOzelProje} onChange={(e) => { setFiltreOzelProje(e.target.value); setSayfa(1); }} className={INPUT_STIL}>
+              <option value="">Tümü</option>
+              <option value="evet">Evet</option>
+              <option value="hayir">Hayır</option>
             </select>
           </div>
 
@@ -774,174 +800,72 @@ function PaketlerModal({ urun, kapat, paketler, setPaketler, tumUrunler, paketle
 function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplari }) {
   const duzenle = modal !== "yeni";
   const mevcutOzellikler = duzenle && modal.ozellikler ? (typeof modal.ozellikler === 'string' ? JSON.parse(modal.ozellikler) : modal.ozellikler) : [];
+  
+  // Mevcut özellikleri metin kartlarına dönüştür (geriye uyumluluk)
+  const mevcutMetinler = mevcutOzellikler
+    .filter(oz => oz.ozellik_tipi === "metin_karti" || oz.tip === "metin_karti")
+    .map(oz => oz.deger || "");
+  
   const [form, setForm] = useState({
     id: duzenle ? modal.id : null,
     urunGrubu: duzenle ? (tumUrunler.find((u) => u.id === modal.urunId)?.grubu || urun.grubu) : urun.grubu,
     urunId: duzenle ? modal.urunId : urun.id,
-    tipi: duzenle ? modal.tipi : "",
+    tipi: duzenle ? (modal.tipi || "") : "",
     adi: duzenle ? modal.adi : "",
     kullanimGunu: duzenle ? modal.kullanimGunu : 0,
     fiyati: duzenle ? modal.fiyati : 0,
     kullaniciSayisi: duzenle ? modal.kullaniciSayisi : 0,
     aktif: duzenle ? modal.aktif : true,
   });
-  const [ozellikler, setOzellikler] = useState(mevcutOzellikler);
-  const [ozellikPanelAcik, setOzellikPanelAcik] = useState(false);
-  const [paketTipleri, setPaketTipleri] = useState([]);
-  const [yeniTipModal, setYeniTipModal] = useState(false);
-  const [yeniTip, setYeniTip] = useState("");
-  const [tipYonetimModal, setTipYonetimModal] = useState(false);
-  const [sablonYukleniyor, setSablonYukleniyor] = useState(false);
-  const [sablonBilgi, setSablonBilgi] = useState(null);
+  const [kartlar, setKartlar] = useState(mevcutMetinler.length > 0 ? mevcutMetinler : []);
+  const [yeniKart, setYeniKart] = useState("");
+  const [duzenleIdx, setDuzenleIdx] = useState(null);
+  const [duzenleMetin, setDuzenleMetin] = useState("");
   const ref = useRef(null);
+  const inputRef = useRef(null);
   const sallanma = () => { if (ref.current) { ref.current.classList.remove("sallan"); void ref.current.offsetWidth; ref.current.classList.add("sallan"); } };
-
-  // Paket tiplerini API'den yükle
-  const paketTipleriniYukle = async () => {
-    try {
-      const res = await apiGet("/paket-tipleri");
-      setPaketTipleri(res.veri || res || []);
-    } catch { setPaketTipleri([]); }
-  };
-  useEffect(() => { paketTipleriniYukle(); }, []);
-
-  // Ürün değiştiğinde şablon özelliklerini otomatik doldur
-  useEffect(() => {
-    if (!form.urunId || duzenle) return;
-    let iptal = false;
-    const sablonuGetir = async () => {
-      setSablonYukleniyor(true);
-      try {
-        const res = await apiGet(`/urunler/${form.urunId}/sablon`);
-        if (iptal) return;
-        if (res.basarili && res.veri && res.veri.ozellikler?.length > 0) {
-          setSablonBilgi(res.veri);
-          // Mevcut özellikler boşsa şablondan otomatik doldur
-          if (ozellikler.length === 0) {
-            const sablonOzellikler = res.veri.ozellikler.map((oz) => ({
-              id: Date.now() + Math.random(),
-              ozellik_tipi: oz.ozellik_tipi,
-              tip: oz.ozellik_tipi, // geriye uyumluluk
-              deger: oz.deger || {},
-            }));
-            setOzellikler(sablonOzellikler);
-          }
-        } else {
-          setSablonBilgi(null);
-        }
-      } catch {
-        if (!iptal) setSablonBilgi(null);
-      } finally {
-        if (!iptal) setSablonYukleniyor(false);
-      }
-    };
-    sablonuGetir();
-    return () => { iptal = true; };
-  }, [form.urunId]);
-
-  // Paket tipi sil
-  const paketTipiSil = async (tipId) => {
-    try {
-      await apiDelete(`/paket-tipleri/${tipId}`);
-      await paketTipleriniYukle();
-      if (form.tipi) {
-        const silinen = paketTipleri.find(t => t.id === tipId);
-        if (silinen && silinen.ad === form.tipi) {
-          guncelle("tipi", "");
-        }
-      }
-    } catch (err) {
-      console.error("Paket tipi silinemedi:", err);
-    }
-  };
-
-  const grupUrunleri = tumUrunler.filter((u) => u.grubu === form.urunGrubu);
 
   const guncelle = (alan, val) => setForm((o) => ({ ...o, [alan]: val }));
 
-  const yeniTipEkle = async () => {
-    const temiz = yeniTip.trim().toUpperCase();
+  const kartEkle = () => {
+    const temiz = yeniKart.trim();
     if (!temiz) return;
-    try {
-      const yeniKayit = await apiPost("/paket-tipleri", { ad: temiz });
-      await paketTipleriniYukle();
-      guncelle("tipi", yeniKayit.ad);
-      setYeniTip("");
-      setYeniTipModal(false);
-    } catch (err) {
-      console.error("Paket tipi eklenemedi:", err);
+    setKartlar(prev => [...prev, temiz]);
+    setYeniKart("");
+    inputRef.current?.focus();
+  };
+
+  const kartSil = (idx) => {
+    setKartlar(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const kartDuzenleBitir = (idx) => {
+    const temiz = duzenleMetin.trim();
+    if (temiz) {
+      setKartlar(prev => prev.map((k, i) => i === idx ? temiz : k));
+    } else {
+      kartSil(idx);
     }
-  };
-
-  // Özellik ekleme
-  const ozellikEkle = (yeniOzellik) => {
-    setOzellikler(prev => [...prev, { ...yeniOzellik, id: Date.now() }]);
-  };
-
-  // Özellik silme
-  const ozellikSil = (ozellikId) => {
-    setOzellikler(prev => prev.filter(o => o.id !== ozellikId));
-  };
-
-  // Özellik tipi renklerini ve ikonlarını belirle
-  const ozellikStilleri = {
-    hediye_urun: { renk: "emerald", icon: "🎁", baslik: "Hediye Ürün" },
-    ek_kullanici_fiyat: { renk: "blue", icon: "👥", baslik: "Ek Kullanıcı Fiyatı" },
-    indirim: { renk: "amber", icon: "🏷️", baslik: "İndirim" },
-    ozel_not: { renk: "purple", icon: "📝", baslik: "Özel Not" },
-    ek_sure: { renk: "cyan", icon: "⏱️", baslik: "Ek Süre" },
-    temel_fiyat: { renk: "emerald", icon: "💰", baslik: "Temel Fiyat" },
-    aktivasyon_yenileme: { renk: "amber", icon: "🔄", baslik: "Aktivasyon & Yenileme" },
-    kullanici_sayisi: { renk: "blue", icon: "👤", baslik: "Kullanıcı Sayısı" },
-    sicil_domain: { renk: "cyan", icon: "🌐", baslik: "Sicil / Domain" },
-    kademeli_fiyat: { renk: "purple", icon: "📊", baslik: "Kademeli Fiyat" },
-    domain_fiyat: { renk: "teal", icon: "🔗", baslik: "Domain Uzantı Fiyat" },
-    demo_suresi: { renk: "rose", icon: "⏰", baslik: "Demo Süresi" },
+    setDuzenleIdx(null);
+    setDuzenleMetin("");
   };
 
   const gonder = (e) => {
     e.preventDefault();
     if (!form.adi) return;
-    const seciliUrun = tumUrunler.find((u) => u.id === Number(form.urunId)) || urun;
-    kaydet({ ...form, urunId: seciliUrun.id, urunAdi: seciliUrun.adi, ozellikler: ozellikler.length > 0 ? ozellikler : null });
-  };
-
-  // Özellik değerini formatlı göster
-  const ozellikDegerGoster = (oz) => {
-    const d = oz.deger;
-    const t = oz.ozellik_tipi || oz.tip;
-    switch (t) {
-      case "hediye_urun": return oz.urunAdi || "Ürün seçildi";
-      case "ek_kullanici_fiyat": return `${Number(d).toLocaleString("tr-TR")} ₺`;
-      case "indirim": return `%${d}`;
-      case "ozel_not": return d;
-      case "ek_sure": return `+${d} gün`;
-      case "temel_fiyat": return d?.fiyat ? `${Number(d.fiyat).toLocaleString("tr-TR")} ₺` : "";
-      case "aktivasyon_yenileme": return d ? `Akt: ${Number(d.aktivasyon_fiyat || 0).toLocaleString("tr-TR")}₺ / Yen: ${Number(d.yenileme_fiyat || 0).toLocaleString("tr-TR")}₺` : "";
-      case "kullanici_sayisi": return d ? `${d.min || 1}${d.max ? `-${d.max}` : "+"} kişi${d.ek_kullanici_fiyat ? `, +${Number(d.ek_kullanici_fiyat).toLocaleString("tr-TR")}₺/ek` : ""}` : "";
-      case "sicil_domain": return d ? `${d.alan_tipi === "domain" ? "Domain" : "Sicil"}${d.zorunlu ? " (Zorunlu)" : ""}` : "";
-      case "kademeli_fiyat": return d?.kademeler?.length ? `${d.kademeler.length} kademe` : "";
-      case "domain_fiyat": return d?.uzantilar?.length ? `${d.uzantilar.length} uzantı` : "";
-      case "demo_suresi": return d?.gun ? `${d.gun} gün` : "";
-      default: return typeof d === "object" ? JSON.stringify(d) : d;
-    }
-  };
-
-  // Renk sınıfları (Tailwind JIT için)
-  const renkler = {
-    emerald: "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400",
-    blue: "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20 text-blue-700 dark:text-blue-400",
-    amber: "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400",
-    purple: "bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20 text-purple-700 dark:text-purple-400",
-    cyan: "bg-cyan-50 dark:bg-cyan-500/10 border-cyan-200 dark:border-cyan-500/20 text-cyan-700 dark:text-cyan-400",
-    teal: "bg-teal-50 dark:bg-teal-500/10 border-teal-200 dark:border-teal-500/20 text-teal-700 dark:text-teal-400",
-    rose: "bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20 text-rose-700 dark:text-rose-400",
-    gray: "bg-gray-50 dark:bg-gray-500/10 border-gray-200 dark:border-gray-500/20 text-gray-700 dark:text-gray-400",
+    // Metin kartlarını ozellikler formatına dönüştür
+    const ozellikler = kartlar.map((metin, i) => ({
+      id: Date.now() + i,
+      ozellik_tipi: "metin_karti",
+      tip: "metin_karti",
+      deger: metin,
+    }));
+    kaydet({ ...form, urunId: urun.id, urunAdi: urun.adi, ozellikler: ozellikler.length > 0 ? ozellikler : null });
   };
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={sallanma}>
-      <div ref={ref} className={`bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-h-[90vh] overflow-hidden flex flex-col transition-all duration-300 ${ozellikPanelAcik ? "max-w-5xl" : "max-w-lg"}`} onClick={(e) => e.stopPropagation()}>
+      <div ref={ref} className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
 
         {/* Başlık */}
         <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between shrink-0">
@@ -952,215 +876,111 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
           </button>
         </div>
 
-        {/* Bilgi Kutusu */}
-        <div className="mx-6 mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20">
-          <div className="flex items-start gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <p className="text-xs text-blue-700 dark:text-blue-400">
-              Önce paket bilgilerini doldurun, ardından <strong>"Özellik Ekle"</strong> butonuyla fiyat, kullanıcı sayısı, aktivasyon fiyatı gibi özellikleri ekleyebilirsiniz.
-            </p>
+        {/* Form */}
+        <form onSubmit={gonder} className="flex-1 overflow-y-auto p-6 space-y-5">
+          {/* Adı */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Paket Adı <span className="text-red-500">*</span></label>
+            <input type="text" value={form.adi} onChange={(e) => guncelle("adi", e.target.value)} placeholder="Paket adını giriniz" className={INPUT_STIL} required autoFocus />
           </div>
-        </div>
 
-        {/* Şablon Bilgi Kutusu */}
-        {sablonYukleniyor && (
-          <div className="mx-6 mt-2 p-3 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-            <p className="text-xs text-gray-500 dark:text-slate-400 animate-pulse">Şablon bilgileri yükleniyor...</p>
-          </div>
-        )}
-        {!duzenle && sablonBilgi && !sablonYukleniyor && (
-          <div className="mx-6 mt-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
-            <div className="flex items-start gap-2">
-              <span className="text-sm shrink-0">✨</span>
-              <p className="text-xs text-emerald-700 dark:text-emerald-400">
-                <strong>"{sablonBilgi.ad}"</strong> şablonundan <strong>{sablonBilgi.ozellikler.length}</strong> özellik otomatik dolduruldu. Değerleri aşağıdan düzenleyebilirsiniz.
-              </p>
+          {/* Kart Tabanlı Özellikler */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300">Paket Özellikleri</label>
+                {kartlar.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-400">{kartlar.length}</span>
+                )}
+              </div>
             </div>
-          </div>
-        )}
 
-        {/* İçerik - Yan Yana Layout */}
-        <div className="flex flex-1 overflow-hidden">
-          {/* Sol Panel - Form */}
-          <form onSubmit={gonder} className={`p-6 space-y-4 overflow-y-auto transition-all duration-300 ${ozellikPanelAcik ? "w-1/2 border-r border-gray-200 dark:border-white/10" : "w-full"}`}>
-          {/* Ürün Grubu */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ürün Grubu</label>
-            <select value={form.urunGrubu} onChange={(e) => { guncelle("urunGrubu", e.target.value); guncelle("urunId", ""); }} className={INPUT_STIL}>
-              <option value="">Grup Yok</option>
-              {urunGruplari.map((g) => <option key={g.id} value={g.ad}>{g.ad}</option>)}
-            </select>
-          </div>
-
-          {/* Ürün */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ürün</label>
-            <select value={form.urunId} onChange={(e) => guncelle("urunId", Number(e.target.value))} className={INPUT_STIL}>
-              {grupUrunleri.length === 0 && <option value="">Bu grupta ürün yok</option>}
-              {grupUrunleri.map((u) => <option key={u.id} value={u.id}>{u.adi}</option>)}
-            </select>
-          </div>
-
-          {/* Paket Tipi */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Paket Tipi</label>
-            <div className="flex gap-2">
-              <select value={form.tipi} onChange={(e) => guncelle("tipi", e.target.value)} className={INPUT_STIL + " flex-1"}>
-                <option value="">SEÇİNİZ</option>
-                {paketTipleri.map((t) => <option key={t.id} value={t.ad}>{t.ad}</option>)}
-              </select>
-              <button type="button" onClick={() => setYeniTipModal(true)} title="Yeni Paket Tipi Ekle"
-                className="px-3 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white transition-colors cursor-pointer">
+            {/* Yeni Özellik Ekleme */}
+            <div className="flex items-center gap-2 mb-3">
+              <input
+                ref={inputRef}
+                type="text"
+                value={yeniKart}
+                onChange={(e) => setYeniKart(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); kartEkle(); } }}
+                placeholder="Özellik yazın ve Enter'a basın..."
+                className="flex-1 px-3 py-2.5 text-sm rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-violet-500 outline-none"
+              />
+              <button
+                type="button"
+                onClick={kartEkle}
+                disabled={!yeniKart.trim()}
+                className="w-9 h-9 rounded-lg bg-violet-500 hover:bg-violet-600 disabled:opacity-50 text-white flex items-center justify-center cursor-pointer shrink-0"
+                title="Ekle"
+              >
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
               </button>
-              <button type="button" onClick={() => setTipYonetimModal(true)} title="Paket Tiplerini Yönet"
-                className="px-3 py-2 rounded-lg bg-gray-500 hover:bg-gray-600 text-white transition-colors cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          {/* Yeni Paket Tipi Mini Modal */}
-          {yeniTipModal && (
-            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40" onClick={() => setYeniTipModal(false)}>
-              <div className="bg-white dark:bg-slate-800 rounded-xl p-4 w-80 shadow-xl border border-gray-200 dark:border-white/10" onClick={(e) => e.stopPropagation()}>
-                <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Yeni Paket Tipi Ekle</h4>
-                <input
-                  type="text"
-                  value={yeniTip}
-                  onChange={(e) => setYeniTip(e.target.value)}
-                  placeholder="Paket tipi adı"
-                  className={INPUT_STIL}
-                  autoFocus
-                  onKeyDown={(e) => e.key === "Enter" && yeniTipEkle()}
-                />
-                <div className="flex justify-end gap-2 mt-3">
-                  <button type="button" onClick={() => setYeniTipModal(false)}
-                    className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-xs font-medium cursor-pointer">İptal</button>
-                  <button type="button" onClick={yeniTipEkle}
-                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer">Ekle</button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Paket Tipi Yönetim Modal */}
-          {tipYonetimModal && (
-            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40" onClick={() => setTipYonetimModal(false)}>
-              <div className="bg-white dark:bg-slate-800 rounded-xl p-5 w-96 shadow-xl border border-gray-200 dark:border-white/10 max-h-[70vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-base font-semibold text-gray-900 dark:text-white">Paket Tiplerini Yönet</h4>
-                  <button type="button" onClick={() => setTipYonetimModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white cursor-pointer">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                  </button>
-                </div>
-                <div className="flex-1 overflow-y-auto space-y-2">
-                  {paketTipleri.length === 0 ? (
-                    <p className="text-center text-gray-400 dark:text-slate-500 py-4 text-sm">Henüz paket tipi eklenmemiş.</p>
-                  ) : (
-                    paketTipleri.map((tip) => (
-                      <div key={tip.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5">
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">{tip.ad}</span>
-                        <button type="button" onClick={() => paketTipiSil(tip.id)} title="Sil"
-                          className="w-7 h-7 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/10 flex items-center justify-center text-gray-400 hover:text-red-500 cursor-pointer transition-colors">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div className="mt-4 pt-3 border-t border-gray-200 dark:border-white/10">
-                  <button type="button" onClick={() => { setTipYonetimModal(false); setYeniTipModal(true); }}
-                    className="w-full px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold cursor-pointer inline-flex items-center justify-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                    Yeni Paket Tipi Ekle
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Adı */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Adı <span className="text-red-500">*</span></label>
-            <input type="text" value={form.adi} onChange={(e) => guncelle("adi", e.target.value)} className={INPUT_STIL} required />
-          </div>
-
-          {/* Durum */}
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={form.aktif} onChange={(e) => guncelle("aktif", e.target.checked)}
-              className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-emerald-600 focus:ring-emerald-500" />
-            <span className="text-sm text-gray-700 dark:text-slate-300">Aktif</span>
-          </label>
-
-          {/* Paket Özellikleri Özet */}
-          <div className="pt-3 border-t border-gray-200 dark:border-white/10">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300">Paket Özellikleri</label>
-                {ozellikler.length > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-400">{ozellikler.length}</span>
-                )}
-              </div>
-              <button type="button" onClick={() => setOzellikPanelAcik(prev => !prev)}
-                className={`text-xs px-3 py-1.5 rounded-lg transition-all cursor-pointer inline-flex items-center gap-1.5 ${ozellikPanelAcik ? "bg-violet-600 text-white hover:bg-violet-700" : "bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-400 hover:bg-violet-200 dark:hover:bg-violet-500/30"}`}>
-                {ozellikPanelAcik ? (
-                  <>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                    Paneli Kapat
-                  </>
-                ) : (
-                  <>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                    Özellik Ekle
-                  </>
-                )}
-              </button>
             </div>
 
-            {/* Eklenen Özellikler Mini Liste */}
-            {ozellikler.length > 0 ? (
-              <div className="space-y-1.5">
-                {ozellikler.map((oz) => {
-                  const ozTip = oz.ozellik_tipi || oz.tip;
-                  const stil = ozellikStilleri[ozTip] || { renk: "gray", icon: "⚙️", baslik: ozTip };
-                  const renkSinif = renkler[stil.renk] || renkler.gray;
-                  
-                  return (
-                    <div key={oz.id} className={`flex items-center justify-between p-2 rounded-lg border ${renkSinif.split(" ").slice(0, 4).join(" ")}`}>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-sm shrink-0">{stil.icon}</span>
-                        <div className="min-w-0">
-                          <p className={`text-xs font-medium truncate ${renkSinif.split(" ").slice(4).join(" ")}`}>{stil.baslik}</p>
-                          <p className="text-[10px] text-gray-500 dark:text-slate-400 truncate">{ozellikDegerGoster(oz)}</p>
-                        </div>
-                      </div>
-                      <button type="button" onClick={() => ozellikSil(oz.id)}
-                        className="w-5 h-5 rounded hover:bg-red-100 dark:hover:bg-red-500/20 flex items-center justify-center text-gray-400 hover:text-red-500 cursor-pointer transition-colors shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            {/* Kartlar Listesi */}
+            <div className="space-y-2">
+              {kartlar.length === 0 ? (
+                <div className="text-center py-6 rounded-lg border-2 border-dashed border-gray-200 dark:border-white/10">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 mx-auto text-gray-300 dark:text-slate-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  <p className="text-xs text-gray-400 dark:text-slate-500">Henüz özellik eklenmedi</p>
+                  <p className="text-[10px] text-gray-300 dark:text-slate-600 mt-1">Yukarıdaki alandan özellik ekleyebilirsiniz</p>
+                </div>
+              ) : (
+                kartlar.map((kart, idx) => (
+                  <div key={idx} className="group flex items-center gap-2 px-3 py-2.5 rounded-lg bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20">
+                    <span className="text-violet-500 dark:text-violet-400 text-sm font-bold shrink-0">{idx + 1}.</span>
+                    {duzenleIdx === idx ? (
+                      <input
+                        type="text"
+                        value={duzenleMetin}
+                        onChange={(e) => setDuzenleMetin(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); kartDuzenleBitir(idx); } if (e.key === "Escape") { setDuzenleIdx(null); setDuzenleMetin(""); } }}
+                        onBlur={() => kartDuzenleBitir(idx)}
+                        className="flex-1 px-2 py-1 text-sm rounded border border-violet-300 dark:border-violet-500/30 bg-white dark:bg-white/10 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-violet-500"
+                        autoFocus
+                      />
+                    ) : (
+                      <span 
+                        className="flex-1 text-sm text-gray-800 dark:text-slate-200 cursor-pointer"
+                        onDoubleClick={() => { setDuzenleIdx(idx); setDuzenleMetin(kart); }}
+                        title="Düzenlemek için çift tıklayın"
+                      >
+                        {kart}
+                      </span>
+                    )}
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        type="button"
+                        onClick={() => { setDuzenleIdx(idx); setDuzenleMetin(kart); }}
+                        className="w-6 h-6 rounded bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center cursor-pointer"
+                        title="Düzenle"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => kartSil(idx)}
+                        className="w-6 h-6 rounded bg-red-500 hover:bg-red-600 text-white flex items-center justify-center cursor-pointer"
+                        title="Sil"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                       </button>
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-xs text-gray-400 dark:text-slate-500 italic text-center py-2">Henüz özellik eklenmedi. Fiyat, kullanıcı sayısı gibi bilgileri özellik olarak ekleyebilirsiniz.</p>
-            )}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
 
           {/* Kaydet */}
@@ -1175,15 +995,6 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
             </button>
           </div>
         </form>
-
-        {/* Sağ Panel - Özellik Ekleme */}
-        {ozellikPanelAcik && (
-          <OzellikEklePanel
-            ozellikEkle={ozellikEkle}
-            tumUrunler={tumUrunler}
-          />
-        )}
-        </div>
       </div>
     </div>
   );
@@ -1651,14 +1462,18 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
 
   /* Versiyon formatlama (otomatik nokta ekleme) */
   const versiyonFormatla = (deger) => {
-    /* Sadece rakamları al */
-    const rakamlar = deger.replace(/[^\d]/g, "").slice(0, 6);
-    if (!rakamlar) return "";
-    /* X.Y.Z formatına çevir */
-    if (rakamlar.length === 1) return rakamlar;
-    if (rakamlar.length === 2) return `${rakamlar[0]}.${rakamlar[1]}`;
-    if (rakamlar.length >= 3) return `${rakamlar[0]}.${rakamlar[1]}.${rakamlar.slice(2)}`;
-    return rakamlar;
+    /* Sadece rakam ve nokta karakterlerine izin ver */
+    let sonuc = deger.replace(/[^\d.]/g, "");
+    /* Baştaki noktaları temizle */
+    sonuc = sonuc.replace(/^\.+/, "");
+    /* Ardışık noktaları tek noktaya indir */
+    sonuc = sonuc.replace(/\.{2,}/g, ".");
+    /* En fazla 2 nokta (X.Y.Z formatı) */
+    const parcalar = sonuc.split(".");
+    if (parcalar.length > 3) {
+      sonuc = parcalar.slice(0, 3).join(".");
+    }
+    return sonuc;
   };
 
   const sallanma = () => {
@@ -1800,11 +1615,11 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                 {/* Ürün Tipi ve Uygulama Tipi */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ürün Tipi <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ürün Tipi</label>
                     <select value={form.urunTipi} onChange={(e) => {
                       guncelle("urunTipi", e.target.value);
                       guncelle("uygulamaTipi", "-"); // Ürün tipi değişince uygulama tipini sıfırla
-                    }} className={INPUT_STIL} required>
+                    }} className={INPUT_STIL}>
                       <option value="">Seçiniz</option>
                       {urunTipleri.map((t) => <option key={t.id} value={t.ad}>{t.ad}</option>)}
                     </select>
@@ -1930,23 +1745,22 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
               </>
             ) : (
               <>
-                {/* Şablon Uyarısı */}
-                {form.sablonId && (
-                  <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
-                    <div className="flex items-start gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                {/* Şablon seçiliyken bilgilendirme */}
+                {form.sablonId ? (
+                  <div className="p-6 rounded-xl bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/20 text-center">
+                    <div className="w-14 h-14 rounded-full bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center mx-auto mb-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
-                      <div>
-                        <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Şablon Seçildi</p>
-                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
-                          Şablon seçildiğinde aşağıdaki değerler şablondan otomatik olarak uygulanacaktır. 
-                          Burada girdiğiniz değerler geçersiz sayılacaktır.
-                        </p>
-                      </div>
                     </div>
+                    <h4 className="text-sm font-bold text-purple-700 dark:text-purple-300 mb-2">Şablon Kullanılıyor</h4>
+                    <p className="text-xs text-purple-600 dark:text-purple-400 leading-relaxed">
+                      Şablon seçildiğinde gelişmiş ayarlar (kullanıcı limitleri, demo & fiyat, bildirim & yenileme) 
+                      şablondan otomatik olarak uygulanır. Bu ayarları değiştirmek için şablon seçimini kaldırın.
+                    </p>
                   </div>
-                )}
+                ) : (
+                <>
 
                 {/* Kullanıcı Limitleri - Toggle */}
                 <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
@@ -2053,6 +1867,8 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
 
 
               </>
+                )}
+              </>
             )}
           </div>
 
@@ -2106,6 +1922,15 @@ function TipYonetimiSekmesi() {
   const [silinecekUrunTipi, setSilinecekUrunTipi] = useState(null);
   const [silinecekUygulamaTipi, setSilinecekUygulamaTipi] = useState(null);
   const [silmeYukleniyor, setSilmeYukleniyor] = useState(false);
+  
+  // Unique uyarı state'leri
+  const [grupUyari, setGrupUyari] = useState("");
+  const [urunTipiUyari, setUrunTipiUyari] = useState("");
+  const [uygulamaTipiUyari, setUygulamaTipiUyari] = useState("");
+  
+  // Düzenleme modal state'leri
+  const [duzenleUrunTipi, setDuzenleUrunTipi] = useState(null);
+  const [duzenleUygulamaTipi, setDuzenleUygulamaTipi] = useState(null);
 
   // Grupları yükle
   const gruplariYukle = useCallback(async () => {
@@ -2185,12 +2010,19 @@ function TipYonetimiSekmesi() {
   // CRUD İşlemleri
   const grupEkle = async () => {
     if (!yeniGrup.trim()) return;
+    if (gruplar.some(g => g.ad.toLowerCase() === yeniGrup.trim().toLowerCase())) {
+      setGrupUyari("Bu isimde bir grup zaten mevcut.");
+      setTimeout(() => setGrupUyari(""), 3000);
+      return;
+    }
     try {
       await apiPost("/urunler/gruplar", { ad: yeniGrup.trim(), aktif: true });
       setYeniGrup("");
+      setGrupUyari("");
       await gruplariYukle();
       grupInputRef.current?.focus();
     } catch (e) {
+      if (e?.mesaj) setGrupUyari(e.mesaj);
       console.error("Grup ekleme hatasi:", e);
     }
   };
@@ -2227,15 +2059,22 @@ function TipYonetimiSekmesi() {
 
   const urunTipiEkle = async (grupIdOverride = null) => {
     if (!yeniUrunTipi.trim()) return;
+    if (urunTipleri.some(t => t.ad.toLowerCase() === yeniUrunTipi.trim().toLowerCase())) {
+      setUrunTipiUyari("Bu isimde bir ürün tipi zaten mevcut.");
+      setTimeout(() => setUrunTipiUyari(""), 3000);
+      return;
+    }
     const hedefGrupId = grupIdOverride || seciliGrup?.id;
     try {
       await apiPost("/urunler/tipler", { ad: yeniUrunTipi.trim(), grup_id: hedefGrupId || null });
       setYeniUrunTipi("");
+      setUrunTipiUyari("");
       if (seciliGrup) {
         await urunTipleriniYukle(seciliGrup.id);
       }
       urunTipiInputRef.current?.focus();
     } catch (e) {
+      if (e?.mesaj) setUrunTipiUyari(e.mesaj);
       console.error("Urun tipi ekleme hatasi:", e);
     }
   };
@@ -2257,8 +2096,24 @@ function TipYonetimiSekmesi() {
     }
   };
 
+  const urunTipiKaydet = async (veri) => {
+    try {
+      await apiPut(`/urunler/tipler/${veri.id}`, { ad: veri.ad });
+      if (seciliGrup) await urunTipleriniYukle(seciliGrup.id);
+      setSeciliUrunTipleri(prev => prev.map(t => t.id === veri.id ? { ...t, ad: veri.ad } : t));
+      setDuzenleUrunTipi(null);
+    } catch (e) {
+      console.error("Urun tipi kaydetme hatasi:", e);
+    }
+  };
+
   const uygulamaTipiEkle = async (urunTipiIdOverride = null) => {
     if (!yeniUygulamaTipi.trim()) return;
+    if (uygulamaTipleri.some(t => t.ad.toLowerCase() === yeniUygulamaTipi.trim().toLowerCase())) {
+      setUygulamaTipiUyari("Bu isimde bir uygulama tipi zaten mevcut.");
+      setTimeout(() => setUygulamaTipiUyari(""), 3000);
+      return;
+    }
     try {
       // Çoklu seçim varsa toplu ekle
       if (seciliUrunTipleri.length > 1) {
@@ -2271,11 +2126,13 @@ function TipYonetimiSekmesi() {
         await apiPost("/urunler/uygulama-tipler", { ad: yeniUygulamaTipi.trim(), urun_tipi_id: hedefUrunTipiId || null });
       }
       setYeniUygulamaTipi("");
+      setUygulamaTipiUyari("");
       if (seciliUrunTipleri.length > 0) {
         await uygulamaTipleriniYukle(seciliUrunTipleri.map(t => t.id));
       }
       uygulamaTipiInputRef.current?.focus();
     } catch (e) {
+      if (e?.mesaj) setUygulamaTipiUyari(e.mesaj);
       console.error("Uygulama tipi ekleme hatasi:", e);
     }
   };
@@ -2293,6 +2150,18 @@ function TipYonetimiSekmesi() {
       console.error("Uygulama tipi silme hatasi:", e);
     } finally {
       setSilmeYukleniyor(false);
+    }
+  };
+
+  const uygulamaTipiKaydet = async (veri) => {
+    try {
+      await apiPut(`/urunler/uygulama-tipler/${veri.id}`, { ad: veri.ad });
+      if (seciliUrunTipleri.length > 0) {
+        await uygulamaTipleriniYukle(seciliUrunTipleri.map(t => t.id));
+      }
+      setDuzenleUygulamaTipi(null);
+    } catch (e) {
+      console.error("Uygulama tipi kaydetme hatasi:", e);
     }
   };
 
@@ -2369,6 +2238,9 @@ function TipYonetimiSekmesi() {
                 </svg>
               </button>
             </div>
+            {grupUyari && (
+              <p className="text-xs text-red-500 -mt-1 mb-2 px-1">{grupUyari}</p>
+            )}
 
             {/* Grup Listesi */}
             <div className="space-y-2">
@@ -2434,6 +2306,9 @@ function TipYonetimiSekmesi() {
                     </svg>
                   </button>
                 </div>
+                {urunTipiUyari && (
+                  <p className="text-xs text-red-500 -mt-1 mb-2 px-1">{urunTipiUyari}</p>
+                )}
 
                 {/* Ürün Tipi Listesi - Çoklu Seçim */}
                 {urunTipleri.length > 1 && (
@@ -2452,7 +2327,7 @@ function TipYonetimiSekmesi() {
                       <div
                         key={t.id}
                         onClick={() => urunTipiSecimToggle(t)}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all ${
+                        className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all ${
                           seciliUrunTipleri.some(s => s.id === t.id)
                             ? "bg-emerald-100 dark:bg-emerald-900/40 border-2 border-emerald-500"
                             : "bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:bg-gray-100 dark:hover:bg-white/10"
@@ -2472,10 +2347,20 @@ function TipYonetimiSekmesi() {
                         </div>
                         {/* İsim */}
                         <span className="flex-1 text-sm font-medium text-gray-900 dark:text-white">{t.ad}</span>
+                        {/* Düzenle butonu */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDuzenleUrunTipi(t); }}
+                          className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          title="Düzenle"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
                         {/* Sil butonu */}
                         <button
                           onClick={(e) => { e.stopPropagation(); setSilinecekUrunTipi(t); }}
-                          className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 opacity-60 hover:opacity-100 cursor-pointer"
+                          className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                           title="Sil"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -2537,6 +2422,9 @@ function TipYonetimiSekmesi() {
                     </svg>
                   </button>
                 </div>
+                {uygulamaTipiUyari && (
+                  <p className="text-xs text-red-500 -mt-1 mb-2 px-1">{uygulamaTipiUyari}</p>
+                )}
 
                 {/* Uygulama Tipi Listesi - Ürün tipi etiketi ile */}
                 <div className="space-y-2">
@@ -2551,7 +2439,7 @@ function TipYonetimiSekmesi() {
                     uygulamaTipleri.map((t, idx) => (
                       <div
                         key={`${t.id}-${t.urunTipiId || idx}`}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
+                        className="group flex items-center gap-3 px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
                       >
                         {/* Uygulama adı */}
                         <span className="flex-1 text-sm font-medium text-gray-900 dark:text-white">{t.ad}</span>
@@ -2561,10 +2449,20 @@ function TipYonetimiSekmesi() {
                             {t.urunTipiAdi}
                           </span>
                         )}
+                        {/* Düzenle butonu */}
+                        <button
+                          onClick={() => setDuzenleUygulamaTipi(t)}
+                          className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          title="Düzenle"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
                         {/* Sil butonu */}
                         <button
                           onClick={() => setSilinecekUygulamaTipi(t)}
-                          className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 opacity-60 hover:opacity-100 cursor-pointer"
+                          className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                           title="Sil"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -2583,6 +2481,26 @@ function TipYonetimiSekmesi() {
 
       {/* Grup Düzenleme Modal */}
       {grupModal && <GrupDuzenlemeModal modal={grupModal} kapat={() => setGrupModal(null)} kaydet={grupKaydet} />}
+      
+      {/* Ürün Tipi Düzenleme Modal */}
+      {duzenleUrunTipi && (
+        <TipDuzenlemeModal 
+          modal={duzenleUrunTipi} 
+          baslik="Ürün Tipi Düzenle"
+          kapat={() => setDuzenleUrunTipi(null)} 
+          kaydet={urunTipiKaydet} 
+        />
+      )}
+      
+      {/* Uygulama Tipi Düzenleme Modal */}
+      {duzenleUygulamaTipi && (
+        <TipDuzenlemeModal 
+          modal={duzenleUygulamaTipi} 
+          baslik="Uygulama Tipi Düzenle"
+          kapat={() => setDuzenleUygulamaTipi(null)} 
+          kaydet={uygulamaTipiKaydet} 
+        />
+      )}
       
       {/* Hızlı Ekle Modal */}
       {hizliEkleModal && (
@@ -2933,6 +2851,49 @@ function GrupDuzenlemeModal({ modal, kapat, kaydet }) {
               className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-emerald-600 focus:ring-emerald-500" />
             <span className="text-sm text-gray-700 dark:text-slate-300">Aktif</span>
           </label>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={kapat}
+              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer">İptal</button>
+            <button type="submit"
+              className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold cursor-pointer">
+              Güncelle
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================= */
+/*  Tip Düzenleme Modal (Ürün Tipi / Uygulama)  */
+/* ============================================= */
+function TipDuzenlemeModal({ modal, baslik, kapat, kaydet }) {
+  const [ad, setAd] = useState(modal.ad || "");
+  const ref = useRef(null);
+  const sallanma = () => { if (ref.current) { ref.current.classList.remove("sallan"); void ref.current.offsetWidth; ref.current.classList.add("sallan"); } };
+
+  const gonder = (e) => {
+    e.preventDefault();
+    if (!ad.trim()) return;
+    kaydet({ id: modal.id, ad: ad.trim() });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={sallanma}>
+      <div ref={ref} className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">{baslik}</h3>
+          <button onClick={kapat} className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <form onSubmit={gonder} className="p-6 space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ad <span className="text-red-500">*</span></label>
+            <input type="text" value={ad} onChange={(e) => setAd(e.target.value)} placeholder="Ad giriniz" className={INPUT_STIL} required autoFocus />
+          </div>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={kapat}
               className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer">İptal</button>

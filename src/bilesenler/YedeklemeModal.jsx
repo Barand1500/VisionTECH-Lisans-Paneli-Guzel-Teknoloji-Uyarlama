@@ -13,13 +13,14 @@ export default function YedeklemeModal({ acik, kapat }) {
   const [yukleniyor, setYukleniyor] = useState(false);
   const [sonuc, setSonuc] = useState(null);
   const [secilenDosya, setSecilenDosya] = useState(null);
-  const [yedekFormati, setYedekFormati] = useState("json"); // json veya sql
+  const [yedekFormati, setYedekFormati] = useState("json");
+  const [geriYuklemeOnay, setGeriYuklemeOnay] = useState(false);
   const dosyaRef = useRef(null);
   const { loglariYukle, logEkle } = useAktiviteLog();
 
   /* Modal kapanırken durumu sıfırla */
   useEffect(() => {
-    if (!acik) { setSonuc(null); setSecilenDosya(null); }
+    if (!acik) { setSonuc(null); setSecilenDosya(null); setGeriYuklemeOnay(false); }
   }, [acik]);
 
   /* ESC tuşu ile kapat */
@@ -238,7 +239,7 @@ export default function YedeklemeModal({ acik, kapat }) {
 
                   {secilenDosya && (
                     <button
-                      onClick={yedekYukle}
+                      onClick={() => setGeriYuklemeOnay(true)}
                       disabled={yukleniyor}
                       className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm"
                     >
@@ -304,5 +305,38 @@ export default function YedeklemeModal({ acik, kapat }) {
     </div>
   );
 
-  return createPortal(modal, document.body);
+  return createPortal(<>
+    {modal}
+    {/* ---- Geri Yükleme Onay Modalı ---- */}
+    {geriYuklemeOnay && (
+      <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 border border-gray-200 dark:border-gray-700 animate-[fadeIn_0.15s_ease-out]">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Geri Yükleme Onayı</h3>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">Bu işlem mevcut veritabanındaki <strong>tüm verilerin üzerine yazacaktır</strong>.</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">Devam etmek istediğinize emin misiniz?</p>
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => setGeriYuklemeOnay(false)}
+              className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+            >
+              İptal
+            </button>
+            <button
+              onClick={() => { setGeriYuklemeOnay(false); yedekYukle(); }}
+              className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-amber-500 hover:bg-amber-600 transition-colors cursor-pointer"
+            >
+              Evet, Geri Yükle
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </>, document.body);
 }

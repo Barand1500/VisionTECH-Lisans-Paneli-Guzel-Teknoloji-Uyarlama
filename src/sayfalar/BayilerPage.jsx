@@ -142,6 +142,11 @@ export default function BayilerPage() {
   const [sayfaBoyutu, setSayfaBoyutu] = useState(10);
   const [aktifSayfa, setAktifSayfa] = useState(1);
 
+  /* Çizgi stili & sütun sürükleme */
+  const [cizgiStil, setCizgiStil] = useState("yok");
+  const [sutunSirasiTemel, setSutunSirasiTemel] = useState(["ad", "tur", "ustBayi", "sehir", "telefon", "etiketler", "durum"]);
+  const [suruklenenSutun, setSuruklenenSutun] = useState(null);
+
   /* ---- Not Modalı ---- */
   const [notModal, setNotModal] = useState(null);
   const [yeniNot, setYeniNot] = useState("");
@@ -383,6 +388,23 @@ export default function BayilerPage() {
       : <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 ml-1 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>;
   };
 
+  /* Sütun sürükleme yardımcıları */
+  const sutunBasliklari = { ad: "Bayi Adı", tur: "Türü", ustBayi: "Üst Bayi", sehir: "Şehir", telefon: "Telefon", etiketler: "Etiketler", durum: "Durum" };
+  const sutunSiralamaMap = { ad: "ad", tur: "tur", sehir: "sehir", durum: "durum" };
+  const sutunDragStart = (e, idx) => { setSuruklenenSutun(idx); e.dataTransfer.effectAllowed = "move"; };
+  const sutunDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; };
+  const sutunDrop = (e, hedefIdx) => {
+    e.preventDefault();
+    if (suruklenenSutun === null || suruklenenSutun === hedefIdx) return;
+    setSutunSirasiTemel((o) => {
+      const yeni = [...o];
+      const [tasinan] = yeni.splice(suruklenenSutun, 1);
+      yeni.splice(hedefIdx, 0, tasinan);
+      return yeni;
+    });
+    setSuruklenenSutun(null);
+  };
+
   /* Modal states */
   const [duzenleModal, setDuzenleModal] = useState(null);
 
@@ -587,6 +609,20 @@ export default function BayilerPage() {
     if (boyut < 1024) return `${boyut} B`;
     if (boyut < 1024 * 1024) return `${(boyut / 1024).toFixed(1)} KB`;
     return `${(boyut / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  /* ---- Sütun hücre render (sürükleme destekli) ---- */
+  const sutunHucre = (bayi, key) => {
+    switch (key) {
+      case "ad": return <td key={key} className="px-6 py-4"><div><p className="font-medium text-gray-900 dark:text-white">{bayi.ad}</p><p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{bayi.yetkili}</p></div></td>;
+      case "tur": return <td key={key} className="px-6 py-4"><span className={`text-xs px-2.5 py-1 rounded-full font-medium ${bayi.ustBayiId ? "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400" : "bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400"}`}>{bayiTuruBelirle(bayi)}</span></td>;
+      case "ustBayi": return <td key={key} className="px-6 py-4 text-gray-600 dark:text-slate-400">{bayi.ustBayiId ? ustBayiAdiBul(bayi.ustBayiId) : "—"}</td>;
+      case "sehir": return <td key={key} className="px-6 py-4 text-gray-600 dark:text-slate-400">{bayi.sehir}</td>;
+      case "telefon": return <td key={key} className="px-6 py-4 text-gray-600 dark:text-slate-400 whitespace-nowrap"><span className="inline-flex items-center group">{bayi.telefon || (bayi.telefonlar && bayi.telefonlar[0]) || "—"}<KopyalaButonu metin={bayi.telefon || (bayi.telefonlar && bayi.telefonlar[0])} /></span></td>;
+      case "etiketler": return <td key={key} className="px-6 py-4"><div className="flex flex-wrap gap-1 max-w-[200px]">{Array.isArray(bayi.etiketler) && bayi.etiketler.length > 0 ? bayi.etiketler.map((etiket, idx) => <span key={idx} className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">{etiket}</span>) : <span className="text-gray-400 dark:text-slate-500 text-xs">-</span>}</div></td>;
+      case "durum": return <td key={key} className="px-6 py-4 text-center"><span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium ${bayi.durum === "aktif" ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-500"}`}><span className={`w-1.5 h-1.5 rounded-full ${bayi.durum === "aktif" ? "bg-emerald-500" : "bg-gray-400 dark:bg-slate-500"}`} />{bayi.durum === "aktif" ? "Aktif" : "Pasif"}</span></td>;
+      default: return null;
+    }
   };
 
   /* ============================================= */
@@ -1151,70 +1187,39 @@ export default function BayilerPage() {
       {aktifGorunum === "tablo" && (
         <div className="rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
+            <table className={`w-full text-sm ${cizgiStil === "dikey" || cizgiStil === "tam" ? "[&_td]:border-x [&_th]:border-x border-gray-200 dark:border-white/10 [&_td]:border-gray-200 [&_td]:dark:border-white/10 [&_th]:border-gray-200 [&_th]:dark:border-white/10" : ""}`}>
+              <thead className="bg-gray-50 dark:bg-white/[0.03]">
                 <tr className="border-b border-gray-200 dark:border-white/10">
                   <th className="px-4 py-4 w-12">
                     <input type="checkbox" checked={hepsiSecili} onChange={tumunuSec}
                       className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-emerald-600 focus:ring-emerald-500 cursor-pointer" />
                   </th>
-                  <th onClick={() => siralamaToggle("ad")} className="text-left px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-white select-none"><span className="inline-flex items-center">Bayi Adı<SiralamaIkon alan="ad" /></span></th>
-                  <th onClick={() => siralamaToggle("tur")} className="text-left px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-white select-none"><span className="inline-flex items-center">Türü<SiralamaIkon alan="tur" /></span></th>
-                  <th className="text-left px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider">Üst Bayi</th>
-                  <th onClick={() => siralamaToggle("sehir")} className="text-left px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-white select-none"><span className="inline-flex items-center">Şehir<SiralamaIkon alan="sehir" /></span></th>
-                  <th className="text-left px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider">Telefon</th>
-                  <th className="text-left px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider">Etiketler</th>
-                  <th onClick={() => siralamaToggle("durum")} className="text-center px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-white select-none"><span className="inline-flex items-center justify-center">Durum<SiralamaIkon alan="durum" /></span></th>
-                  <th className="text-center px-6 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider">İşlemler</th>
+                  {sutunSirasiTemel.map((key, idx) => {
+                    const siralamaKey = sutunSiralamaMap[key];
+                    return (
+                      <th key={key} draggable onDragStart={(e) => sutunDragStart(e, idx)} onDragOver={sutunDragOver} onDrop={(e) => sutunDrop(e, idx)} onDragEnd={() => setSuruklenenSutun(null)}
+                        onClick={siralamaKey ? () => siralamaToggle(siralamaKey) : undefined}
+                        className={`text-left px-4 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider whitespace-nowrap cursor-grab active:cursor-grabbing select-none transition-opacity ${suruklenenSutun === idx ? "opacity-40" : ""} ${siralamaKey ? "hover:text-gray-700 dark:hover:text-white" : ""} ${key === "durum" ? "text-center" : ""}`}>
+                        <span className="inline-flex items-center gap-1.5">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-gray-300 dark:text-slate-600 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
+                          </svg>
+                          {sutunBasliklari[key]}{siralamaKey && <SiralamaIkon alan={siralamaKey} />}
+                        </span>
+                      </th>
+                    );
+                  })}
+                  <th className="text-center px-4 py-4 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider whitespace-nowrap">İşlemler</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+              <tbody className={`${cizgiStil === "yatay" || cizgiStil === "tam" ? "divide-y divide-gray-200 dark:divide-white/10" : cizgiStil === "yok" ? "" : "divide-y divide-gray-100 dark:divide-white/5"}`}>
                 {sayfalananlar.length > 0 ? sayfalananlar.map((bayi) => (
                   <tr key={bayi.id} className={`hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors ${seciliIdler.has(bayi.id) ? "bg-emerald-50/50 dark:bg-emerald-500/5" : ""} ${bayi.durum !== "aktif" ? "opacity-50" : ""}`}>
                     <td className="px-4 py-4">
                       <input type="checkbox" checked={seciliIdler.has(bayi.id)} onChange={() => tekSecimToggle(bayi.id)}
                         className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-emerald-600 focus:ring-emerald-500 cursor-pointer" />
                     </td>
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">{bayi.ad}</p>
-                        <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{bayi.yetkili}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${bayi.ustBayiId ? "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400" : "bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400"}`}>
-                        {bayiTuruBelirle(bayi)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600 dark:text-slate-400">
-                      {bayi.ustBayiId ? ustBayiAdiBul(bayi.ustBayiId) : "—"}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600 dark:text-slate-400">{bayi.sehir}</td>
-                    <td className="px-6 py-4 text-gray-600 dark:text-slate-400 whitespace-nowrap">
-                      <span className="inline-flex items-center group">
-                        {bayi.telefon || (bayi.telefonlar && bayi.telefonlar[0]) || "—"}
-                        <KopyalaButonu metin={bayi.telefon || (bayi.telefonlar && bayi.telefonlar[0])} />
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1 max-w-[200px]">
-                        {Array.isArray(bayi.etiketler) && bayi.etiketler.length > 0 ? (
-                          bayi.etiketler.map((etiket, idx) => (
-                            <span key={idx} className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">
-                              {etiket}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-gray-400 dark:text-slate-500 text-xs">-</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium ${bayi.durum === "aktif" ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-500"}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${bayi.durum === "aktif" ? "bg-emerald-500" : "bg-gray-400 dark:bg-slate-500"}`} />
-                        {bayi.durum === "aktif" ? "Aktif" : "Pasif"}
-                      </span>
-                    </td>
+                    {sutunSirasiTemel.map((key) => sutunHucre(bayi, key))}
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-center gap-2">
                         <button onClick={() => git(`/dashboard/bayi/${bayi.id}`)} title="Detay Görüntüle"
@@ -1255,7 +1260,7 @@ export default function BayilerPage() {
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={9} className="px-6 py-12 text-center text-gray-400 dark:text-slate-500">
+                    <td colSpan={sutunSirasiTemel.length + 2} className="px-6 py-12 text-center text-gray-400 dark:text-slate-500">
                       {arama || kartFiltre ? `"${arama}" ile eşleşen bayi bulunamadı.` : "Henüz bayi kaydı bulunmamaktadır."}
                     </td>
                   </tr>
@@ -1273,6 +1278,23 @@ export default function BayilerPage() {
                   {[5, 10, 25, 50].map((n) => <option key={n} value={n}>{n}</option>)}
                 </select>
                 <span>kayıt göster</span>
+                {/* Çizgi Stili Toggle */}
+                <div className="flex items-center gap-1 ml-2 border-l border-gray-200 dark:border-white/10 pl-3">
+                  <span className="text-xs text-gray-400 dark:text-slate-500 mr-1">Çizgi:</span>
+                  {[
+                    { key: "yok", title: "Çizgi Yok", ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg> },
+                    { key: "yatay", title: "Yatay Çizgiler", ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path d="M2 5h16v1H2zM2 9.5h16v1H2zM2 14h16v1H2z" /></svg> },
+                    { key: "dikey", title: "Dikey Çizgiler", ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path d="M5 2v16h1V2zM9.5 2v16h1V2zM14 2v16h1V2z" /></svg> },
+                    { key: "tam", title: "Tam Izgara", ikon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path d="M1 1h18v18H1V1zm1 1v5h5V2H2zm6 0v5h4V2H8zm5 0v5h5V2h-5zM2 8v4h5V8H2zm6 0v4h4V8H8zm5 0v4h5V8h-5zM2 13v5h5v-5H2zm6 0v5h4v-5H8zm5 0v5h5v-5h-5z" /></svg> },
+                  ].map((opt) => (
+                    <button key={opt.key} onClick={() => setCizgiStil(opt.key)} title={opt.title}
+                      className={`w-7 h-7 rounded-md flex items-center justify-center cursor-pointer transition-all ${
+                        cizgiStil === opt.key
+                          ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-300 dark:ring-emerald-500/30"
+                          : "text-gray-400 dark:text-slate-500 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-600 dark:hover:text-slate-300"
+                      }`}>{opt.ikon}</button>
+                  ))}
+                </div>
               </div>
               <span className="text-sm text-gray-500 dark:text-slate-400">
                 — Toplam {siraliBayiler.length} kayıttan {Math.min((aktifSayfa - 1) * sayfaBoyutu + 1, siraliBayiler.length)}-{Math.min(aktifSayfa * sayfaBoyutu, siraliBayiler.length)} arası

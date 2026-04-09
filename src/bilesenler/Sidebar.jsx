@@ -102,6 +102,7 @@ export default function Sidebar({ daraltilmis, daraltToggle }) {
   const yonlendirici = useNavigate();
   const [aramaAcik, setAramaAcik] = useState(false);
   const [yedeklemeAcik, setYedeklemeAcik] = useState(false);
+  const [cikisOnay, setCikisOnay] = useState(false);
 
   /* ---- Ctrl+K ile Global Arama ---- */
   useEffect(() => {
@@ -256,7 +257,7 @@ export default function Sidebar({ daraltilmis, daraltToggle }) {
 
         {/* ---- Çıkış Butonu ---- */}
         <button
-          onClick={async () => { await logEkle("cikis", "Oturum kapatıldı"); cikisYap(); yonlendirici("/login"); }}
+          onClick={() => setCikisOnay(true)}
           className={`w-full flex items-center ${daraltilmis ? "justify-center" : ""} gap-3 px-4 py-3 rounded-lg text-gray-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 dark:hover:text-red-400 transition-all duration-200 text-sm font-medium cursor-pointer`}
           title={daraltilmis ? "Çıkış Yap" : ""}
         >
@@ -266,6 +267,37 @@ export default function Sidebar({ daraltilmis, daraltToggle }) {
           {!daraltilmis && <span>Çıkış Yap</span>}
         </button>
       </div>
+
+      {/* ---- Çıkış Onay Modalı ---- */}
+      {cikisOnay && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Çıkış Yap</h3>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">Oturumunuzu kapatmak istediğinize emin misiniz?</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setCikisOnay(false)}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+              >
+                İptal
+              </button>
+              <button
+                onClick={async () => { await logEkle("cikis", "Oturum kapatıldı"); cikisYap(); yonlendirici("/login"); }}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-500 hover:bg-red-600 transition-colors cursor-pointer"
+              >
+                Çıkış Yap
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
