@@ -77,10 +77,11 @@ async function main() {
   const sifreHash = await bcrypt.hash("123456", 10);
   const admin = await prisma.kullanici.create({
     data: {
+      kullanici_adi: "ercan",
       ad_soyad: "Ercan Güzel",
       eposta: "ercan@guzelteknoloji.com",
       sifre_hash: sifreHash,
-      rol_id: adminRol.id,
+      rol: adminRol.ad,
       aktif: 1,
     },
   });
@@ -133,11 +134,11 @@ async function main() {
   // =============================================
   console.log("\n📂 Ürün grupları oluşturuluyor...");
   const grupVerileri = [
-    { ad: "VEGA Yazılım", aciklama: "VegaPos, VegaCari, VegaHR yazılım ailesi", renk: "#3B82F6", sira: 0 },
-    { ad: "GİB Entegrasyon", aciklama: "E-Fatura, E-Arşiv, E-İrsaliye, E-Mutabakat", renk: "#EF4444", sira: 1 },
-    { ad: "PAVO Donanım", aciklama: "Yazar kasa, SmartPos cihazları", renk: "#F59E0B", sira: 2 },
-    { ad: "METUNIC Altyapı", aciklama: "Domain, Hosting, E-Posta altyapı hizmetleri", renk: "#8B5CF6", sira: 3 },
-    { ad: "GÜZELNET İnternet", aciklama: "Fiber internet, kurumsal bağlantı", renk: "#10B981", sira: 4 },
+    { ad: "VEGA Yazılım", aciklama: "VegaPos, VegaCari, VegaHR yazılım ailesi" },
+    { ad: "GİB Entegrasyon", aciklama: "E-Fatura, E-Arşiv, E-İrsaliye, E-Mutabakat" },
+    { ad: "PAVO Donanım", aciklama: "Yazar kasa, SmartPos cihazları" },
+    { ad: "METUNIC Altyapı", aciklama: "Domain, Hosting, E-Posta altyapı hizmetleri" },
+    { ad: "GÜZELNET İnternet", aciklama: "Fiber internet, kurumsal bağlantı" },
   ];
   const gruplar = [];
   const grupMap = {};
@@ -503,11 +504,10 @@ async function main() {
 
   const bayi1 = await prisma.bayi.create({
     data: {
-      tur: "tuzel", sirket_adi: "Güzel Teknoloji A.Ş.", yetkili_kisi: "Baran Güzel",
+      ad: "Güzel Teknoloji A.Ş.", tur: "tuzel", sirket_adi: "Güzel Teknoloji A.Ş.", yetkili: "Baran Güzel",
       eposta: "info@guzelteknoloji.com", telefon: "02163251000",
-      adres: "Ataşehir, Atatürk Mah. Ertuğrul Gazi Sk. No:7/A, İstanbul",
-      vergi_no: "1234567890", vergi_dairesi: "Ataşehir", il: "İstanbul", ilce: "Ataşehir",
-      durum: "aktif", komisyon: 15, etiketler: "Ana Bayi,Premium",
+      vergi_no: "1234567890", vergi_dairesi: "Ataşehir", sehir: "İstanbul",
+      durum: "aktif", etiketler: "Ana Bayi,Premium",
     },
   });
   await prisma.iletisimKisi.create({
@@ -519,11 +519,10 @@ async function main() {
 
   const bayi2 = await prisma.bayi.create({
     data: {
-      tur: "tuzel", sirket_adi: "Panu Teknoloji Ltd. Şti.", yetkili_kisi: "Ali Panu",
+      ad: "Panu Teknoloji Ltd. Şti.", tur: "tuzel", sirket_adi: "Panu Teknoloji Ltd. Şti.", yetkili: "Ali Panu",
       eposta: "ali@panutek.com", telefon: "02324561234",
-      adres: "Alsancak Mah. 1456 Sk. No:12, Konak/İzmir",
-      vergi_no: "9876543210", vergi_dairesi: "Konak", il: "İzmir", ilce: "Konak",
-      durum: "aktif", komisyon: 12, etiketler: "İzmir Bölge",
+      vergi_no: "9876543210", vergi_dairesi: "Konak", sehir: "İzmir",
+      durum: "aktif", etiketler: "İzmir Bölge",
     },
   });
   await prisma.iletisimKisi.create({
@@ -532,11 +531,10 @@ async function main() {
 
   const bayi3 = await prisma.bayi.create({
     data: {
-      tur: "tuzel", sirket_adi: "Kodgem Bilişim San. Tic. Ltd. Şti.", yetkili_kisi: "Emre Demir",
+      ad: "Kodgem Bilişim", tur: "tuzel", sirket_adi: "Kodgem Bilişim San. Tic. Ltd. Şti.", yetkili: "Emre Demir",
       eposta: "emre@kodgem.com", telefon: "03124567890",
-      adres: "Kızılay Mah. Ziya Gökalp Cad. No:45, Çankaya/Ankara",
-      vergi_no: "5556667778", vergi_dairesi: "Çankaya", il: "Ankara", ilce: "Çankaya",
-      durum: "aktif", komisyon: 10, etiketler: "Ankara Bölge",
+      vergi_no: "5556667778", vergi_dairesi: "Çankaya", sehir: "Ankara",
+      durum: "aktif", etiketler: "Ankara Bölge",
     },
   });
   await prisma.iletisimKisi.create({
@@ -545,11 +543,10 @@ async function main() {
 
   const bayi4 = await prisma.bayi.create({
     data: {
-      tur: "tuzel", sirket_adi: "Mega Yazılım Ltd. Şti.", yetkili_kisi: "Hakan Yıldız",
+      ad: "Mega Yazılım", tur: "tuzel", sirket_adi: "Mega Yazılım Ltd. Şti.", yetkili: "Hakan Yıldız",
       eposta: "hakan@megayazilim.com", telefon: "02247891234",
-      adres: "Osmangazi Mah. İstanbul Cad. No:78, Osmangazi/Bursa",
-      vergi_no: "3332221110", vergi_dairesi: "Osmangazi", il: "Bursa", ilce: "Osmangazi",
-      durum: "aktif", komisyon: 10, etiketler: "Bursa Bölge",
+      vergi_no: "3332221110", vergi_dairesi: "Osmangazi", sehir: "Bursa",
+      durum: "aktif", etiketler: "Bursa Bölge",
     },
   });
   await prisma.iletisimKisi.create({
@@ -558,11 +555,10 @@ async function main() {
 
   const bayi5 = await prisma.bayi.create({
     data: {
-      tur: "gercek", ad_soyad: "Mert Aydın", yetkili_kisi: "Mert Aydın",
+      ad: "Doruk Bilişim", tur: "gercek", ad_soyad: "Mert Aydın", yetkili: "Mert Aydın",
       eposta: "mert@dorukbilisim.com", telefon: "02424561234",
-      adres: "Konyaaltı Mah. Atatürk Blv. No:55, Konyaaltı/Antalya",
-      tc_kimlik_no: "12345678901", il: "Antalya", ilce: "Konyaaltı",
-      durum: "aktif", komisyon: 8, etiketler: "Bireysel Bayi,Antalya",
+      tc_kimlik_no: "12345678901", sehir: "Antalya",
+      durum: "aktif", etiketler: "Bireysel Bayi,Antalya",
     },
   });
   await prisma.iletisimKisi.create({
