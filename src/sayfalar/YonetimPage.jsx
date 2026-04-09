@@ -183,6 +183,7 @@ function UrunlerSekmesi() {
         sablonId: u.sablon_id || null,
         sablonAdi: u.sablon_adi || "",
         // Gelişmiş ayarlar (ozellikler JSON'dan)
+        ozelliklerRaw: u.ozellikler || null,
         ...((() => { try { return typeof u.ozellikler === "string" ? JSON.parse(u.ozellikler) : (u.ozellikler || {}); } catch { return {}; } })()),
       })));
       setPaketler(pRes.veri.map((p) => ({
@@ -292,21 +293,13 @@ function UrunlerSekmesi() {
         ozel_proje: veri.ozelProje,
         aktif: veri.aktif,
         varsayilan_gun: veri.varsayilanGun || 365,
-        // Yeni alanlar
-        min_kullanici: veri.minKullanici || 1,
-        max_kullanici: veri.maxKullanici || null,
-        demo_gun: veri.demoGun || 30,
-        temel_fiyat: veri.temelFiyat || 0,
+        min_kullanici: veri.gelismisAyarlar?.kullanici_sayisi?.min || 1,
+        max_kullanici: veri.gelismisAyarlar?.kullanici_sayisi?.max || null,
+        demo_gun: veri.gelismisAyarlar?.demo_suresi?.gun || 30,
+        temel_fiyat: veri.gelismisAyarlar?.temel_fiyat?.fiyat || 0,
         versiyon: veri.versiyon || null,
         sablon_id: veri.sablonId || null,
-        ozellikler: JSON.stringify({
-          bildirimGun: veri.bildirimGun || 30,
-          otomatikYenileme: !!veri.otomatikYenileme,
-          yenilemeSuresi: veri.yenilemeSuresi || 365,
-          domainKilidi: !!veri.domainKilidi,
-          maxCihaz: veri.maxCihaz || 1,
-          lisansTransferi: veri.lisansTransferi !== false,
-        }),
+        ozellikler: JSON.stringify(veri.gelismisAyarlar || {}),
       };
       let urunId = veri.id;
       if (veri.id) {
@@ -1337,21 +1330,23 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
     varsayilanGun: duzenle ? (modal.varsayilanGun || 365) : 365,
     ozelProje: duzenle ? modal.ozelProje : false,
     aktif: duzenle ? modal.aktif : true,
-    // Yeni alanlar
-    minKullanici: duzenle ? (modal.minKullanici || 1) : 1,
-    maxKullanici: duzenle ? (modal.maxKullanici || "") : "",
-    demoGun: duzenle ? (modal.demoGun || 30) : 30,
-    temelFiyat: duzenle ? (modal.temelFiyat || 0) : 0,
     versiyon: duzenle ? (modal.versiyon || "") : "",
     sablonId: duzenle ? (modal.sablonId || null) : null,
-    // Bildirim & Yenileme Ayarları
-    bildirimGun: duzenle ? (modal.bildirimGun || 30) : 30,
-    otomatikYenileme: duzenle ? !!modal.otomatikYenileme : false,
-    yenilemeSuresi: duzenle ? (modal.yenilemeSuresi || 365) : 365,
-    // Opsiyonel bölüm toggle'ları
-    kullaniciLimitiAktif: duzenle ? !!(modal.minKullanici > 1 || modal.maxKullanici) : false,
-    sureFiyatAktif: duzenle ? !!(modal.demoGun || modal.temelFiyat) : false,
-    bildirimAyarlariAktif: duzenle ? !!(modal.bildirimGun !== 30 || modal.otomatikYenileme) : false,
+    gelismisAyarlar: duzenle ? (() => {
+      try {
+        const oz = typeof modal.ozelliklerRaw === "string" ? JSON.parse(modal.ozelliklerRaw) : (modal.ozelliklerRaw || {});
+        // Eski format kontrolü (bildirimGun, otomatikYenileme vs.)
+        if (oz && (oz.bildirimGun !== undefined || oz.yenilemeSuresi !== undefined)) {
+          const yeni = {};
+          if (modal.temelFiyat) yeni.temel_fiyat = { fiyat: Number(modal.temelFiyat) || 0, para_birimi: "TL" };
+          if (modal.minKullanici > 1 || modal.maxKullanici) yeni.kullanici_sayisi = { min: modal.minKullanici || 1, max: modal.maxKullanici || null, ek_kullanici_fiyat: 0 };
+          if (modal.demoGun && modal.demoGun !== 30) yeni.demo_suresi = { gun: modal.demoGun };
+          if (oz.otomatikYenileme) yeni.otomatik_yenileme = { aktif: true, bildirim_gun: oz.bildirimGun || 30, aciklama: "" };
+          return yeni;
+        }
+        return oz || {};
+      } catch { return {}; }
+    })() : {},
   });
   const [aktifSekme, setAktifSekme] = useState("temel"); // "temel" | "gelismis"
   const [mevcutSurumler, setMevcutSurumler] = useState([]);
@@ -1478,6 +1473,194 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
   };
 
   const guncelle = (alan, val) => setForm((o) => ({ ...o, [alan]: val }));
+
+  /* Gelişmiş Ayarlar toggle/güncelle yardımcıları */
+  const RENK_HEX = { emerald: "#10b981", blue: "#3b82f6", violet: "#8b5cf6", pink: "#ec4899", amber: "#f59e0b", teal: "#14b8a6", orange: "#f97316", indigo: "#6366f1", sky: "#0ea5e9", cyan: "#06b6d4", yellow: "#eab308", rose: "#f43f5e", purple: "#a855f7", green: "#22c55e", red: "#ef4444", fuchsia: "#d946ef", slate: "#64748b", lime: "#84cc16", gray: "#9ca3af" };
+  const OZELLIK_LISTESI = [
+    { id: "temel_fiyat", ad: "Temel Fiyat", ikon: "₺", renk: "emerald", aciklama: "Sabit ürün fiyatı (otomatik eklenir)", varsayilan: { fiyat: 0, para_birimi: "TL" } },
+    { id: "aktivasyon_yenileme", ad: "Aktivasyon / Yenileme", ikon: "🔄", renk: "blue", aciklama: "İlk alım ve yenileme için ayrı fiyat", varsayilan: { aktivasyon_fiyat: 0, yenileme_fiyat: 0, para_birimi: "TL" } },
+    { id: "kademeli_fiyat", ad: "Kademeli Fiyat (Adet-Kapasite)", ikon: "📊", renk: "violet", aciklama: "Adet veya kapasite bazlı kademe fiyatı", varsayilan: { tip: "adet", birim: "Adet" } },
+    { id: "hediye_urun", ad: "Hediye Ürün", ikon: "🎁", renk: "pink", aciklama: "Ürün arama ile hediye seçimi (çoklu)", varsayilan: { miktar: 1 } },
+    { id: "paket_indirimi", ad: "Paket İndirimi", ikon: "📦", renk: "amber", aciklama: "Birlikte alınan ürünlerde indirim", varsayilan: { indirim_orani: 0 } },
+    { id: "periyot_indirim", ad: "Aylık / Yıllık İndirim", ikon: "📅", renk: "teal", aciklama: "Periyoda göre farklı indirim oranları", varsayilan: { aylik_oran: 0, yillik_oran: 0 } },
+    { id: "gecis_fiyati", ad: "Geçiş Fiyatı", ikon: "🔀", renk: "orange", aciklama: "Başka üründen geçiş yapana özel fiyat", varsayilan: { fiyat: 0 } },
+    { id: "kullanici_sayisi", ad: "Kullanıcı Sayısı", ikon: "👥", renk: "indigo", aciklama: "Min/max kullanıcı ve ek kullanıcı ücreti", varsayilan: { min: 1, max: null, ek_kullanici_fiyat: 0 } },
+    { id: "sicil_domain", ad: "Sicil No / Domain", ikon: "🌐", renk: "sky", aciklama: "Lisansa bağlı sicil no veya domain", varsayilan: { alan_tipi: "sicil_no", zorunlu: false } },
+    { id: "domain_fiyat", ad: "Domain Uzantı Fiyatlandırma", ikon: "🌍", renk: "cyan", aciklama: "Her domain uzantısı için farklı fiyat", varsayilan: { uzantilar: [{ uzanti: ".com", aktivasyon: 0, yenileme: 0 }], para_birimi: "TL" } },
+    { id: "siparis_miktari", ad: "Sipariş Miktarı (Min-Max)", ikon: "📋", renk: "yellow", aciklama: "Üründen alınabilecek min/max adet", varsayilan: { min_adet: 1, max_adet: null } },
+    { id: "kampanya", ad: "Kampanya / Promosyon", ikon: "🏷️", renk: "rose", aciklama: "Koşullu kampanya tanımı", varsayilan: { ad: "", indirim_orani: 0, bitis_tarihi: "" } },
+    { id: "demo_suresi", ad: "Demo Süresi", ikon: "🧪", renk: "purple", aciklama: "Ücretsiz deneme süresi", varsayilan: { gun: 30 } },
+    { id: "otomatik_yenileme", ad: "Otomatik Yenileme", ikon: "🔁", renk: "green", aciklama: "Otomatik yenileme kuralı", varsayilan: { aktif: false, bildirim_gun: 30, aciklama: "" } },
+    { id: "bagimli_urun", ad: "Bağımlı Ürün", ikon: "🔗", renk: "red", aciklama: "Bu ürün için gerekli diğer ürünler", varsayilan: { zorunlu: true } },
+    { id: "urun_yonetimi", ad: "Ürün Yönetimi", ikon: "📦", renk: "fuchsia", aciklama: "Ürün/paket transfer, durdurma, askıya alma ayarları", varsayilan: { transfer_edilebilir: true, durdurulabilir: true, iptal_edilebilir: true, devir_edilebilir: false } },
+    { id: "garanti_suresi", ad: "Garanti Süresi", ikon: "🛡️", renk: "slate", aciklama: "Ürünün garanti süresi", varsayilan: { sure_ay: 24, uzatilabilir: true, uzatma_ucreti: 0 } },
+    { id: "guvenlik", ad: "Güvenlik Ayarları", ikon: "🔒", renk: "lime", aciklama: "MAC/IP kontrolü, cihaz limiti ve lisans güvenlik politikaları", varsayilan: { mac_kontrolu: false, ip_kisitlama: false, max_cihaz: 1, online_dogrulama: false } },
+    { id: "metin_karti", ad: "Metin Kartı", ikon: "📝", renk: "gray", aciklama: "Serbest metin/açıklama alanı", varsayilan: { baslik: "", icerik: "" } },
+  ];
+  const LABEL_STIL = "block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1";
+  const ozToggle = (tipId, varsayilan) => {
+    setForm(o => {
+      const mevcut = o.gelismisAyarlar[tipId];
+      if (mevcut) {
+        const yeni = { ...o.gelismisAyarlar };
+        delete yeni[tipId];
+        return { ...o, gelismisAyarlar: yeni };
+      }
+      return { ...o, gelismisAyarlar: { ...o.gelismisAyarlar, [tipId]: { ...varsayilan } } };
+    });
+  };
+  const ozGuncelle = (tipId, alan, val) => {
+    setForm(o => ({
+      ...o,
+      gelismisAyarlar: {
+        ...o.gelismisAyarlar,
+        [tipId]: { ...(o.gelismisAyarlar[tipId] || {}), [alan]: val }
+      }
+    }));
+  };
+
+  /* Gelişmiş Ayarlar - Özellik İçerik Render */
+  const renderOzIcerik = (ozId) => {
+    const d = form.gelismisAyarlar[ozId] || {};
+    const g = (alan, val) => ozGuncelle(ozId, alan, val);
+    switch (ozId) {
+      case "temel_fiyat": return (
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className={LABEL_STIL}>Fiyat (₺)</label><input type="number" value={d.fiyat || 0} onChange={e => g("fiyat", Number(e.target.value))} className={INPUT_STIL} min={0} step="0.01" /></div>
+          <div><label className={LABEL_STIL}>Para Birimi</label><input type="text" value={d.para_birimi || "TL"} onChange={e => g("para_birimi", e.target.value)} className={INPUT_STIL} /></div>
+        </div>
+      );
+      case "aktivasyon_yenileme": return (
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className={LABEL_STIL}>Aktivasyon Fiyatı (₺)</label><input type="number" value={d.aktivasyon_fiyat || 0} onChange={e => g("aktivasyon_fiyat", Number(e.target.value))} className={INPUT_STIL} min={0} step="0.01" /></div>
+          <div><label className={LABEL_STIL}>Yenileme Fiyatı (₺)</label><input type="number" value={d.yenileme_fiyat || 0} onChange={e => g("yenileme_fiyat", Number(e.target.value))} className={INPUT_STIL} min={0} step="0.01" /></div>
+        </div>
+      );
+      case "kademeli_fiyat": return (
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className={LABEL_STIL}>Tip</label>
+            <select value={d.tip || "adet"} onChange={e => g("tip", e.target.value)} className={INPUT_STIL}>
+              <option value="adet">Adet</option><option value="kapasite">Kapasite</option>
+            </select>
+          </div>
+          <div><label className={LABEL_STIL}>Birim</label><input type="text" value={d.birim || "Adet"} onChange={e => g("birim", e.target.value)} className={INPUT_STIL} /></div>
+        </div>
+      );
+      case "hediye_urun": return (
+        <div><label className={LABEL_STIL}>Hediye Miktar</label><input type="number" value={d.miktar || 1} onChange={e => g("miktar", Number(e.target.value))} className={INPUT_STIL} min={1} /></div>
+      );
+      case "paket_indirimi": return (
+        <div><label className={LABEL_STIL}>İndirim Oranı (%)</label><input type="number" value={d.indirim_orani || 0} onChange={e => g("indirim_orani", Number(e.target.value))} className={INPUT_STIL} min={0} max={100} /></div>
+      );
+      case "periyot_indirim": return (
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className={LABEL_STIL}>Aylık İndirim (%)</label><input type="number" value={d.aylik_oran || 0} onChange={e => g("aylik_oran", Number(e.target.value))} className={INPUT_STIL} min={0} max={100} /></div>
+          <div><label className={LABEL_STIL}>Yıllık İndirim (%)</label><input type="number" value={d.yillik_oran || 0} onChange={e => g("yillik_oran", Number(e.target.value))} className={INPUT_STIL} min={0} max={100} /></div>
+        </div>
+      );
+      case "gecis_fiyati": return (
+        <div><label className={LABEL_STIL}>Geçiş Fiyatı (₺)</label><input type="number" value={d.fiyat || 0} onChange={e => g("fiyat", Number(e.target.value))} className={INPUT_STIL} min={0} step="0.01" /></div>
+      );
+      case "kullanici_sayisi": return (
+        <div className="grid grid-cols-3 gap-3">
+          <div><label className={LABEL_STIL}>Min</label><input type="number" value={d.min || 1} onChange={e => g("min", Number(e.target.value))} className={INPUT_STIL} min={1} /></div>
+          <div><label className={LABEL_STIL}>Max</label><input type="number" value={d.max || ""} onChange={e => g("max", e.target.value ? Number(e.target.value) : null)} className={INPUT_STIL} min={1} placeholder="Sınırsız" /></div>
+          <div><label className={LABEL_STIL}>Ek Kullanıcı (₺)</label><input type="number" value={d.ek_kullanici_fiyat || 0} onChange={e => g("ek_kullanici_fiyat", Number(e.target.value))} className={INPUT_STIL} min={0} /></div>
+        </div>
+      );
+      case "sicil_domain": return (
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className={LABEL_STIL}>Alan Tipi</label>
+            <select value={d.alan_tipi || "sicil_no"} onChange={e => g("alan_tipi", e.target.value)} className={INPUT_STIL}>
+              <option value="sicil_no">Sicil No</option><option value="domain">Domain</option>
+            </select>
+          </div>
+          <div className="flex items-end pb-2"><label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={!!d.zorunlu} onChange={e => g("zorunlu", e.target.checked)} className="w-4 h-4 rounded" />
+            <span className="text-sm text-gray-700 dark:text-slate-300">Zorunlu</span>
+          </label></div>
+        </div>
+      );
+      case "domain_fiyat": return (
+        <p className="text-[10px] text-gray-400 dark:text-slate-500">Domain uzantı fiyatları şablon üzerinden detaylı düzenlenebilir.</p>
+      );
+      case "siparis_miktari": return (
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className={LABEL_STIL}>Min Adet</label><input type="number" value={d.min_adet || 1} onChange={e => g("min_adet", Number(e.target.value))} className={INPUT_STIL} min={1} /></div>
+          <div><label className={LABEL_STIL}>Max Adet</label><input type="number" value={d.max_adet || ""} onChange={e => g("max_adet", e.target.value ? Number(e.target.value) : null)} className={INPUT_STIL} min={1} placeholder="Sınırsız" /></div>
+        </div>
+      );
+      case "kampanya": return (
+        <div className="space-y-3">
+          <div><label className={LABEL_STIL}>Kampanya Adı</label><input type="text" value={d.ad || ""} onChange={e => g("ad", e.target.value)} className={INPUT_STIL} placeholder="Kampanya adı" /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className={LABEL_STIL}>İndirim (%)</label><input type="number" value={d.indirim_orani || 0} onChange={e => g("indirim_orani", Number(e.target.value))} className={INPUT_STIL} min={0} max={100} /></div>
+            <div><label className={LABEL_STIL}>Bitiş Tarihi</label><input type="date" value={d.bitis_tarihi || ""} onChange={e => g("bitis_tarihi", e.target.value)} className={INPUT_STIL} /></div>
+          </div>
+        </div>
+      );
+      case "demo_suresi": return (
+        <div><label className={LABEL_STIL}>Demo Süresi (Gün)</label><input type="number" value={d.gun || 30} onChange={e => g("gun", Number(e.target.value))} className={INPUT_STIL} min={1} /></div>
+      );
+      case "otomatik_yenileme": return (
+        <div className="space-y-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={!!d.aktif} onChange={e => g("aktif", e.target.checked)} className="w-4 h-4 rounded" />
+            <span className="text-sm text-gray-700 dark:text-slate-300">Otomatik Yenileme Aktif</span>
+          </label>
+          <div><label className={LABEL_STIL}>Bildirim Süresi (Gün)</label><input type="number" value={d.bildirim_gun || 30} onChange={e => g("bildirim_gun", Number(e.target.value))} className={INPUT_STIL} min={1} /></div>
+        </div>
+      );
+      case "bagimli_urun": return (
+        <div className="flex items-center"><label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={!!d.zorunlu} onChange={e => g("zorunlu", e.target.checked)} className="w-4 h-4 rounded" />
+          <span className="text-sm text-gray-700 dark:text-slate-300">Bağımlılık Zorunlu</span>
+        </label></div>
+      );
+      case "urun_yonetimi": return (
+        <div className="grid grid-cols-2 gap-3">
+          {[["transfer_edilebilir","Transfer Edilebilir"],["durdurulabilir","Durdurulabilir"],["iptal_edilebilir","İptal Edilebilir"],["devir_edilebilir","Devir Edilebilir"]].map(([k,l]) => (
+            <label key={k} className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={!!d[k]} onChange={e => g(k, e.target.checked)} className="w-4 h-4 rounded" />
+              <span className="text-sm text-gray-700 dark:text-slate-300">{l}</span>
+            </label>
+          ))}
+        </div>
+      );
+      case "garanti_suresi": return (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className={LABEL_STIL}>Süre (Ay)</label><input type="number" value={d.sure_ay || 24} onChange={e => g("sure_ay", Number(e.target.value))} className={INPUT_STIL} min={0} /></div>
+            <div><label className={LABEL_STIL}>Uzatma Ücreti (₺)</label><input type="number" value={d.uzatma_ucreti || 0} onChange={e => g("uzatma_ucreti", Number(e.target.value))} className={INPUT_STIL} min={0} /></div>
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={!!d.uzatilabilir} onChange={e => g("uzatilabilir", e.target.checked)} className="w-4 h-4 rounded" />
+            <span className="text-sm text-gray-700 dark:text-slate-300">Uzatılabilir</span>
+          </label>
+        </div>
+      );
+      case "guvenlik": return (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            {[["mac_kontrolu","MAC Kontrolü"],["ip_kisitlama","IP Kısıtlama"],["online_dogrulama","Online Doğrulama"]].map(([k,l]) => (
+              <label key={k} className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={!!d[k]} onChange={e => g(k, e.target.checked)} className="w-4 h-4 rounded" />
+                <span className="text-sm text-gray-700 dark:text-slate-300">{l}</span>
+              </label>
+            ))}
+          </div>
+          <div><label className={LABEL_STIL}>Max Cihaz</label><input type="number" value={d.max_cihaz || 1} onChange={e => g("max_cihaz", Number(e.target.value))} className={INPUT_STIL} min={1} /></div>
+        </div>
+      );
+      case "metin_karti": return (
+        <div className="space-y-3">
+          <div><label className={LABEL_STIL}>Başlık</label><input type="text" value={d.baslik || ""} onChange={e => g("baslik", e.target.value)} className={INPUT_STIL} placeholder="Kart başlığı" /></div>
+          <div><label className={LABEL_STIL}>İçerik</label><textarea value={d.icerik || ""} onChange={e => g("icerik", e.target.value)} className={INPUT_STIL + " resize-none"} rows={2} placeholder="Açıklama metni..." /></div>
+        </div>
+      );
+      default: return null;
+    }
+  };
 
   const gonder = (e) => {
     e.preventDefault();
@@ -1614,7 +1797,7 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                       guncelle("uygulamaTipi", "-"); // Ürün tipi değişince uygulama tipini sıfırla
                     }} className={INPUT_STIL}>
                       <option value="">Seçiniz</option>
-                      {urunTipleri.map((t) => <option key={t.id} value={t.ad}>{t.ad}</option>)}
+                      {urunTipleri.filter(t => !form.grup_id || t.grup_id === form.grup_id).map((t) => <option key={t.id} value={t.ad}>{t.ad}</option>)}
                     </select>
                   </div>
                   <div>
@@ -1750,110 +1933,37 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                   </div>
                 )}
 
-                {/* Kullanıcı Limitleri - Toggle */}
-                <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
-                  <button type="button" onClick={() => guncelle("kullaniciLimitiAktif", !form.kullaniciLimitiAktif)}
-                    className="w-full p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                    <div className="flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                      </svg>
-                      <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300">Kullanıcı Limitleri</h4>
-                      <span className="text-[10px] text-gray-400 dark:text-slate-500">(Opsiyonel)</span>
-                    </div>
-                    <div className={`w-10 h-5 rounded-full transition-colors flex items-center ${form.kullaniciLimitiAktif ? "bg-blue-500 justify-end" : "bg-gray-300 dark:bg-white/20 justify-start"}`}>
-                      <div className="w-4 h-4 rounded-full bg-white shadow mx-0.5"></div>
-                    </div>
-                  </button>
-                  {form.kullaniciLimitiAktif && (
-                    <div className="px-4 pb-4 pt-0 bg-gray-50 dark:bg-white/5">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Minimum Kullanıcı</label>
-                          <input type="number" value={form.minKullanici} onChange={(e) => guncelle("minKullanici", Number(e.target.value))} className={INPUT_STIL} min={1} />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Maksimum Kullanıcı</label>
-                          <input type="number" value={form.maxKullanici} onChange={(e) => guncelle("maxKullanici", e.target.value ? Number(e.target.value) : "")} placeholder="Sınırsız" className={INPUT_STIL} min={1} />
-                        </div>
+                {/* Tüm Özellik Tipleri - Toggle Kartlar */}
+                <div className={form.sablonId ? "opacity-40 pointer-events-none space-y-2" : "space-y-2"}>
+                  {OZELLIK_LISTESI.map(oz => {
+                    const aktif = !!form.gelismisAyarlar[oz.id];
+                    return (
+                      <div key={oz.id} className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                        <button type="button" onClick={() => ozToggle(oz.id, oz.varsayilan)}
+                          className="w-full p-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-base w-6 text-center shrink-0">{oz.ikon}</span>
+                            <div className="min-w-0">
+                              <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300 truncate">{oz.ad}</h4>
+                              <p className="text-[10px] text-gray-400 dark:text-slate-500 truncate">{oz.aciklama}</p>
+                            </div>
+                          </div>
+                          <div
+                            className={`w-10 h-5 rounded-full transition-colors flex items-center shrink-0 ml-2 ${aktif ? "justify-end" : "bg-gray-300 dark:bg-white/20 justify-start"}`}
+                            style={aktif ? { backgroundColor: RENK_HEX[oz.renk] || "#6b7280" } : undefined}
+                          >
+                            <div className="w-4 h-4 rounded-full bg-white shadow mx-0.5"></div>
+                          </div>
+                        </button>
+                        {aktif && (
+                          <div className="px-4 pb-3 pt-0 bg-gray-50 dark:bg-white/5">
+                            {renderOzIcerik(oz.id)}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )}
+                    );
+                  })}
                 </div>
-
-                {/* Demo & Fiyat - Toggle */}
-                <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
-                  <button type="button" onClick={() => guncelle("sureFiyatAktif", !form.sureFiyatAktif)}
-                    className="w-full p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                    <div className="flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300">Demo & Fiyat Ayarları</h4>
-                      <span className="text-[10px] text-gray-400 dark:text-slate-500">(Opsiyonel)</span>
-                    </div>
-                    <div className={`w-10 h-5 rounded-full transition-colors flex items-center ${form.sureFiyatAktif ? "bg-emerald-500 justify-end" : "bg-gray-300 dark:bg-white/20 justify-start"}`}>
-                      <div className="w-4 h-4 rounded-full bg-white shadow mx-0.5"></div>
-                    </div>
-                  </button>
-                  {form.sureFiyatAktif && (
-                    <div className="px-4 pb-4 pt-0 bg-gray-50 dark:bg-white/5">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Demo Süresi (Gün)</label>
-                          <input type="number" value={form.demoGun} onChange={(e) => guncelle("demoGun", Number(e.target.value))} className={INPUT_STIL} min={0} />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Temel Fiyat (₺)</label>
-                          <input type="number" value={form.temelFiyat} onChange={(e) => guncelle("temelFiyat", Number(e.target.value))} className={INPUT_STIL} min={0} step="0.01" />
-                        </div>
-                      </div>
-                      <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-2">
-                        Bu değerler ürünün varsayılan demo süresi ve temel fiyatıdır. Lisans oluştururken lisans tipinden gün bilgisi alınır.
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Bildirim & Yenileme Ayarları - Toggle */}
-                <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
-                  <button type="button" onClick={() => guncelle("bildirimAyarlariAktif", !form.bildirimAyarlariAktif)}
-                    className="w-full p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                    <div className="flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                      </svg>
-                      <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300">Bildirim & Yenileme</h4>
-                      <span className="text-[10px] text-gray-400 dark:text-slate-500">(Opsiyonel)</span>
-                    </div>
-                    <div className={`w-10 h-5 rounded-full transition-colors flex items-center ${form.bildirimAyarlariAktif ? "bg-amber-500 justify-end" : "bg-gray-300 dark:bg-white/20 justify-start"}`}>
-                      <div className="w-4 h-4 rounded-full bg-white shadow mx-0.5"></div>
-                    </div>
-                  </button>
-                  {form.bildirimAyarlariAktif && (
-                    <div className="px-4 pb-4 pt-0 bg-gray-50 dark:bg-white/5 space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Bildirim Süresi (Gün)</label>
-                          <input type="number" value={form.bildirimGun} onChange={(e) => guncelle("bildirimGun", Number(e.target.value))} className={INPUT_STIL} min={1} />
-                          <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">Lisans bitmeden kaç gün önce bildirim gönderilsin</p>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Yenileme Süresi (Gün)</label>
-                          <input type="number" value={form.yenilemeSuresi} onChange={(e) => guncelle("yenilemeSuresi", Number(e.target.value))} className={INPUT_STIL} min={1} />
-                          <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">Otomatik yenilemede kaç günlük uzatılsın</p>
-                        </div>
-                      </div>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" checked={form.otomatikYenileme} onChange={(e) => guncelle("otomatikYenileme", e.target.checked)}
-                          className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-amber-600 focus:ring-amber-500" />
-                        <span className="text-sm text-gray-700 dark:text-slate-300">Otomatik Yenileme Aktif</span>
-                      </label>
-                    </div>
-                  )}
-                </div>
-
-
               </>
             )}
           </div>

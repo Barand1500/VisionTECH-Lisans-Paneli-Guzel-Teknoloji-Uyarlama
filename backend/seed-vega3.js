@@ -508,259 +508,6 @@ async function main() {
   console.log(`   ✓ ${urunVerileri.length} ürün oluşturuldu`);
 
   // =============================================
-  // 10. PAKETLER
-  // =============================================
-  console.log("\n📋 Paketler oluşturuluyor...");
-
-  // VegaPos Paketleri
-  await prisma.paket.create({
-    data: {
-      urun_id: urunMap["VegaPos"],
-      ad: "VegaPos Starter",
-      tipi: "STARTER",
-      kullanim_gunu: 365,
-      fiyat: 3500,
-      kullanici_sayisi: 1,
-      aktif: 1,
-      ozellikler: [
-        { id: 1, tip: "temel_fiyat", deger: 3500 },
-        { id: 2, tip: "kullanici_sayisi", deger: { min: 1, max: 1 } },
-      ]
-    }
-  });
-
-  await prisma.paket.create({
-    data: {
-      urun_id: urunMap["VegaPos"],
-      ad: "VegaPos Standart",
-      tipi: "STANDART",
-      kullanim_gunu: 365,
-      fiyat: 5000,
-      kullanici_sayisi: 3,
-      aktif: 1,
-      ozellikler: [
-        { id: 1, tip: "temel_fiyat", deger: 5000 },
-        { id: 2, tip: "kullanici_sayisi", deger: { min: 1, max: 3, ek_kullanici_fiyat: 500 } },
-        { id: 3, tip: "aktivasyon_yenileme", deger: { aktivasyon_fiyat: 5000, yenileme_fiyat: 3500 } },
-      ]
-    }
-  });
-
-  await prisma.paket.create({
-    data: {
-      urun_id: urunMap["VegaPos"],
-      ad: "VegaPos Pro",
-      tipi: "PROFESYONEL",
-      kullanim_gunu: 365,
-      fiyat: 8000,
-      kullanici_sayisi: 10,
-      aktif: 1,
-      ozellikler: [
-        { id: 1, tip: "temel_fiyat", deger: 8000 },
-        { id: 2, tip: "kullanici_sayisi", deger: { min: 1, max: 10, ek_kullanici_fiyat: 400 } },
-        { id: 3, tip: "aktivasyon_yenileme", deger: { aktivasyon_fiyat: 8000, yenileme_fiyat: 6000 } },
-      ]
-    }
-  });
-
-  // VegaCari Paketleri
-  await prisma.paket.create({
-    data: {
-      urun_id: urunMap["VegaCari"],
-      ad: "VegaCari Basic",
-      tipi: "BASIC",
-      kullanim_gunu: 365,
-      fiyat: 2500,
-      kullanici_sayisi: 1,
-      aktif: 1,
-      ozellikler: [
-        { id: 1, tip: "temel_fiyat", deger: 2500 },
-        { id: 2, tip: "kullanici_sayisi", deger: { min: 1, max: 1 } },
-      ]
-    }
-  });
-
-  await prisma.paket.create({
-    data: {
-      urun_id: urunMap["VegaCari"],
-      ad: "VegaCari Standart",
-      tipi: "STANDART",
-      kullanim_gunu: 365,
-      fiyat: 3500,
-      kullanici_sayisi: 5,
-      aktif: 1,
-      ozellikler: [
-        { id: 1, tip: "temel_fiyat", deger: 3500 },
-        { id: 2, tip: "kullanici_sayisi", deger: { min: 1, max: 5, ek_kullanici_fiyat: 350 } },
-        { id: 3, tip: "aktivasyon_yenileme", deger: { aktivasyon_fiyat: 3500, yenileme_fiyat: 2500 } },
-      ]
-    }
-  });
-
-  // E-Mutabakat Paketleri
-  await prisma.paket.create({
-    data: {
-      urun_id: urunMap["E-Mutabakat Kontör"],
-      ad: "100 Kontör",
-      tipi: "STARTER",
-      kullanim_gunu: 365,
-      fiyat: 500,
-      aktif: 1,
-      ozellikler: [
-        { id: 1, tip: "temel_fiyat", deger: 500 },
-        { id: 2, tip: "kademeli_fiyat", deger: { adet: 100, birim: "Kontör" } },
-      ]
-    }
-  });
-
-  await prisma.paket.create({
-    data: {
-      urun_id: urunMap["E-Mutabakat Kontör"],
-      ad: "500 Kontör",
-      tipi: "STANDART",
-      kullanim_gunu: 365,
-      fiyat: 1750,
-      aktif: 1,
-      ozellikler: [
-        { id: 1, tip: "temel_fiyat", deger: 1750 },
-        { id: 2, tip: "kademeli_fiyat", deger: { adet: 500, birim: "Kontör" } },
-      ]
-    }
-  });
-
-  // E-Fatura Paketleri
-  await prisma.paket.create({
-    data: {
-      urun_id: urunMap["E-Fatura Portal"],
-      ad: "E-Fatura Başlangıç",
-      tipi: "STARTER",
-      kullanim_gunu: 365,
-      fiyat: 1500,
-      aktif: 1,
-      ozellikler: [
-        { id: 1, tip: "aktivasyon_yenileme", deger: { aktivasyon_fiyat: 1500, yenileme_fiyat: 1200 } },
-        { id: 2, tip: "kademeli_fiyat", deger: { adet: 500, birim: "Kontör" } },
-      ]
-    }
-  });
-
-  await prisma.paket.create({
-    data: {
-      urun_id: urunMap["E-Fatura Portal"],
-      ad: "E-Fatura Standart",
-      tipi: "STANDART",
-      kullanim_gunu: 365,
-      fiyat: 2000,
-      aktif: 1,
-      ozellikler: [
-        { id: 1, tip: "aktivasyon_yenileme", deger: { aktivasyon_fiyat: 2000, yenileme_fiyat: 1700 } },
-        { id: 2, tip: "kademeli_fiyat", deger: { adet: 2500, birim: "Kontör" } },
-      ]
-    }
-  });
-
-  // E-Arşiv Paketi
-  await prisma.paket.create({
-    data: {
-      urun_id: urunMap["E-Arşiv Fatura"],
-      ad: "E-Arşiv Standart",
-      tipi: "STANDART",
-      kullanim_gunu: 365,
-      fiyat: 1000,
-      aktif: 1,
-      ozellikler: [
-        { id: 1, tip: "aktivasyon_yenileme", deger: { aktivasyon_fiyat: 1000, yenileme_fiyat: 800 } },
-        { id: 2, tip: "kademeli_fiyat", deger: { adet: 1000, birim: "Kontör" } },
-      ]
-    }
-  });
-
-  // E-İrsaliye Paketi
-  await prisma.paket.create({
-    data: {
-      urun_id: urunMap["E-İrsaliye"],
-      ad: "E-İrsaliye Standart",
-      tipi: "STANDART",
-      kullanim_gunu: 365,
-      fiyat: 800,
-      aktif: 1,
-      ozellikler: [
-        { id: 1, tip: "aktivasyon_yenileme", deger: { aktivasyon_fiyat: 800, yenileme_fiyat: 600 } },
-        { id: 2, tip: "kademeli_fiyat", deger: { adet: 500, birim: "Kontör" } },
-      ]
-    }
-  });
-
-  // PAVO ÖKC Paketi
-  await prisma.paket.create({
-    data: {
-      urun_id: urunMap["PAVO SmartPos"],
-      ad: "PAVO SmartPos Cihaz",
-      tipi: "STANDART",
-      kullanim_gunu: 365,
-      fiyat: 8500,
-      aktif: 1,
-      ozellikler: [
-        { id: 1, tip: "temel_fiyat", deger: 8500 },
-        { id: 2, tip: "sicil_domain", deger: { alan_tipi: "sicil_no", zorunlu: true } },
-      ]
-    }
-  });
-
-  // Domain Paketi
-  await prisma.paket.create({
-    data: {
-      urun_id: urunMap["Domain Tescil"],
-      ad: ".com Domain",
-      tipi: "STANDART",
-      kullanim_gunu: 365,
-      fiyat: 350,
-      aktif: 1,
-      ozellikler: [
-        { id: 1, tip: "domain_fiyat", deger: { uzanti: ".com", aktivasyon: 350, yenileme: 350 } },
-        { id: 2, tip: "sicil_domain", deger: { alan_tipi: "domain", zorunlu: true } },
-      ]
-    }
-  });
-
-  // Hosting Paketi
-  await prisma.paket.create({
-    data: {
-      urun_id: urunMap["Web Hosting"],
-      ad: "Hosting Başlangıç",
-      tipi: "STARTER",
-      kullanim_gunu: 365,
-      fiyat: 500,
-      aktif: 1,
-      ozellikler: [
-        { id: 1, tip: "aktivasyon_yenileme", deger: { aktivasyon_fiyat: 500, yenileme_fiyat: 450 } },
-        { id: 2, tip: "kademeli_fiyat", deger: { kapasite: 5, birim: "GB" } },
-        { id: 3, tip: "sicil_domain", deger: { alan_tipi: "domain", zorunlu: true } },
-      ]
-    }
-  });
-
-  // E-Posta Paketi
-  await prisma.paket.create({
-    data: {
-      urun_id: urunMap["Kurumsal E-Posta"],
-      ad: "E-Posta 5 Hesap",
-      tipi: "BASIC",
-      kullanim_gunu: 365,
-      fiyat: 500,
-      kullanici_sayisi: 5,
-      aktif: 1,
-      ozellikler: [
-        { id: 1, tip: "aktivasyon_yenileme", deger: { aktivasyon_fiyat: 500, yenileme_fiyat: 450 } },
-        { id: 2, tip: "kullanici_sayisi", deger: { min: 1, max: 5, ek_kullanici_fiyat: 50 } },
-      ]
-    }
-  });
-
-  const paketSayisi = await prisma.paket.count();
-  console.log(`   ✓ ${paketSayisi} paket oluşturuldu`);
-
-  // =============================================
   // 11. BAYİLER (5 ADET)
   // =============================================
   console.log("\n🏢 Bayiler oluşturuluyor...");
@@ -1188,7 +935,46 @@ async function main() {
   console.log(`   ✓ Müşteri 10: Akdeniz Gıda (Bağımsız)`);
 
   // =============================================
-  // 13. LİSANSLAR
+  // 13. NOTLAR
+  // =============================================
+  console.log("\n📝 Notlar oluşturuluyor...");
+
+  const notVerileri = [
+    { musteri_id: musteri1.id, metin: "Mehmet Bey VegaPos kullanıyor, yıllık yenileme zamanı geldi. Aranacak.", onemli: 1 },
+    { musteri_id: musteri1.id, metin: "Telefon numarası güncellendi, eski numara erişilemez.", onemli: 0 },
+    { musteri_id: musteri2.id, metin: "Anadolu Market 7 şubeye çıktı, toplu lisans teklifi hazırlanacak.", onemli: 1 },
+    { musteri_id: musteri2.id, metin: "E-Fatura geçişi tamamlandı, E-Arşiv de açılacak.", onemli: 0 },
+    { musteri_id: musteri3.id, metin: "Ahmet Bey muhasebe yazılımı soruyordu, VegaCari demo verildi.", onemli: 0 },
+    { musteri_id: musteri4.id, metin: "Ege Lojistik E-İrsaliye entegrasyonu bekliyor, teknik ekiple görüşülecek.", onemli: 1 },
+    { musteri_id: musteri5.id, metin: "Canan Hanım hosting planını yükseltmek istiyor.", onemli: 0 },
+    { musteri_id: musteri6.id, metin: "Başkent Medikal 6 lisansı var, enterprise pakete geçiş düşünüyor.", onemli: 1 },
+    { musteri_id: musteri7.id, metin: "Elif Hanım domain yenileme hatırlatması yapıldı.", onemli: 0 },
+    { musteri_id: musteri8.id, metin: "Nilüfer Otomotiv SmartPos cihazlarında sorun yaşıyor, teknik destek bildirildi.", onemli: 1 },
+    { musteri_id: musteri9.id, metin: "Serkan Bey e-posta hesap sayısını artırmak istiyor.", onemli: 0 },
+    { musteri_id: musteri10.id, metin: "Akdeniz Gıda yeni şube açıyor, ek lisans ve SmartPos talebi var.", onemli: 1 },
+    { bayi_id: bayi1.id, metin: "Güzel Teknoloji ana bayi olarak tüm ürün grubunu destekliyor.", onemli: 0 },
+    { bayi_id: bayi2.id, metin: "Panu Teknoloji İzmir bölgesi satışlarında hedefi aştı.", onemli: 1 },
+    { bayi_id: bayi3.id, metin: "Kodgem Bilişim ile yeni anlaşma imzalanacak, komisyon oranları güncellenecek.", onemli: 1 },
+    { bayi_id: bayi4.id, metin: "Mega Yazılım Bursa fuarında standımızı temsil edecek.", onemli: 0 },
+    { bayi_id: bayi5.id, metin: "Doruk Bilişim bireysel bayi, Antalya bölgesinde tek temsilcimiz.", onemli: 0 },
+  ];
+
+  for (const not of notVerileri) {
+    await prisma.noti.create({
+      data: {
+        musteri_id: not.musteri_id || null,
+        bayi_id: not.bayi_id || null,
+        metin: not.metin,
+        onemli: not.onemli,
+        tarih: rastgeleTarih(90),
+      }
+    });
+  }
+  const notSayisi = await prisma.noti.count();
+  console.log(`   ✓ ${notSayisi} not oluşturuldu`);
+
+  // =============================================
+  // 14. LİSANSLAR
   // =============================================
   console.log("\n📋 Lisanslar oluşturuluyor...");
 
@@ -1687,7 +1473,7 @@ async function main() {
    ├─ Uygulama Tipleri: ${Object.keys(uygulamaMap).length}
    ├─ Ürün Şablonları: ${sablonSayisi}
    ├─ Ürünler: ${Object.keys(urunMap).length}
-   ├─ Paketler: ${paketSayisi}
+   ├─ Notlar: ${notSayisi}
    ├─ Bayiler: 5
    │   ├─ Güzel Teknoloji (İstanbul) — Ana Bayi
    │   ├─ Panu Teknoloji (İzmir)
