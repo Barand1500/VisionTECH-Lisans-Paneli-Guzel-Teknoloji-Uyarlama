@@ -2277,7 +2277,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                     {seciliPaket ? seciliPaket.adi : "Paket Seçilmedi"}
                   </h4>
                   {seciliPaket && (
-                    <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{seciliPaket.kullanimGunu} gün</p>
+                    <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{form.suresiz ? "Süresiz" : `${form.kullanimGunu} gün`}</p>
                   )}
                 </div>
 
@@ -2322,6 +2322,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                       case "kademeli_fiyat": return d?.kademeler?.length ? `${d.kademeler.length} kademe` : "-";
                       case "domain_fiyat": return d?.uzantilar?.length ? `${d.uzantilar.length} uzantı` : "-";
                       case "demo_suresi": return d?.gun ? `${d.gun} gün` : "-";
+                      case "metin_karti": return d?.icerik || "-";
                       default: return "-";
                     }
                   };
@@ -2334,7 +2335,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                           <div key={oz.id} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
                             <span className="text-sm">{stil.icon}</span>
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium text-gray-700 dark:text-slate-300">{stil.baslik}</p>
+                              <p className="text-xs font-medium text-gray-700 dark:text-slate-300">{oz.tip === 'metin_karti' && oz.deger?.baslik ? oz.deger.baslik : stil.baslik}</p>
                               <p className="text-[10px] text-gray-400 dark:text-slate-500 truncate">{degerGoster(oz)}</p>
                             </div>
                           </div>
@@ -2344,28 +2345,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                   );
                 })()}
 
-                {/* Ürün Özellikleri (Şablon) */}
-                {sablon && sablon.ozellikler && sablon.ozellikler.length > 0 && (
-                  <div className="pt-3 border-t border-gray-200 dark:border-white/10">
-                    <h5 className="text-xs font-semibold text-gray-600 dark:text-slate-400 mb-2 flex items-center gap-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      Ürün Özellikleri
-                    </h5>
-                    <div className="space-y-1">
-                      {sablon.ozellikler.slice(0, 5).map((oz) => (
-                        <div key={oz.id} className="text-xs text-gray-500 dark:text-slate-400 flex items-center gap-1">
-                          <span className="w-1 h-1 rounded-full bg-gray-400"></span>
-                          {oz.baslik || oz.ozellik_tipi}
-                        </div>
-                      ))}
-                      {sablon.ozellikler.length > 5 && (
-                        <p className="text-[10px] text-gray-400">+{sablon.ozellikler.length - 5} özellik daha</p>
-                      )}
-                    </div>
-                  </div>
-                )}
+
 
                 {!seciliPaket && (
                   <div className="py-8 text-center">

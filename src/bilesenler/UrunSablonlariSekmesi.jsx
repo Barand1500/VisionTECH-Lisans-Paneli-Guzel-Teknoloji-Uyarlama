@@ -45,7 +45,7 @@ const INPUT_STIL =
 /*    ürünler de olmalı uyarısı verir            */
 /* ============================================= */
 
-const OZELLIK_TIPLERI = [
+export const OZELLIK_TIPLERI = [
   {
     id: "temel_fiyat",
     ad: "Temel Fiyat",
@@ -1535,7 +1535,7 @@ function SeciliUrunListesi({ urunler, kaldir, renk = "blue", tekli = false, tumU
 
 const KUCUK_INPUT = "px-3 py-2 rounded-lg bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all";
 
-function OzellikFormu({ tip, deger: rawDeger, guncelle }) {
+export function OzellikFormu({ tip, deger: rawDeger, guncelle }) {
   const deger = rawDeger || {};
   switch (tip) {
     case "temel_fiyat":

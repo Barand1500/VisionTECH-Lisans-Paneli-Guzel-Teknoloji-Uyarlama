@@ -161,18 +161,23 @@ router.put("/gruplar/:id", hataYakala(async (req, res) => {
   const id = Number(req.params.id);
   const { ad, aciklama, aktif } = req.body;
   if (ad) {
-    const mevcut = await prisma.urunGrubu.findFirst({ where: { ad: ad.trim(), silinme_tarihi: null, id: { not: id } } });
+    const mevcut = await prisma.urunGrubu.findFirst({ where: { ad: ad.trim(), id: { not: id } } });
     if (mevcut) return res.status(400).json({ basarili: false, mesaj: "Bu isimde bir grup zaten mevcut." });
   }
-  await prisma.urunGrubu.update({
-    where: { id },
-    data: {
-      ad: ad ? ad.trim() : undefined,
-      aciklama: aciklama !== undefined ? (aciklama || null) : undefined,
-      aktif: aktif !== undefined ? (aktif ? 1 : 0) : undefined,
-    },
-  });
-  res.json({ basarili: true, mesaj: "Grup guncellendi." });
+  try {
+    await prisma.urunGrubu.update({
+      where: { id },
+      data: {
+        ad: ad ? ad.trim() : undefined,
+        aciklama: aciklama !== undefined ? (aciklama || null) : undefined,
+        aktif: aktif !== undefined ? (aktif ? 1 : 0) : undefined,
+      },
+    });
+    res.json({ basarili: true, mesaj: "Grup guncellendi." });
+  } catch (e) {
+    if (e.code === "P2002") return res.status(400).json({ basarili: false, mesaj: "Bu isimde bir grup zaten mevcut." });
+    throw e;
+  }
 }));
 
 router.delete("/gruplar/:id", hataYakala(async (req, res) => {
