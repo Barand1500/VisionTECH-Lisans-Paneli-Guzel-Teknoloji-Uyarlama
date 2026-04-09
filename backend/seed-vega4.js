@@ -153,18 +153,41 @@ async function main() {
   // 6. ÜRÜN TİPLERİ + UYGULAMA TİPLERİ
   // =============================================
   console.log("\n🏷️ Ürün ve uygulama tipleri oluşturuluyor...");
-  const urunTipleriData = ["Yazılım", "Donanım", "Hizmet", "Entegrasyon", "Lisans", "Bulut", "Abonelik", "Destek", "Eğitim"];
+  const urunTipleriData = [
+    { ad: "Yazılım", grup: "VEGA Yazılım" },
+    { ad: "Donanım", grup: "PAVO Donanım" },
+    { ad: "Hizmet", grup: "METUNIC Altyapı" },
+    { ad: "Entegrasyon", grup: "GİB Entegrasyon" },
+    { ad: "Lisans", grup: "VEGA Yazılım" },
+    { ad: "Bulut", grup: "METUNIC Altyapı" },
+    { ad: "Abonelik", grup: "GÜZELNET İnternet" },
+    { ad: "Destek", grup: "VEGA Yazılım" },
+    { ad: "Eğitim", grup: "VEGA Yazılım" },
+  ];
   const tipMap = {};
-  for (const ad of urunTipleriData) {
-    const rec = await prisma.urunTipi.create({ data: { ad } });
-    tipMap[ad] = rec.id;
+  for (const t of urunTipleriData) {
+    const rec = await prisma.urunTipi.create({ data: { ad: t.ad, grup_id: grupMap[t.grup] } });
+    tipMap[t.ad] = rec.id;
   }
 
-  const uygulamaTipleriData = ["Masaüstü", "Web", "Mobil", "API", "Donanım", "Cloud", "SaaS", "Eklenti", "Modül", "Hizmet", "IoT", "Karma"];
+  const uygulamaTipleriData = [
+    { ad: "Masaüstü", urunTipi: "Yazılım" },
+    { ad: "Web", urunTipi: "Yazılım" },
+    { ad: "Mobil", urunTipi: "Yazılım" },
+    { ad: "API", urunTipi: "Entegrasyon" },
+    { ad: "Donanım", urunTipi: "Donanım" },
+    { ad: "Cloud", urunTipi: "Bulut" },
+    { ad: "SaaS", urunTipi: "Hizmet" },
+    { ad: "Eklenti", urunTipi: "Yazılım" },
+    { ad: "Modül", urunTipi: "Yazılım" },
+    { ad: "Hizmet", urunTipi: "Hizmet" },
+    { ad: "IoT", urunTipi: "Donanım" },
+    { ad: "Karma", urunTipi: "Lisans" },
+  ];
   const uygulamaMap = {};
-  for (const ad of uygulamaTipleriData) {
-    const rec = await prisma.uygulamaTipi.create({ data: { ad } });
-    uygulamaMap[ad] = rec.id;
+  for (const u of uygulamaTipleriData) {
+    const rec = await prisma.uygulamaTipi.create({ data: { ad: u.ad, urun_tipi_id: tipMap[u.urunTipi] } });
+    uygulamaMap[u.ad] = rec.id;
   }
   console.log(`   ✓ ${urunTipleriData.length} ürün tipi, ${uygulamaTipleriData.length} uygulama tipi`);
 
