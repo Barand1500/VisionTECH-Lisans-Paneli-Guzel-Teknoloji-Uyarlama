@@ -629,8 +629,6 @@ function PaketlerModal({ urun, kapat, paketler, setPaketler, tumUrunler, paketle
         ad: veri.adi,
         tipi: veri.tipi,
         kullanim_gunu: veri.kullanimGunu,
-        fiyat: veri.fiyati,
-        kullanici_sayisi: veri.kullaniciSayisi,
         aktif: veri.aktif,
         ozellikler: veri.ozellikler,
       };
@@ -704,20 +702,18 @@ function PaketlerModal({ urun, kapat, paketler, setPaketler, tumUrunler, paketle
           <table className="w-full">
             <thead className="sticky top-0 z-10">
               <tr className="bg-gray-50 dark:bg-white/[0.03]">
-                {["Ürün Adı", "Adı", "Fiyatı", "Kullanıcı Sayısı", "Aktif", "İşlemler"].map((h) => (
+                {["Ürün Adı", "Adı", "Aktif", "İşlemler"].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-white/5">
               {sayfaPaketler.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-12 text-center text-gray-400 dark:text-slate-500">Bu ürüne ait paket bulunamadı.</td></tr>
+                <tr><td colSpan={4} className="px-4 py-12 text-center text-gray-400 dark:text-slate-500">Bu ürüne ait paket bulunamadı.</td></tr>
               ) : sayfaPaketler.map((p) => (
                 <tr key={p.id} className={`hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors ${!p.aktif ? "opacity-50" : ""}`}>
                   <td className="px-4 py-3 font-medium text-gray-900 dark:text-white text-sm">{p.urunAdi}</td>
                   <td className="px-4 py-3 text-gray-600 dark:text-slate-400 text-sm">{p.adi}</td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-slate-400 text-sm">{Number(p.fiyati).toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-slate-400 text-sm text-center">{p.kullaniciSayisi || "-"}</td>
                   <td className="px-4 py-3 text-center">
                     <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${p.aktif ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400"}`}>
                       {p.aktif ? "E" : "H"}
@@ -799,8 +795,6 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
     tipi: duzenle ? (modal.tipi || "") : "",
     adi: duzenle ? modal.adi : "",
     kullanimGunu: duzenle ? modal.kullanimGunu : 0,
-    fiyati: duzenle ? modal.fiyati : 0,
-    kullaniciSayisi: duzenle ? modal.kullaniciSayisi : 0,
     aktif: duzenle ? modal.aktif : true,
   });
   const [kartlar, setKartlar] = useState(mevcutMetinler.length > 0 ? mevcutMetinler : []);

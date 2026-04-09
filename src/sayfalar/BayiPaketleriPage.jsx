@@ -970,7 +970,19 @@ export default function BayiPaketleriPage() {
                                       </div>
                                     ))}
                                   </div>
-                                  {deger.kademeler?.length > 0 && <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">{deger.kademeler.length} kademe tanımlı</p>}
+                                  {deger.kademeler?.length > 0 && (
+                                    <div className="mt-2 border-t border-gray-200 dark:border-white/10 pt-2">
+                                      <p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase mb-1.5 font-semibold">Kademeler ({deger.kademeler.length})</p>
+                                      <div className="space-y-1">
+                                        {deger.kademeler.map((k, ki) => (
+                                          <div key={ki} className="flex items-center justify-between px-2 py-1 rounded bg-violet-50 dark:bg-violet-500/10 text-[11px]">
+                                            <span className="text-gray-600 dark:text-slate-400">{k.deger || k.adet || `${ki + 1}. kademe`} {deger.birim || ""}</span>
+                                            <span className="font-medium text-gray-800 dark:text-slate-200">{Number(k.fiyat || 0).toLocaleString("tr-TR")} {deger.para_birimi || "TL"}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                   {deger.urunler?.length > 0 && <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">{deger.urunler.length} ürün</p>}
                                   {deger.uzantilar?.length > 0 && <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">{deger.uzantilar.length} uzantı</p>}
                                   {deger.kosullar?.length > 0 && <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">{deger.kosullar.length} koşul</p>}
@@ -1012,33 +1024,47 @@ export default function BayiPaketleriPage() {
                       </div>
                     </div>
                   )}
-                  {/* Domain İşlemleri */}
-                  {bilgiDetay.domain && (
-                    <div className="rounded-xl border border-fuchsia-200 dark:border-fuchsia-500/20 overflow-hidden">
-                      <div className="px-4 py-2.5 bg-fuchsia-50 dark:bg-fuchsia-500/10 border-b border-fuchsia-200 dark:border-fuchsia-500/20"><h5 className="text-xs font-bold text-fuchsia-600 dark:text-fuchsia-400 uppercase tracking-wider">Domain İşlemleri</h5></div>
-                      <div className="p-4 flex gap-3">
-                        <button onClick={async () => {
-                          setTransferModal(true); setTransferArama(""); setTransferMusteri(null);
-                          try { const r = await apiGet("/musteriler"); if (r.basarili) setTumMusteriler(r.veri); } catch {}
-                        }} className="flex-1 px-4 py-2.5 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 text-white text-sm font-semibold cursor-pointer inline-flex items-center justify-center gap-2 transition-colors">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
-                          Transfer Et
-                        </button>
-                        {bilgiDetay.moduller?.transfer_gecmisi?.length > 0 && (
-                          <button onClick={async () => {
-                            if (!confirm("Son transferi geri almak istediğinize emin misiniz?")) return;
-                            try {
-                              const r = await apiPost(`/lisanslar/${bilgiDetay.id}/domain-geri-al`);
-                              if (r.basarili) { alert(r.mesaj); setBilgiModal(null); setBilgiDetay(null); apiGet(`/lisanslar/bayi/${id}`).then((r2) => { if (r2.basarili) setPaketler(r2.veri.map((l) => ({ id: l.id, urun: l.urun_adi || "-", urunId: l.urun_id, paket: l.paket_adi || "-", paketId: l.paket_id, bayiAdi: l.bayi_adi || "", lisansTipi: l.lisans_tipi || "standart", suresiz: !!l.suresiz, domain: l.domain || "", faturaNo: l.fatura_no || "", faturaTarihi: l.fatura_tarihi ? l.fatura_tarihi.slice(0, 10) : "", kullanimGunu: l.kullanim_gunu || 365, baslangicTarihi: l.baslangic_tarihi ? l.baslangic_tarihi.slice(0, 10) : "", bitisTarihi: l.bitis_tarihi ? l.bitis_tarihi.slice(0, 10) : "", kullanici: l.kullanici_sayisi ? String(l.kullanici_sayisi) : "1", ekKullanici: l.ek_kullanici || 0, fiyat: l.fiyat ? Number(l.fiyat).toFixed(2) : "0.00", indirimOrani: l.indirim_orani || 0, netTutar: l.net_tutar ? Number(l.net_tutar).toFixed(2) : "0.00", odemeDurumu: l.odeme_durumu || "odenmedi", odemeYontemi: l.odeme_yontemi || "", faturaGeldi: !!l.fatura_geldi, lisansAnahtari: l.lisans_anahtari || "", otomatikYenileme: !!l.otomatik_yenileme, bildirimGun: l.bildirim_gun || 30, notlar: l.notlar || "", macAdresi: l.mac_adresi || "", ipAdresi: l.ip_adresi || "", moduller: l.moduller || null, musteriId: l.musteri_id, bayiId: l.bayi_id, lisansTipiId: l.lisans_tipi_id, surumId: l.surum_id }))); }); }
-                            } catch (e) { alert(e.message || "Geri alma başarısız."); }
-                          }} className="flex-1 px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold cursor-pointer inline-flex items-center justify-center gap-2 transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
-                            Geri Al
-                          </button>
-                        )}
+                  {/* Ürün İşlemleri (şablondan) */}
+                  {(() => {
+                    const uyOz = bilgiDetay.sablon_ozellikleri?.find(oz => oz.ozellik_tipi === "urun_yonetimi");
+                    const uy = uyOz ? (typeof uyOz.deger === "string" ? (() => { try { return JSON.parse(uyOz.deger); } catch { return null; } })() : uyOz.deger) : null;
+                    if (!uy) return null;
+                    const islemler = [
+                      { anahtar: "transfer_edilebilir", etiket: "Transfer Et", renk: "fuchsia", detay: uy.transfer_ucreti ? `Ücret: ${uy.transfer_ucreti} ${uy.transfer_ucreti_birimi || "TL"}` : null, ikon: <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />, onClick: async () => { setTransferModal(true); setTransferArama(""); setTransferMusteri(null); try { const r = await apiGet("/musteriler"); if (r.basarili) setTumMusteriler(r.veri); } catch {} } },
+                      { anahtar: "durdurulabilir", etiket: "Durdur", renk: "amber", detay: uy.durdurma_suresi_gun ? `Max ${uy.durdurma_suresi_gun} gün` : null, ikon: <path strokeLinecap="round" strokeLinejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /> },
+                      { anahtar: "askiya_alinabilir", etiket: "Askıya Al", renk: "orange", detay: uy.askiya_alma_suresi_gun ? `Max ${uy.askiya_alma_suresi_gun} gün` : null, ikon: <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /> },
+                      { anahtar: "iptal_edilebilir", etiket: "İptal Et", renk: "red", detay: uy.iptal_iade_orani ? `İade: %${uy.iptal_iade_orani}` : null, ikon: <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /> },
+                      { anahtar: "devir_edilebilir", etiket: "Devret", renk: "indigo", detay: null, ikon: <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /> },
+                    ].filter(i => uy[i.anahtar]);
+                    if (islemler.length === 0) return null;
+                    return (
+                      <div className="rounded-xl border border-fuchsia-200 dark:border-fuchsia-500/20 overflow-hidden">
+                        <div className="px-4 py-2.5 bg-fuchsia-50 dark:bg-fuchsia-500/10 border-b border-fuchsia-200 dark:border-fuchsia-500/20">
+                          <h5 className="text-xs font-bold text-fuchsia-600 dark:text-fuchsia-400 uppercase tracking-wider">Ürün İşlemleri</h5>
+                        </div>
+                        <div className="p-4 space-y-2">
+                          <div className="flex flex-wrap gap-2">
+                            {islemler.map((i) => (
+                              <button key={i.anahtar} onClick={i.onClick} className={`px-3 py-2 rounded-lg bg-${i.renk}-100 dark:bg-${i.renk}-500/15 text-${i.renk}-700 dark:text-${i.renk}-400 text-xs font-semibold cursor-pointer inline-flex items-center gap-1.5 hover:opacity-80 transition-opacity border border-${i.renk}-200 dark:border-${i.renk}-500/20`}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>{i.ikon}</svg>
+                                {i.etiket}
+                              </button>
+                            ))}
+                          </div>
+                          {islemler.some(i => i.detay) && (
+                            <div className="grid grid-cols-2 gap-2 mt-2">
+                              {islemler.filter(i => i.detay).map((i) => (
+                                <div key={i.anahtar + "_d"} className="text-[10px] text-gray-500 dark:text-slate-400">
+                                  <span className="font-medium">{i.etiket}:</span> {i.detay}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {uy.not && <p className="text-[10px] text-gray-400 dark:text-slate-500 italic mt-1">{uy.not}</p>}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                   {bilgiDetay.notlar && (
                     <div className="rounded-xl border border-gray-200 dark:border-white/10 p-4">
                       <p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase mb-1">Notlar</p>
@@ -2290,7 +2316,7 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
                       case "kademeli_fiyat": return d?.kademeler?.length ? `${d.tip || "adet"} - ${d.kademeler.length} kademe` : (d?.tip || "-");
                       case "domain_fiyat": return d?.uzantilar?.length ? `${d.uzantilar.length} uzantı` : "-";
                       case "demo_suresi": return d?.gun ? `${d.gun} gün` : "-";
-                      case "metin_karti": return d?.icerik || "-";
+                      case "metin_karti": return typeof d === 'string' ? d : (d?.icerik || d?.deger || "-");
                       case "periyot_indirim": return d ? `Aylık %${d.aylik_oran || 0} / Yıllık %${d.yillik_oran || 0}` : "-";
                       case "gecis_fiyati": return d?.fiyat ? `${Number(d.fiyat).toLocaleString("tr-TR")} ${d.para_birimi || "TL"}` : "-";
                       case "siparis_miktari": return d ? `${d.min_adet || 1}-${d.max_adet || "∞"} adet` : "-";
