@@ -60,9 +60,14 @@ router.get("/indir", hataYakala(async (req, res) => {
         const kolonlar = Object.keys(row).map(k => `\`${k}\``).join(", ");
         const degerler = Object.values(row).map(v => {
           if (v === null || v === undefined) return "NULL";
+          if (typeof v === "boolean") return v ? 1 : 0;
           if (typeof v === "number") return v;
           if (v instanceof Date) return `'${v.toISOString().slice(0, 19).replace("T", " ")}'`;
-          const str = String(v).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+          if (typeof v === "object") {
+            const str = JSON.stringify(v).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+            return `'${str}'`;
+          }
+          const str = String(v).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n").replace(/\r/g, "\\r");
           return `'${str}'`;
         }).join(", ");
         sql += `INSERT INTO \`${tablo}\` (${kolonlar}) VALUES (${degerler});\n`;
@@ -94,28 +99,33 @@ router.post("/yukle", hataYakala(async (req, res) => {
   const kullanici = kullaniciBilgisi(req);
   const sonuclar = [];
 
-  await prisma.$transaction(async (tx) => {
-    await tx.$executeRawUnsafe("SET FOREIGN_KEY_CHECKS = 0");
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe("SET FOREIGN_KEY_CHECKS = 0");
 
-    /* Önce TÜM tabloları temizle (ters sırada - FK uyumu) */
-    for (const tablo of [...TABLO_SIRASI].reverse()) {
-      try {
-        await tx.$executeRawUnsafe(`DELETE FROM \`${tablo}\``);
-      } catch (_) {}
-    }
+      /* Önce TÜM tabloları temizle (ters sırada - FK uyumu) */
+      for (const tablo of [...TABLO_SIRASI].reverse()) {
+        try {
+          await tx.$executeRawUnsafe(`DELETE FROM \`${tablo}\``);
+        } catch (_) {}
+      }
 
-    /* Sonra verileri yükle */
-    for (const tablo of TABLO_SIRASI) {
-      const rows = tablolar[tablo];
-      if (!Array.isArray(rows) || rows.length === 0) continue;
+      /* Sonra verileri yükle */
+      for (const tablo of TABLO_SIRASI) {
+        const rows = tablolar[tablo];
+        if (!Array.isArray(rows) || rows.length === 0) continue;
 
-      try {
         for (const row of rows) {
-          const kolonlar = Object.keys(row);
+          const kolonlar = Object.keys(row).filter(k => {
+            // Güvenlik: kolon adı sadece harf, rakam, alt çizgi içermeli
+            return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(k);
+          });
+          if (kolonlar.length === 0) continue;
           const placeholders = kolonlar.map(() => "?").join(", ");
           const values = kolonlar.map(k => {
             const v = row[k];
             if (v === null || v === undefined) return null;
+            if (typeof v === "boolean") return v ? 1 : 0;
             if (typeof v === "object" && !(v instanceof Date)) return JSON.stringify(v);
             return v;
           });
@@ -125,13 +135,18 @@ router.post("/yukle", hataYakala(async (req, res) => {
           );
         }
         sonuclar.push({ tablo, satir: rows.length, basarili: true });
-      } catch (e) {
-        sonuclar.push({ tablo, satir: 0, basarili: false, hata: e.message });
       }
-    }
 
-    await tx.$executeRawUnsafe("SET FOREIGN_KEY_CHECKS = 1");
-  }, { timeout: 120000 });
+      await tx.$executeRawUnsafe("SET FOREIGN_KEY_CHECKS = 1");
+    }, { timeout: 120000 });
+  } catch (e) {
+    try {
+      await prisma.yedeklemeLog.create({
+        data: { kullanici_id: kullanici.id, islem_tipi: "geri_yukleme", detay: `JSON geri yukleme BASARISIZ: ${e.message}`, durum: "basarisiz" },
+      });
+    } catch (_) {}
+    return res.status(500).json({ basarili: false, mesaj: `Geri yukleme basarisiz oldu, veriler geri alindi. Hata: ${e.message}`, detay: sonuclar });
+  }
 
   try {
     await prisma.yedeklemeLog.create({
@@ -174,8 +189,8 @@ router.post("/yukle-sql", hataYakala(async (req, res) => {
   let basariliSayi = 0;
   let hataSayi = 0;
 
-  /* Guvenlik: Sadece INSERT, UPDATE, DELETE, SET, CREATE TABLE, ALTER TABLE, DROP TABLE izinli */
-  const izinliKomutlar = /^\s*(INSERT|UPDATE|DELETE|SET|CREATE\s+TABLE|ALTER\s+TABLE|DROP\s+TABLE|TRUNCATE)/i;
+  /* Guvenlik: Sadece INSERT, DELETE, SET izinli (kendi export formatimiz bunlari uretir) */
+  const izinliKomutlar = /^\s*(INSERT|DELETE|SET)/i;
 
   await prisma.$transaction(async (tx) => {
     for (const satir of satirlar) {
