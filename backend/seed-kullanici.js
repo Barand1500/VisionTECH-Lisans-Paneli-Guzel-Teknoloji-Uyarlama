@@ -10,7 +10,7 @@ async function main() {
   // Önce roller tablosunda "admin" rolü var mı kontrol et
   let rol = await prisma.rol.findFirst({ where: { ad: "admin" } });
   if (!rol) {
-    rol = await prisma.rol.create({ data: { ad: "admin", aciklama: "Yönetici", aktif: 1 } });
+    rol = await prisma.rol.create({ data: { ad: "admin", aciklama: "Yönetici", aktif: 1, izinler: JSON.stringify(["*"]) } });
     console.log("Admin rolü oluşturuldu:", rol.id);
   }
 
