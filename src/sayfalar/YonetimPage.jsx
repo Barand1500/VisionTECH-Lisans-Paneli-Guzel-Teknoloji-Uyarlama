@@ -1765,22 +1765,22 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                   </div>
                 ) : (
                   /* Tüm Özellik Tipleri - Toggle Kartlar */
-                  <div className="space-y-2">
+                  <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden divide-y divide-gray-100 dark:divide-white/5">
                     {OZELLIK_TIPLERI.map(oz => {
                       const aktif = !!form.gelismisAyarlar[oz.id];
                       return (
-                        <div key={oz.id} className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                        <div key={oz.id}>
                           <button type="button" onClick={() => ozToggle(oz.id, oz.varsayilan)}
-                            className="w-full p-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="text-base w-6 text-center shrink-0">{oz.ikon}</span>
+                            className="w-full px-4 py-2.5 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className="text-lg w-7 text-center shrink-0">{oz.ikon}</span>
                               <div className="min-w-0">
-                                <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300 truncate">{oz.ad}</h4>
-                                <p className="text-[10px] text-gray-400 dark:text-slate-500 truncate">{oz.aciklama}</p>
+                                <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300 truncate leading-tight">{oz.ad}</h4>
+                                <p className="text-[10px] text-gray-400 dark:text-slate-500 truncate leading-tight">{oz.aciklama}</p>
                               </div>
                             </div>
                             <div
-                              className={`w-10 h-5 rounded-full transition-colors flex items-center shrink-0 ml-2 ${aktif ? "justify-end" : "bg-gray-300 dark:bg-white/20 justify-start"}`}
+                              className={`w-10 h-5 rounded-full transition-colors flex items-center shrink-0 ml-3 ${aktif ? "justify-end" : "bg-gray-300 dark:bg-white/20 justify-start"}`}
                               style={aktif ? { backgroundColor: RENK_HEX[oz.renk] || "#6b7280" } : undefined}
                             >
                               <div className="w-4 h-4 rounded-full bg-white shadow mx-0.5"></div>
