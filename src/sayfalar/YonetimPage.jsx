@@ -1773,10 +1773,10 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                           <button type="button" onClick={() => ozToggle(oz.id, oz.varsayilan)}
                             className="w-full p-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                             <div className="flex items-center gap-2 min-w-0">
-                              <span className="text-base w-6 text-center shrink-0">{oz.ikon}</span>
+                              <span className="inline-flex items-center justify-center text-base w-6 h-6 shrink-0">{oz.ikon}</span>
                               <div className="min-w-0">
-                                <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300 truncate">{oz.ad}</h4>
-                                <p className="text-[10px] text-gray-400 dark:text-slate-500 truncate">{oz.aciklama}</p>
+                                <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300 truncate leading-none">{oz.ad}</h4>
+                                <p className="text-[10px] text-gray-400 dark:text-slate-500 truncate leading-none mt-0.5">{oz.aciklama}</p>
                               </div>
                             </div>
                             <div
