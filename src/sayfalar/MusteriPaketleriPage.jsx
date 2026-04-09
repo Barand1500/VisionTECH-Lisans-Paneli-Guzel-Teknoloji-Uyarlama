@@ -957,22 +957,34 @@ export default function MusteriPaketleriPage() {
                       <div className="p-4 space-y-2">
                         {bilgiDetay.sablon_ozellikleri.map((oz) => {
                           const deger = typeof oz.deger === "string" ? (() => { try { return JSON.parse(oz.deger); } catch { return oz.deger; } })() : oz.deger;
-                          const etiketler = { transfer_edilebilir: "Transfer", durdurulabilir: "Durdurma", askiya_alinabilir: "Askıya Alma", iptal_edilebilir: "İptal", devir_edilebilir: "Devir", transfer_ucreti: "Transfer Ücreti", durdurma_suresi_gun: "Max Durdurma (gün)", askiya_alma_suresi_gun: "Max Askı (gün)", iptal_iade_orani: "İade Oranı (%)", sure_ay: "Süre (Ay)", kapsam: "Kapsam", uzatilabilir: "Uzatılabilir", uzatma_ucreti: "Uzatma Ücreti", uzatma_suresi_ay: "Uzatma (Ay)", mac_kontrolu: "MAC Kontrol", ip_kisitlama: "IP Kısıtlama", max_cihaz: "Max Cihaz", cihaz_degisim_hakki: "Değişim Hakkı", online_dogrulama: "Online Doğrulama", dogrulama_periyot_gun: "Doğrulama Periyodu (gün)", cihaz_degisim_periyot: "Değişim Periyodu" };
-                          const degerGoster = (k, v) => { if (typeof v === "boolean") return v ? "✅" : "❌"; if (k.includes("birimi") || k === "not" || k === "garanti_notu") return v || "-"; return String(v); };
+                          const etiketler = { fiyat: "Fiyat", para_birimi: "Birim", aktivasyon_fiyat: "Aktivasyon", yenileme_fiyat: "Yenileme", tip: "Tip", birim: "Birim", min: "Min", max: "Max", ek_kullanici_fiyat: "Ek Kullanıcı", alan_tipi: "Alan Tipi", zorunlu: "Zorunlu", aktif: "Aktif", gun: "Gün", bildirim_gun: "Bildirim (gün)", aciklama: "Açıklama", min_adet: "Min Adet", max_adet: "Max Adet", miktar: "Miktar", ad: "Ad", indirim_orani: "İndirim (%)", bitis_tarihi: "Bitiş", aylik_oran: "Aylık (%)", yillik_oran: "Yıllık (%)", transfer_edilebilir: "Transfer", durdurulabilir: "Durdurma", askiya_alinabilir: "Askıya Alma", iptal_edilebilir: "İptal", devir_edilebilir: "Devir", transfer_ucreti: "Transfer Ücreti", durdurma_suresi_gun: "Max Durdurma (gün)", askiya_alma_suresi_gun: "Max Askı (gün)", iptal_iade_orani: "İade Oranı (%)", sure_ay: "Süre (Ay)", kapsam: "Kapsam", uzatilabilir: "Uzatılabilir", uzatma_ucreti: "Uzatma Ücreti", uzatma_suresi_ay: "Uzatma (Ay)", mac_kontrolu: "MAC Kontrol", ip_kisitlama: "IP Kısıtlama", max_cihaz: "Max Cihaz", cihaz_degisim_hakki: "Değişim Hakkı", online_dogrulama: "Online Doğrulama", dogrulama_periyot_gun: "Doğrulama Periyodu (gün)", cihaz_degisim_periyot: "Değişim Periyodu", baslik: "Başlık", icerik: "İçerik" };
+                          const degerGoster = (k, v) => {
+                            if (typeof v === "boolean") return v ? "✅" : "❌";
+                            if (Array.isArray(v)) return `${v.length} adet`;
+                            if (typeof v === "object" && v !== null) return JSON.stringify(v);
+                            return String(v ?? "-");
+                          };
+                          const gizliAlanlar = ["not", "garanti_notu", "kademeler", "urunler", "uzantilar", "kosullar", "hedef_urunler"];
                           return (
                             <div key={oz.id} className="p-2.5 rounded-lg bg-gray-50 dark:bg-white/5">
-                              <p className="text-sm font-medium mb-1.5">{oz.baslik || oz.ozellik_tipi}</p>
-                              {typeof deger === "object" ? (
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                                  {Object.entries(deger).filter(([k]) => !k.includes("birimi") && k !== "not" && k !== "garanti_notu").map(([k, v]) => (
-                                    <div key={k} className="flex items-center justify-between">
-                                      <span className="text-[11px] text-gray-400 dark:text-slate-500">{etiketler[k] || k.replace(/_/g, " ")}</span>
-                                      <span className="text-[11px] font-medium text-gray-700 dark:text-slate-300">{degerGoster(k, v)}{deger[k + "_birimi"] ? ` ${deger[k + "_birimi"]}` : ""}</span>
-                                    </div>
-                                  ))}
-                                  {(deger.not || deger.garanti_notu) && <p className="col-span-2 text-[11px] text-gray-400 dark:text-slate-500 mt-1 italic">{deger.not || deger.garanti_notu}</p>}
+                              <p className="text-sm font-medium mb-1.5 text-gray-800 dark:text-slate-200">{oz.baslik || oz.ozellik_tipi?.replace(/_/g, " ")}</p>
+                              {typeof deger === "object" && deger !== null ? (
+                                <div className="space-y-1">
+                                  <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                    {Object.entries(deger).filter(([k]) => !gizliAlanlar.includes(k) && !k.includes("birimi")).map(([k, v]) => (
+                                      <div key={k} className="flex items-center justify-between">
+                                        <span className="text-[11px] text-gray-400 dark:text-slate-500">{etiketler[k] || k.replace(/_/g, " ")}</span>
+                                        <span className="text-[11px] font-medium text-gray-700 dark:text-slate-300">{degerGoster(k, v)}{deger[k + "_birimi"] ? ` ${deger[k + "_birimi"]}` : ""}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {deger.kademeler?.length > 0 && <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">{deger.kademeler.length} kademe tanımlı</p>}
+                                  {deger.urunler?.length > 0 && <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">{deger.urunler.length} ürün</p>}
+                                  {deger.uzantilar?.length > 0 && <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">{deger.uzantilar.length} uzantı</p>}
+                                  {deger.kosullar?.length > 0 && <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">{deger.kosullar.length} koşul</p>}
+                                  {(deger.not || deger.garanti_notu) && <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1 italic">{deger.not || deger.garanti_notu}</p>}
                                 </div>
-                              ) : <span className="text-xs text-gray-500 dark:text-slate-400">{String(deger)}</span>}
+                              ) : <span className="text-xs text-gray-500 dark:text-slate-400">{String(deger ?? "-")}</span>}
                             </div>
                           );
                         })}
@@ -2307,36 +2319,49 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                     metin_karti: { icon: "📝", baslik: "Metin Kartı", renk: "violet" },
                   };
 
-                  const degerGoster = (oz) => {
-                    const d = oz.deger;
-                    switch (oz.tip) {
-                      case "hediye_urun": return oz.urunAdi || "Ürün hediye";
+                  const parseDeger = (d) => typeof d === 'string' ? (() => { try { return JSON.parse(d); } catch { return d; } })() : (d || {});
+
+                  const degerGoster = (d, tip) => {
+                    switch (tip) {
+                      case "hediye_urun": return d?.urunler?.length ? `${d.urunler.length} ürün` : (d?.miktar ? `${d.miktar} adet` : "-");
                       case "ek_kullanici_fiyat": return `+${Number(d).toLocaleString("tr-TR")}₺/kişi`;
                       case "indirim": return `%${d} indirim`;
                       case "ozel_not": return d || "-";
                       case "ek_sure": return `+${d} gün`;
-                      case "temel_fiyat": return d?.fiyat ? `${Number(d.fiyat).toLocaleString("tr-TR")}₺` : "-";
-                      case "aktivasyon_yenileme": return d ? `Akt: ${Number(d.aktivasyon_fiyat || 0).toLocaleString("tr-TR")}₺` : "-";
-                      case "kullanici_sayisi": return d ? `${d.min || 1}-${d.max || "∞"} kişi` : "-";
-                      case "sicil_domain": return d ? (d.alan_tipi === "domain" ? "Domain" : "Sicil") : "-";
-                      case "kademeli_fiyat": return d?.kademeler?.length ? `${d.kademeler.length} kademe` : "-";
+                      case "temel_fiyat": return d?.fiyat ? `${Number(d.fiyat).toLocaleString("tr-TR")} ${d.para_birimi || "TL"}` : "-";
+                      case "aktivasyon_yenileme": return d ? `Akt: ${Number(d.aktivasyon_fiyat || 0).toLocaleString("tr-TR")}₺ / Yen: ${Number(d.yenileme_fiyat || 0).toLocaleString("tr-TR")}₺` : "-";
+                      case "kullanici_sayisi": return d ? `${d.min || 1}-${d.max || "∞"} kişi${d.ek_kullanici_fiyat ? ` (+${d.ek_kullanici_fiyat}₺)` : ""}` : "-";
+                      case "sicil_domain": return d ? (d.alan_tipi === "domain" ? "Domain" : d.alan_tipi === "mac_adresi" ? "MAC" : d.alan_tipi === "ip_adresi" ? "IP" : "Sicil") + (d.zorunlu ? " (Zorunlu)" : "") : "-";
+                      case "kademeli_fiyat": return d?.kademeler?.length ? `${d.tip || "adet"} - ${d.kademeler.length} kademe` : (d?.tip || "-");
                       case "domain_fiyat": return d?.uzantilar?.length ? `${d.uzantilar.length} uzantı` : "-";
                       case "demo_suresi": return d?.gun ? `${d.gun} gün` : "-";
                       case "metin_karti": return d?.icerik || "-";
+                      case "periyot_indirim": return d ? `Aylık %${d.aylik_oran || 0} / Yıllık %${d.yillik_oran || 0}` : "-";
+                      case "gecis_fiyati": return d?.fiyat ? `${Number(d.fiyat).toLocaleString("tr-TR")} ${d.para_birimi || "TL"}` : "-";
+                      case "siparis_miktari": return d ? `${d.min_adet || 1}-${d.max_adet || "∞"} adet` : "-";
+                      case "kampanya": return d?.ad || "-";
+                      case "otomatik_yenileme": return d?.aktif ? `Aktif (${d.bildirim_gun || 30} gün önce bildirim)` : "Pasif";
+                      case "bagimli_urun": return d?.urunler?.length ? `${d.urunler.length} ürün` : (d?.zorunlu ? "Zorunlu" : "Opsiyonel");
+                      case "urun_yonetimi": { const a = []; if (d?.transfer_edilebilir) a.push("Transfer"); if (d?.durdurulabilir) a.push("Durdurma"); if (d?.iptal_edilebilir) a.push("İptal"); return a.length ? a.join(", ") : "-"; }
+                      case "garanti_suresi": return d?.sure_ay ? `${d.sure_ay} ay${d.uzatilabilir ? " (Uzatılabilir)" : ""}` : "-";
+                      case "guvenlik": { const a = []; if (d?.mac_kontrolu) a.push("MAC"); if (d?.ip_kisitlama) a.push("IP"); if (d?.online_dogrulama) a.push("Online"); return a.length ? a.join(", ") + ` (Max ${d.max_cihaz || 1})` : "-"; }
                       default: return "-";
                     }
                   };
 
                   return (
                     <div className="space-y-2">
-                      {paketOzellikler.map((oz) => {
-                        const stil = ozellikStilleri[oz.tip] || { icon: "⚙️", baslik: oz.tip, renk: "gray" };
+                      {paketOzellikler.map((oz, idx) => {
+                        const d = parseDeger(oz.deger);
+                        const tip = oz.tip || oz.ozellik_tipi;
+                        const stil = ozellikStilleri[tip] || { icon: "⚙️", baslik: tip, renk: "gray" };
+                        const baslik = tip === 'metin_karti' && d?.baslik ? d.baslik : stil.baslik;
                         return (
-                          <div key={oz.id} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
+                          <div key={idx} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
                             <span className="text-sm">{stil.icon}</span>
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium text-gray-700 dark:text-slate-300">{oz.tip === 'metin_karti' && oz.deger?.baslik ? oz.deger.baslik : stil.baslik}</p>
-                              <p className="text-[10px] text-gray-400 dark:text-slate-500 truncate">{degerGoster(oz)}</p>
+                              <p className="text-xs font-medium text-gray-700 dark:text-slate-300">{baslik}</p>
+                              <p className="text-[10px] text-gray-400 dark:text-slate-500 truncate">{degerGoster(d, tip)}</p>
                             </div>
                           </div>
                         );
