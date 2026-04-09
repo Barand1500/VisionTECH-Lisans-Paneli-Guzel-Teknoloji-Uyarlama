@@ -434,71 +434,123 @@ async function main() {
     // VegaPos paketleri
     { urun: "VegaPos", ad: "VegaPos Starter", tipi: "STARTER", gun: 365, fiyat: 3500, kullanici: 1, ozellikler: [
       { ozellik_tipi: "kullanici_sayisi", tip: "kullanici_sayisi", deger: 1 },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Tek kullanıcı POS lisansı" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Temel satış ve stok modülleri" },
     ] },
     { urun: "VegaPos", ad: "VegaPos Professional", tipi: "PROFESSIONAL", gun: 365, fiyat: 5000, kullanici: 5, ozellikler: [
       { ozellik_tipi: "kullanici_sayisi", tip: "kullanici_sayisi", deger: 5 },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "5 kullanıcıya kadar destek" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Gelişmiş raporlama ve analiz" },
     ] },
     { urun: "VegaPos", ad: "VegaPos Enterprise", tipi: "ENTERPRISE", gun: 365, fiyat: 8000, kullanici: 20, ozellikler: [
       { ozellik_tipi: "kullanici_sayisi", tip: "kullanici_sayisi", deger: 20 },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Sınırsız şube desteği" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "API entegrasyon ve özel geliştirme" },
     ] },
     // VegaCari paketleri
-    { urun: "VegaCari", ad: "VegaCari Basic", tipi: "BASIC", gun: 365, fiyat: 2500, kullanici: 1, ozellikler: [] },
+    { urun: "VegaCari", ad: "VegaCari Basic", tipi: "BASIC", gun: 365, fiyat: 2500, kullanici: 1, ozellikler: [
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Temel cari hesap takibi" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Tek kullanıcı lisansı" },
+    ] },
     { urun: "VegaCari", ad: "VegaCari Professional", tipi: "PROFESSIONAL", gun: 365, fiyat: 3500, kullanici: 5, ozellikler: [
       { ozellik_tipi: "kullanici_sayisi", tip: "kullanici_sayisi", deger: 5 },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Çoklu şube ve kullanıcı desteği" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Otomatik mutabakat ve raporlama" },
     ] },
     // VegaHR paketleri
     { urun: "VegaHR", ad: "VegaHR Starter", tipi: "STARTER", gun: 365, fiyat: 4000, kullanici: 3, ozellikler: [
       { ozellik_tipi: "kullanici_sayisi", tip: "kullanici_sayisi", deger: 3 },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Personel özlük ve bordro" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "50 personele kadar" },
     ] },
     { urun: "VegaHR", ad: "VegaHR Premium", tipi: "PREMIUM", gun: 365, fiyat: 7000, kullanici: 20, ozellikler: [
       { ozellik_tipi: "kullanici_sayisi", tip: "kullanici_sayisi", deger: 20 },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Sınırsız personel kaydı" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "İleri düzey İK analitik ve performans" },
     ] },
     // E-Fatura paketleri
     { urun: "E-Fatura Portal", ad: "E-Fatura 100", tipi: "STARTER", gun: 365, fiyat: 2000, kullanici: 1, ozellikler: [
       { ozellik_tipi: "kademeli_fiyat", tip: "kademeli_fiyat", deger: { tip: "adet", birim: "Fatura/Ay", kademeler: [{ deger: "1-100", fiyat: 2000 }] } },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Aylık 100 fatura hakkı" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "GİB onaylı e-fatura gönderimi" },
     ] },
     { urun: "E-Fatura Portal", ad: "E-Fatura 500", tipi: "PROFESSIONAL", gun: 365, fiyat: 3500, kullanici: 1, ozellikler: [
       { ozellik_tipi: "kademeli_fiyat", tip: "kademeli_fiyat", deger: { tip: "adet", birim: "Fatura/Ay", kademeler: [{ deger: "1-500", fiyat: 3500 }] } },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Aylık 500 fatura hakkı" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Toplu fatura gönderim ve Excel aktarım" },
     ] },
     { urun: "E-Fatura Portal", ad: "E-Fatura Sınırsız", tipi: "ENTERPRISE", gun: 365, fiyat: 10000, kullanici: 1, ozellikler: [
       { ozellik_tipi: "kademeli_fiyat", tip: "kademeli_fiyat", deger: { tip: "adet", birim: "Fatura/Ay", kademeler: [{ deger: "Sınırsız", fiyat: 10000 }] } },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Sınırsız fatura gönderimi" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "ERP entegrasyon ve API erişimi" },
     ] },
     // E-Arşiv
-    { urun: "E-Arşiv Fatura", ad: "E-Arşiv Yıllık", tipi: "BASIC", gun: 365, fiyat: 1000, kullanici: 1, ozellikler: [] },
+    { urun: "E-Arşiv Fatura", ad: "E-Arşiv Yıllık", tipi: "BASIC", gun: 365, fiyat: 1000, kullanici: 1, ozellikler: [
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Yıllık e-arşiv fatura lisansı" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "GİB uyumlu arşivleme" },
+    ] },
     // E-İrsaliye
-    { urun: "E-İrsaliye", ad: "E-İrsaliye Yıllık", tipi: "BASIC", gun: 365, fiyat: 800, kullanici: 1, ozellikler: [] },
+    { urun: "E-İrsaliye", ad: "E-İrsaliye Yıllık", tipi: "BASIC", gun: 365, fiyat: 800, kullanici: 1, ozellikler: [
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Yıllık e-irsaliye lisansı" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Sevkiyat takip entegrasyonu" },
+    ] },
     // E-Mutabakat
     { urun: "E-Mutabakat Kontör", ad: "E-Mutabakat 250", tipi: "BASIC", gun: 365, fiyat: 1250, kullanici: 1, ozellikler: [
       { ozellik_tipi: "kademeli_fiyat", tip: "kademeli_fiyat", deger: { tip: "adet", birim: "Kontör", kademeler: [{ deger: "250", fiyat: 1250 }] } },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "250 kontör mutabakat hakkı" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "BA/BS mutabakat desteği" },
     ] },
     { urun: "E-Mutabakat Kontör", ad: "E-Mutabakat 500", tipi: "PROFESSIONAL", gun: 365, fiyat: 1750, kullanici: 1, ozellikler: [
       { ozellik_tipi: "kademeli_fiyat", tip: "kademeli_fiyat", deger: { tip: "adet", birim: "Kontör", kademeler: [{ deger: "500", fiyat: 1750 }] } },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "500 kontör mutabakat hakkı" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Toplu mutabakat ve otomatik eşleştirme" },
     ] },
     // PAVO SmartPos
-    { urun: "PAVO SmartPos", ad: "PAVO Standart", tipi: "BASIC", gun: 0, fiyat: 8500, kullanici: 1, ozellikler: [] },
+    { urun: "PAVO SmartPos", ad: "PAVO Standart", tipi: "BASIC", gun: 0, fiyat: 8500, kullanici: 1, ozellikler: [
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Donanım dahil SmartPos paketi" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Süresiz yazılım lisansı" },
+    ] },
     // Domain
-    { urun: "Domain Tescil", ad: "Domain .com", tipi: "BASIC", gun: 365, fiyat: 150, kullanici: 1, ozellikler: [] },
-    { urun: "Domain Tescil", ad: "Domain .com.tr", tipi: "STARTER", gun: 365, fiyat: 80, kullanici: 1, ozellikler: [] },
+    { urun: "Domain Tescil", ad: "Domain .com", tipi: "BASIC", gun: 365, fiyat: 150, kullanici: 1, ozellikler: [
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: ".com uzantılı domain kaydı" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "DNS yönetim paneli dahil" },
+    ] },
+    { urun: "Domain Tescil", ad: "Domain .com.tr", tipi: "STARTER", gun: 365, fiyat: 80, kullanici: 1, ozellikler: [
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: ".com.tr uzantılı domain kaydı" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "NIC.tr tescil desteği" },
+    ] },
     // Hosting
     { urun: "Web Hosting", ad: "Hosting 5GB", tipi: "STARTER", gun: 365, fiyat: 500, kullanici: 1, ozellikler: [
       { ozellik_tipi: "kademeli_fiyat", tip: "kademeli_fiyat", deger: { tip: "kapasite", birim: "GB", kademeler: [{ deger: "5", fiyat: 500 }] } },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "5 GB SSD disk alanı" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Ücretsiz SSL sertifikası" },
     ] },
     { urun: "Web Hosting", ad: "Hosting 25GB", tipi: "PROFESSIONAL", gun: 365, fiyat: 1500, kullanici: 1, ozellikler: [
       { ozellik_tipi: "kademeli_fiyat", tip: "kademeli_fiyat", deger: { tip: "kapasite", birim: "GB", kademeler: [{ deger: "25", fiyat: 1500 }] } },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "25 GB SSD disk alanı" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Günlük yedekleme ve SSL dahil" },
     ] },
     // E-Posta
     { urun: "Kurumsal E-Posta", ad: "E-Posta 5 Hesap", tipi: "STARTER", gun: 365, fiyat: 500, kullanici: 5, ozellikler: [
       { ozellik_tipi: "kullanici_sayisi", tip: "kullanici_sayisi", deger: 5 },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "5 e-posta hesabı" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Hesap başı 5 GB depolama" },
     ] },
     { urun: "Kurumsal E-Posta", ad: "E-Posta 20 Hesap", tipi: "PROFESSIONAL", gun: 365, fiyat: 1600, kullanici: 20, ozellikler: [
       { ozellik_tipi: "kullanici_sayisi", tip: "kullanici_sayisi", deger: 20 },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "20 e-posta hesabı" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Hesap başı 10 GB depolama ve spam filtre" },
     ] },
     // Fiber İnternet
     { urun: "Fiber İnternet", ad: "Fiber 100 Mbps", tipi: "BASIC", gun: 30, fiyat: 750, kullanici: 1, ozellikler: [
       { ozellik_tipi: "kademeli_fiyat", tip: "kademeli_fiyat", deger: { tip: "kapasite", birim: "Mbps", kademeler: [{ deger: "100", fiyat: 750 }] } },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "100 Mbps simetrik fiber bağlantı" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "Statik IP dahil" },
     ] },
     { urun: "Fiber İnternet", ad: "Fiber 500 Mbps", tipi: "PREMIUM", gun: 30, fiyat: 2000, kullanici: 1, ozellikler: [
       { ozellik_tipi: "kademeli_fiyat", tip: "kademeli_fiyat", deger: { tip: "kapasite", birim: "Mbps", kademeler: [{ deger: "500", fiyat: 2000 }] } },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "500 Mbps simetrik fiber bağlantı" },
+      { ozellik_tipi: "metin_karti", tip: "metin_karti", deger: "5 statik IP ve 7/24 teknik destek" },
     ] },
   ];
 
