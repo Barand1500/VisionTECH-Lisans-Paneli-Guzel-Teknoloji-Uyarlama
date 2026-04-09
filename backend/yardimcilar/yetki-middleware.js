@@ -27,7 +27,7 @@ function yetkiKontrol(req, res, next) {
 
 /* ---- Sadece Admin Erisimi ---- */
 function sadaceAdmin(req, res, next) {
-  if (req.kullanici.rol !== "admin") {
+  if (req.kullanici.rol !== "Yönetici") {
     return res.status(403).json({ basarili: false, mesaj: "Bu islem icin admin yetkisi gereklidir." });
   }
   next();

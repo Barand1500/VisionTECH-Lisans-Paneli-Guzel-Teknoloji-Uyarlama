@@ -70,9 +70,9 @@ async function main() {
   // 1. ROLLER ve KULLANICI
   // =============================================
   console.log("\n👤 Roller ve kullanıcı oluşturuluyor...");
-  const adminRol = await prisma.rol.create({ data: { ad: "Yönetici", izinler: ["*"] } });
-  const bayiRol = await prisma.rol.create({ data: { ad: "Bayi", izinler: ["musteri:oku", "lisans:oku", "lisans:ekle"] } });
-  const destekRol = await prisma.rol.create({ data: { ad: "Destek", izinler: ["musteri:oku", "lisans:oku", "not:ekle"] } });
+  const adminRol = await prisma.rol.create({ data: { ad: "Yönetici", izinler: ["ozet", "musteriler", "bayiler", "yonetim", "lisans_yonetimi", "raporlar", "takvim", "aktivite_logu", "yedekleme"] } });
+  const bayiRol = await prisma.rol.create({ data: { ad: "Bayi", izinler: ["ozet", "musteriler", "bayiler", "lisans_yonetimi", "takvim"] } });
+  const destekRol = await prisma.rol.create({ data: { ad: "Destek", izinler: ["ozet", "musteriler", "lisans_yonetimi", "raporlar", "takvim", "aktivite_logu"] } });
 
   const sifreHash = await bcrypt.hash("123456", 10);
   const admin = await prisma.kullanici.create({
