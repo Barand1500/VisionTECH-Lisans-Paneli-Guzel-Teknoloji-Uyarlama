@@ -179,8 +179,9 @@ function SatislarSekmesi() {
     return aramaUygun && durumUygun;
   });
 
-  const toplamSayfa = Math.ceil(filtrelenmis.length / sayfaBasi);
-  const sayfaVeriler = filtrelenmis.slice((sayfa - 1) * sayfaBasi, sayfa * sayfaBasi);
+  const toplamSayfa = Math.max(1, Math.ceil(filtrelenmis.length / sayfaBasi));
+  const etkinSayfa = Math.min(sayfa, toplamSayfa);
+  const sayfaVeriler = filtrelenmis.slice((etkinSayfa - 1) * sayfaBasi, etkinSayfa * sayfaBasi);
 
   const toplamCiro = veri.filter((s) => s.durum === "Tamamlandı").reduce((t, s) => t + Number(s.tutar || 0), 0);
   const bekleyenTutar = veri.filter((s) => s.durum === "Bekliyor").reduce((t, s) => t + Number(s.tutar || 0), 0);
@@ -320,8 +321,9 @@ function AktifPaketlerSekmesi() {
     !arama || p.musteri.toLowerCase().includes(arama.toLowerCase()) || p.urun.toLowerCase().includes(arama.toLowerCase()) || (p.paketAdi || "").toLowerCase().includes(arama.toLowerCase())
   );
 
-  const toplamSayfa = Math.ceil(filtrelenmis.length / sayfaBasi);
-  const sayfaVeriler = filtrelenmis.slice((sayfa - 1) * sayfaBasi, sayfa * sayfaBasi);
+  const toplamSayfa = Math.max(1, Math.ceil(filtrelenmis.length / sayfaBasi));
+  const etkinSayfa = Math.min(sayfa, toplamSayfa);
+  const sayfaVeriler = filtrelenmis.slice((etkinSayfa - 1) * sayfaBasi, etkinSayfa * sayfaBasi);
   const toplamKullanici = veri.reduce((t, p) => t + Number(p.kullaniciSayisi || 0), 0);
   const suresiOlanlar = veri.filter((p) => !p.suresiz);
   const suresizSayisi = veri.filter((p) => p.suresiz).length;
@@ -709,8 +711,9 @@ function TahsilatlarSekmesi() {
     return aramaUygun && durumUygun && yontemUygun;
   });
 
-  const toplamSayfa = Math.ceil(filtrelenmis.length / sayfaBasi);
-  const sayfaVeriler = filtrelenmis.slice((sayfa - 1) * sayfaBasi, sayfa * sayfaBasi);
+  const toplamSayfa = Math.max(1, Math.ceil(filtrelenmis.length / sayfaBasi));
+  const etkinSayfa = Math.min(sayfa, toplamSayfa);
+  const sayfaVeriler = filtrelenmis.slice((etkinSayfa - 1) * sayfaBasi, etkinSayfa * sayfaBasi);
 
   const odenen = veri.filter((t) => t.durum === "Ödendi").reduce((t, s) => t + Number(s.tutar || 0), 0);
   const bekleyen = veri.filter((t) => t.durum === "Bekliyor").reduce((t, s) => t + Number(s.tutar || 0), 0);

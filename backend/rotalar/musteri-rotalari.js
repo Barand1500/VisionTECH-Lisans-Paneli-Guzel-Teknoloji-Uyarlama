@@ -91,7 +91,7 @@ router.post("/", hataYakala(async (req, res) => {
 /* ---- Musteri Guncelle ---- */
 router.put("/:id", hataYakala(async (req, res) => {
   const id = Number(req.params.id);
-  const mevcut = await prisma.musteri.findUnique({ where: { id }, select: { id: true, tc_kimlik_no: true, vergi_no: true, pasaport_no: true } });
+  const mevcut = await prisma.musteri.findFirst({ where: { id, silinme_tarihi: null }, select: { id: true, tc_kimlik_no: true, vergi_no: true, pasaport_no: true } });
   if (!mevcut) return bulunamadiHatasi(res, "Musteri bulunamadi.");
 
   const { tur, ad_soyad, sirket_adi, yetkili_kisi, eposta, tc_kimlik_no, vergi_no, vergi_dairesi, pasaport_no, sektor_id, etiketler, durum, ust_musteri_id, telefonlar, adresler } = req.body;
@@ -102,38 +102,40 @@ router.put("/:id", hataYakala(async (req, res) => {
   if (vergi_no && vergi_no !== mevcut.vergi_no && !vergiNoGecerliMi(vergi_no)) return dogrulamaHatasi(res, "Vergi numarasi 10-11 haneli olmalidir.");
   if (pasaport_no && pasaport_no !== mevcut.pasaport_no && !pasaportNoGecerliMi(pasaport_no)) return dogrulamaHatasi(res, "Gecersiz pasaport numarasi formati.");
 
-  await prisma.musteri.update({
-    where: { id },
-    data: {
-      tur: tur !== undefined ? tur : undefined,
-      ad_soyad: ad_soyad !== undefined ? (ad_soyad || null) : undefined,
-      sirket_adi: sirket_adi !== undefined ? (sirket_adi || null) : undefined,
-      yetkili_kisi: yetkili_kisi !== undefined ? (yetkili_kisi || null) : undefined,
-      eposta: eposta !== undefined ? (eposta || null) : undefined,
-      tc_kimlik_no: tc_kimlik_no !== undefined ? (tc_kimlik_no || null) : undefined,
-      vergi_no: vergi_no !== undefined ? (vergi_no || null) : undefined,
-      vergi_dairesi: vergi_dairesi !== undefined ? (vergi_dairesi || null) : undefined,
-      pasaport_no: pasaport_no !== undefined ? (pasaport_no || null) : undefined,
-      sektor_id: sektor_id !== undefined ? (sektor_id || null) : undefined,
-      etiketler: etiketler !== undefined ? etiketler : undefined,
-      durum: durum || undefined,
-      ust_musteri_id: ust_musteri_id !== undefined ? (ust_musteri_id || null) : undefined,
-      guncelleme_tarihi: new Date(),
-    },
-  });
+  await prisma.$transaction(async (tx) => {
+    await tx.musteri.update({
+      where: { id },
+      data: {
+        tur: tur !== undefined ? tur : undefined,
+        ad_soyad: ad_soyad !== undefined ? (ad_soyad || null) : undefined,
+        sirket_adi: sirket_adi !== undefined ? (sirket_adi || null) : undefined,
+        yetkili_kisi: yetkili_kisi !== undefined ? (yetkili_kisi || null) : undefined,
+        eposta: eposta !== undefined ? (eposta || null) : undefined,
+        tc_kimlik_no: tc_kimlik_no !== undefined ? (tc_kimlik_no || null) : undefined,
+        vergi_no: vergi_no !== undefined ? (vergi_no || null) : undefined,
+        vergi_dairesi: vergi_dairesi !== undefined ? (vergi_dairesi || null) : undefined,
+        pasaport_no: pasaport_no !== undefined ? (pasaport_no || null) : undefined,
+        sektor_id: sektor_id !== undefined ? (sektor_id || null) : undefined,
+        etiketler: etiketler !== undefined ? etiketler : undefined,
+        durum: durum || undefined,
+        ust_musteri_id: ust_musteri_id !== undefined ? (ust_musteri_id || null) : undefined,
+        guncelleme_tarihi: new Date(),
+      },
+    });
 
-  if (Array.isArray(telefonlar)) {
-    await prisma.musteriTelefon.deleteMany({ where: { musteri_id: id } });
-    for (const t of telefonlar) {
-      if (t) await prisma.musteriTelefon.create({ data: { musteri_id: id, telefon: t } });
+    if (Array.isArray(telefonlar)) {
+      await tx.musteriTelefon.deleteMany({ where: { musteri_id: id } });
+      for (const t of telefonlar) {
+        if (t) await tx.musteriTelefon.create({ data: { musteri_id: id, telefon: t } });
+      }
     }
-  }
-  if (Array.isArray(adresler)) {
-    await prisma.musteriAdres.deleteMany({ where: { musteri_id: id } });
-    for (const a of adresler) {
-      if (a) await prisma.musteriAdres.create({ data: { musteri_id: id, adres: a } });
+    if (Array.isArray(adresler)) {
+      await tx.musteriAdres.deleteMany({ where: { musteri_id: id } });
+      for (const a of adresler) {
+        if (a) await tx.musteriAdres.create({ data: { musteri_id: id, adres: a } });
+      }
     }
-  }
+  });
 
   res.json({ basarili: true, mesaj: "Musteri basariyla guncellendi." });
 }));

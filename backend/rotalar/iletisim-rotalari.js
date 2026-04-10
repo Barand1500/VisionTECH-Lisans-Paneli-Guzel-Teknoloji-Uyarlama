@@ -13,7 +13,9 @@ router.post("/sifremi-unuttum", hataYakala(async (req, res) => {
   const { gonderen, mesaj } = req.body;
   if (!mesaj || !mesaj.trim()) return dogrulamaHatasi(res, "Mesaj boş olamaz.");
 
-  const hedefEposta = process.env.PATRON_EPOSTA || "21baran51@gmail.com";
+  const hedefEposta = process.env.PATRON_EPOSTA || "";
+
+  if (!hedefEposta) return dogrulamaHatasi(res, "PATRON_EPOSTA ortam değişkeni tanımlanmamış.");
 
   if (!process.env.SMTP_KULLANICI || !process.env.SMTP_SIFRE) {
     console.log(`[Mail Bildirimi] Gönderen: ${gonderen || "Bilinmeyen"}`);
@@ -44,7 +46,7 @@ router.post("/sifremi-unuttum", hataYakala(async (req, res) => {
 
 /* ---- Patron E-postasını Getir ---- */
 router.get("/patron-eposta", (req, res) => {
-  res.json({ eposta: process.env.PATRON_EPOSTA || "21baran51@gmail.com" });
+  res.json({ eposta: process.env.PATRON_EPOSTA || "" });
 });
 
 module.exports = router;

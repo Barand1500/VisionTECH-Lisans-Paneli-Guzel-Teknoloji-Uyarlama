@@ -302,56 +302,136 @@ router.get("/:id/detay", hataYakala(async (req, res) => {
   res.json({ basarili: true, veri: { ...temizle([row])[0], sablon_ozellikleri: temizle(sablonOzellikleri) } });
 }));
 
-/* ---- Domain Transfer ---- */
+/* ---- Lisans Transfer (Genel — domain olsun olmasın) ---- */
+router.post("/:id/transfer", hataYakala(async (req, res) => {
+  const id = Number(req.params.id);
+  const { hedef_musteri_id, hedef_bayi_id, sure_secim, yeni_gun } = req.body;
+  // sure_secim: "mevcut" (kalan gün ile devam) veya "yeni" (yeni gün sayısı)
+
+  if (!hedef_musteri_id) return dogrulamaHatasi(res, "Hedef müşteri zorunludur.");
+  if (sure_secim === "yeni" && (!yeni_gun || Number(yeni_gun) < 1)) return dogrulamaHatasi(res, "Yeni süre en az 1 gün olmalıdır.");
+
+  const lisans = await prisma.lisans.findFirst({ where: { id, silinme_tarihi: null } });
+  if (!lisans) return bulunamadiHatasi(res, "Lisans bulunamadi veya silinmiş.");
+  if (lisans.durum === "iptal") return dogrulamaHatasi(res, "İptal edilmiş lisans transfer edilemez.");
+  if (Number(hedef_musteri_id) === lisans.musteri_id) return dogrulamaHatasi(res, "Aynı müşteriye transfer yapılamaz.");
+
+  const hedefMusteri = await prisma.musteri.findFirst({ where: { id: Number(hedef_musteri_id), silinme_tarihi: null } });
+  if (!hedefMusteri) return bulunamadiHatasi(res, "Hedef müşteri bulunamadı.");
+
+  /* Eski müşteri adını al */
+  const eskiMusteri = await prisma.musteri.findUnique({ where: { id: lisans.musteri_id }, select: { ad_soyad: true, sirket_adi: true } });
+  const eskiMusteriAd = eskiMusteri?.ad_soyad || eskiMusteri?.sirket_adi || `#${lisans.musteri_id}`;
+  const hedefMusteriAd = hedefMusteri.ad_soyad || hedefMusteri.sirket_adi || `#${hedefMusteri.id}`;
+
+  await prisma.$transaction(async (tx) => {
+    /* Transfer logunu moduller alanına yaz */
+    const moduller = lisans.moduller || {};
+    const transferLog = moduller.transfer_gecmisi || [];
+    transferLog.push({
+      tarih: new Date().toISOString(),
+      eski_musteri_id: lisans.musteri_id,
+      eski_musteri_ad: eskiMusteriAd,
+      eski_bayi_id: lisans.bayi_id,
+      yeni_musteri_id: Number(hedef_musteri_id),
+      yeni_musteri_ad: hedefMusteriAd,
+      yeni_bayi_id: hedef_bayi_id ? Number(hedef_bayi_id) : null,
+      sure_secim: sure_secim || "mevcut",
+    });
+
+    const updateData = {
+      musteri_id: Number(hedef_musteri_id),
+      moduller: { ...moduller, transfer_gecmisi: transferLog },
+      guncelleme_tarihi: new Date(),
+    };
+    if (hedef_bayi_id !== undefined) {
+      updateData.bayi_id = hedef_bayi_id ? Number(hedef_bayi_id) : null;
+    }
+
+    /* Süre hesabı */
+    if (sure_secim === "yeni") {
+      const bugun = new Date();
+      bugun.setHours(0, 0, 0, 0);
+      const yeniBitis = new Date(bugun);
+      yeniBitis.setDate(yeniBitis.getDate() + Number(yeni_gun));
+      updateData.baslangic_tarihi = bugun;
+      updateData.bitis_tarihi = yeniBitis;
+      updateData.kullanim_gunu = Number(yeni_gun);
+      updateData.suresiz = 0;
+    }
+    /* "mevcut" seçilmişse tarihler olduğu gibi kalır */
+
+    /* Eğer durdurulmuş veya askıdaysa aktif yap */
+    if (lisans.durum === "durduruldu" || lisans.durum === "askida") {
+      updateData.durum = "aktif";
+    }
+
+    await tx.lisans.update({ where: { id }, data: updateData });
+
+    await tx.aktiviteLog.create({
+      data: {
+        tip: "lisans_transfer",
+        mesaj: `Lisans #${id} transfer edildi: ${eskiMusteriAd} → ${hedefMusteriAd}`,
+        kullanici_id: req.kullanici?.id || null,
+      },
+    });
+  });
+
+  res.json({
+    basarili: true,
+    mesaj: `Lisans başarıyla ${hedefMusteriAd} müşterisine transfer edildi.`,
+    hedef_musteri_id: Number(hedef_musteri_id),
+    hedef_musteri_ad: hedefMusteriAd,
+  });
+}));
+
+/* ---- Domain Transfer (eski endpoint, geriye uyumluluk) ---- */
 router.post("/:id/domain-transfer", hataYakala(async (req, res) => {
   const id = Number(req.params.id);
   const { hedef_musteri_id, hedef_bayi_id } = req.body;
 
   if (!hedef_musteri_id) return dogrulamaHatasi(res, "Hedef müşteri zorunludur.");
 
-  const lisans = await prisma.lisans.findUnique({ where: { id }, select: { id: true, domain: true, musteri_id: true, bayi_id: true, silinme_tarihi: true } });
+  const lisans = await prisma.lisans.findFirst({ where: { id, silinme_tarihi: null } });
   if (!lisans) return bulunamadiHatasi(res, "Lisans bulunamadi.");
-  if (lisans.silinme_tarihi) return dogrulamaHatasi(res, "Silinmiş lisans transfer edilemez.");
   if (!lisans.domain) return dogrulamaHatasi(res, "Bu lisansta domain bilgisi bulunmuyor.");
   if (Number(hedef_musteri_id) === lisans.musteri_id) return dogrulamaHatasi(res, "Aynı müşteriye transfer yapılamaz.");
 
   const hedefMusteri = await prisma.musteri.findFirst({ where: { id: Number(hedef_musteri_id), silinme_tarihi: null } });
   if (!hedefMusteri) return bulunamadiHatasi(res, "Hedef müşteri bulunamadı.");
 
-  const eskiMusteriId = lisans.musteri_id;
-  const eskiBayiId = lisans.bayi_id;
+  const eskiMusteri = await prisma.musteri.findUnique({ where: { id: lisans.musteri_id }, select: { ad_soyad: true, sirket_adi: true } });
+  const eskiMusteriAd = eskiMusteri?.ad_soyad || eskiMusteri?.sirket_adi || `#${lisans.musteri_id}`;
+  const hedefMusteriAd = hedefMusteri.ad_soyad || hedefMusteri.sirket_adi || `#${hedefMusteri.id}`;
 
-  /* Transfer işlemi */
-  const updateData = {
-    musteri_id: Number(hedef_musteri_id),
-    guncelleme_tarihi: new Date(),
-  };
-  if (hedef_bayi_id !== undefined) {
-    updateData.bayi_id = hedef_bayi_id ? Number(hedef_bayi_id) : null;
-  }
+  await prisma.$transaction(async (tx) => {
+    const moduller = lisans.moduller || {};
+    const transferLog = moduller.transfer_gecmisi || [];
+    transferLog.push({
+      tarih: new Date().toISOString(),
+      eski_musteri_id: lisans.musteri_id,
+      eski_musteri_ad: eskiMusteriAd,
+      eski_bayi_id: lisans.bayi_id,
+      yeni_musteri_id: Number(hedef_musteri_id),
+      yeni_musteri_ad: hedefMusteriAd,
+      yeni_bayi_id: hedef_bayi_id ? Number(hedef_bayi_id) : null,
+    });
 
-  /* Transfer logunu moduller alanına yaz */
-  const mevcutModuller = lisans.domain ? {} : {};
-  const mevcutLisans = await prisma.lisans.findUnique({ where: { id }, select: { moduller: true } });
-  const moduller = mevcutLisans?.moduller || {};
-  const transferLog = moduller.transfer_gecmisi || [];
-  transferLog.push({
-    tarih: new Date().toISOString(),
-    eski_musteri_id: eskiMusteriId,
-    eski_bayi_id: eskiBayiId,
-    yeni_musteri_id: Number(hedef_musteri_id),
-    yeni_bayi_id: hedef_bayi_id ? Number(hedef_bayi_id) : null,
-  });
-  updateData.moduller = { ...moduller, transfer_gecmisi: transferLog };
+    const updateData = {
+      musteri_id: Number(hedef_musteri_id),
+      moduller: { ...moduller, transfer_gecmisi: transferLog },
+      guncelleme_tarihi: new Date(),
+    };
+    if (hedef_bayi_id !== undefined) updateData.bayi_id = hedef_bayi_id ? Number(hedef_bayi_id) : null;
 
-  await prisma.lisans.update({ where: { id }, data: updateData });
-
-  /* Aktivite logu */
-  await prisma.aktiviteLog.create({
-    data: {
-      tip: "domain_transfer",
-      mesaj: `Domain "${lisans.domain}" transferi yapıldı. Müşteri #${eskiMusteriId} → #${hedef_musteri_id}`,
-    },
+    await tx.lisans.update({ where: { id }, data: updateData });
+    await tx.aktiviteLog.create({
+      data: {
+        tip: "domain_transfer",
+        mesaj: `Domain "${lisans.domain}" transferi: ${eskiMusteriAd} → ${hedefMusteriAd}`,
+        kullanici_id: req.kullanici?.id || null,
+      },
+    });
   });
 
   res.json({ basarili: true, mesaj: `Domain "${lisans.domain}" başarıyla transfer edildi.` });
@@ -360,48 +440,279 @@ router.post("/:id/domain-transfer", hataYakala(async (req, res) => {
 /* ---- Domain Geri Al ---- */
 router.post("/:id/domain-geri-al", hataYakala(async (req, res) => {
   const id = Number(req.params.id);
-  const lisans = await prisma.lisans.findUnique({ where: { id }, select: { id: true, domain: true, musteri_id: true, bayi_id: true, moduller: true, silinme_tarihi: true } });
+  const lisans = await prisma.lisans.findFirst({ where: { id, silinme_tarihi: null }, select: { id: true, domain: true, musteri_id: true, bayi_id: true, moduller: true } });
   if (!lisans) return bulunamadiHatasi(res, "Lisans bulunamadi.");
-  if (lisans.silinme_tarihi) return dogrulamaHatasi(res, "Silinmiş lisans geri alınamaz.");
 
   const moduller = lisans.moduller || {};
   const transferLog = moduller.transfer_gecmisi || [];
   if (transferLog.length === 0) return dogrulamaHatasi(res, "Bu lisansta transfer geçmişi bulunamadı.");
 
   const sonTransfer = transferLog[transferLog.length - 1];
-
-  /* Eski müşterinin hala var olup olmadığını kontrol et */
   const eskiMusteri = await prisma.musteri.findFirst({ where: { id: sonTransfer.eski_musteri_id, silinme_tarihi: null } });
   if (!eskiMusteri) return dogrulamaHatasi(res, "Önceki müşteri silinmiş veya bulunamadı.");
 
-  /* Geri al */
-  transferLog.push({
-    tarih: new Date().toISOString(),
-    eski_musteri_id: lisans.musteri_id,
-    eski_bayi_id: lisans.bayi_id,
-    yeni_musteri_id: sonTransfer.eski_musteri_id,
-    yeni_bayi_id: sonTransfer.eski_bayi_id,
-    geri_alma: true,
-  });
+  await prisma.$transaction(async (tx) => {
+    transferLog.push({
+      tarih: new Date().toISOString(),
+      eski_musteri_id: lisans.musteri_id,
+      eski_musteri_ad: sonTransfer.yeni_musteri_ad || `#${lisans.musteri_id}`,
+      eski_bayi_id: lisans.bayi_id,
+      yeni_musteri_id: sonTransfer.eski_musteri_id,
+      yeni_musteri_ad: sonTransfer.eski_musteri_ad || `#${sonTransfer.eski_musteri_id}`,
+      yeni_bayi_id: sonTransfer.eski_bayi_id,
+      geri_alma: true,
+    });
 
-  await prisma.lisans.update({
-    where: { id },
-    data: {
-      musteri_id: sonTransfer.eski_musteri_id,
-      bayi_id: sonTransfer.eski_bayi_id,
-      moduller: { ...moduller, transfer_gecmisi: transferLog },
-      guncelleme_tarihi: new Date(),
-    },
-  });
-
-  await prisma.aktiviteLog.create({
-    data: {
-      tip: "domain_geri_alma",
-      mesaj: `Domain "${lisans.domain}" geri alındı. Müşteri #${lisans.musteri_id} → #${sonTransfer.eski_musteri_id}`,
-    },
+    await tx.lisans.update({
+      where: { id },
+      data: {
+        musteri_id: sonTransfer.eski_musteri_id,
+        bayi_id: sonTransfer.eski_bayi_id,
+        moduller: { ...moduller, transfer_gecmisi: transferLog },
+        guncelleme_tarihi: new Date(),
+      },
+    });
+    await tx.aktiviteLog.create({
+      data: {
+        tip: "domain_geri_alma",
+        mesaj: `Domain "${lisans.domain}" geri alındı. Müşteri #${lisans.musteri_id} → #${sonTransfer.eski_musteri_id}`,
+        kullanici_id: req.kullanici?.id || null,
+      },
+    });
   });
 
   res.json({ basarili: true, mesaj: `Domain "${lisans.domain}" başarıyla geri alındı.` });
+}));
+
+/* ---- Lisans Durdur (Pause) ---- */
+router.post("/:id/durdur", hataYakala(async (req, res) => {
+  const id = Number(req.params.id);
+  const lisans = await prisma.lisans.findFirst({ where: { id, silinme_tarihi: null } });
+  if (!lisans) return bulunamadiHatasi(res, "Lisans bulunamadi.");
+  if (lisans.durum !== "aktif") return dogrulamaHatasi(res, "Sadece aktif lisanslar durdurulabilir.");
+
+  /* Kalan günü hesapla ve kaydet */
+  let kalanGun = 0;
+  if (!lisans.suresiz && lisans.bitis_tarihi) {
+    const bugun = new Date();
+    bugun.setHours(0, 0, 0, 0);
+    const bitis = new Date(lisans.bitis_tarihi);
+    bitis.setHours(0, 0, 0, 0);
+    kalanGun = Math.max(0, Math.ceil((bitis - bugun) / (1000 * 60 * 60 * 24)));
+  }
+
+  const moduller = lisans.moduller || {};
+
+  await prisma.$transaction(async (tx) => {
+    await tx.lisans.update({
+      where: { id },
+      data: {
+        durum: "durduruldu",
+        moduller: {
+          ...moduller,
+          durdurma_tarihi: new Date().toISOString(),
+          kalan_gun: kalanGun,
+        },
+        guncelleme_tarihi: new Date(),
+      },
+    });
+    await tx.aktiviteLog.create({
+      data: {
+        tip: "lisans_durdur",
+        mesaj: `Lisans #${id} durduruldu. Kalan gün: ${kalanGun}`,
+        kullanici_id: req.kullanici?.id || null,
+      },
+    });
+  });
+
+  res.json({ basarili: true, mesaj: `Lisans durduruldu. Kalan gün: ${kalanGun}` });
+}));
+
+/* ---- Lisans Devam Ettir (Resume) ---- */
+router.post("/:id/devam-ettir", hataYakala(async (req, res) => {
+  const id = Number(req.params.id);
+  const lisans = await prisma.lisans.findFirst({ where: { id, silinme_tarihi: null } });
+  if (!lisans) return bulunamadiHatasi(res, "Lisans bulunamadi.");
+  if (lisans.durum !== "durduruldu") return dogrulamaHatasi(res, "Bu lisans durdurulmuş durumda değil.");
+
+  const moduller = lisans.moduller || {};
+  const kalanGun = moduller.kalan_gun || 0;
+
+  const bugun = new Date();
+  bugun.setHours(0, 0, 0, 0);
+
+  const updateData = {
+    durum: "aktif",
+    baslangic_tarihi: bugun,
+    guncelleme_tarihi: new Date(),
+  };
+
+  if (lisans.suresiz) {
+    updateData.bitis_tarihi = null;
+  } else {
+    const yeniBitis = new Date(bugun);
+    yeniBitis.setDate(yeniBitis.getDate() + kalanGun);
+    updateData.bitis_tarihi = yeniBitis;
+    updateData.kullanim_gunu = kalanGun;
+  }
+
+  /* moduller'den durdurma bilgisini temizle */
+  const { durdurma_tarihi, kalan_gun, ...kalanModuller } = moduller;
+  updateData.moduller = Object.keys(kalanModuller).length > 0 ? kalanModuller : null;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.lisans.update({ where: { id }, data: updateData });
+    await tx.aktiviteLog.create({
+      data: {
+        tip: "lisans_devam",
+        mesaj: `Lisans #${id} devam ettirildi. Kalan gün: ${kalanGun}`,
+        kullanici_id: req.kullanici?.id || null,
+      },
+    });
+  });
+
+  res.json({ basarili: true, mesaj: `Lisans devam ettirildi. Kalan ${kalanGun} gün ile devam ediyor.` });
+}));
+
+/* ---- Lisans Askıya Al (Suspend) ---- */
+router.post("/:id/askiya-al", hataYakala(async (req, res) => {
+  const id = Number(req.params.id);
+  const lisans = await prisma.lisans.findFirst({ where: { id, silinme_tarihi: null } });
+  if (!lisans) return bulunamadiHatasi(res, "Lisans bulunamadi.");
+  if (lisans.durum === "iptal" || lisans.durum === "silindi") return dogrulamaHatasi(res, "İptal edilmiş veya silinmiş lisans askıya alınamaz.");
+  if (lisans.durum === "askida") return dogrulamaHatasi(res, "Lisans zaten askıda.");
+
+  const moduller = lisans.moduller || {};
+
+  /* Kalan günü hesapla (askıdan aktif edilince kullanılır) */
+  let kalanGun = 0;
+  if (!lisans.suresiz && lisans.bitis_tarihi) {
+    const bugun = new Date();
+    bugun.setHours(0, 0, 0, 0);
+    const bitis = new Date(lisans.bitis_tarihi);
+    bitis.setHours(0, 0, 0, 0);
+    kalanGun = Math.max(0, Math.ceil((bitis - bugun) / (1000 * 60 * 60 * 24)));
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.lisans.update({
+      where: { id },
+      data: {
+        durum: "askida",
+        moduller: {
+          ...moduller,
+          askiya_alma_tarihi: new Date().toISOString(),
+          askida_kalan_gun: kalanGun,
+        },
+        guncelleme_tarihi: new Date(),
+      },
+    });
+    await tx.aktiviteLog.create({
+      data: {
+        tip: "lisans_askiya_al",
+        mesaj: `Lisans #${id} askıya alındı.`,
+        kullanici_id: req.kullanici?.id || null,
+      },
+    });
+  });
+
+  res.json({ basarili: true, mesaj: "Lisans askıya alındı." });
+}));
+
+/* ---- Lisans Askıdan Aktif Et ---- */
+router.post("/:id/aktif-et", hataYakala(async (req, res) => {
+  const id = Number(req.params.id);
+  const lisans = await prisma.lisans.findFirst({ where: { id, silinme_tarihi: null } });
+  if (!lisans) return bulunamadiHatasi(res, "Lisans bulunamadi.");
+  if (lisans.durum !== "askida") return dogrulamaHatasi(res, "Bu lisans askıda değil.");
+
+  const moduller = lisans.moduller || {};
+  const kalanGun = moduller.askida_kalan_gun || 0;
+
+  const bugun = new Date();
+  bugun.setHours(0, 0, 0, 0);
+
+  const updateData = {
+    durum: "aktif",
+    baslangic_tarihi: bugun,
+    guncelleme_tarihi: new Date(),
+  };
+
+  if (lisans.suresiz) {
+    updateData.bitis_tarihi = null;
+  } else {
+    const yeniBitis = new Date(bugun);
+    yeniBitis.setDate(yeniBitis.getDate() + kalanGun);
+    updateData.bitis_tarihi = yeniBitis;
+    updateData.kullanim_gunu = kalanGun;
+  }
+
+  /* moduller'den askıya alma bilgisini temizle */
+  const { askiya_alma_tarihi, askida_kalan_gun, ...kalanModuller } = moduller;
+  updateData.moduller = Object.keys(kalanModuller).length > 0 ? kalanModuller : null;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.lisans.update({ where: { id }, data: updateData });
+    await tx.aktiviteLog.create({
+      data: {
+        tip: "lisans_aktif_et",
+        mesaj: `Lisans #${id} askıdan aktif edildi.`,
+        kullanici_id: req.kullanici?.id || null,
+      },
+    });
+  });
+
+  res.json({ basarili: true, mesaj: "Lisans aktif edildi." });
+}));
+
+/* ---- Lisans İptal Et ---- */
+router.post("/:id/iptal", hataYakala(async (req, res) => {
+  const id = Number(req.params.id);
+  const lisans = await prisma.lisans.findFirst({ where: { id, silinme_tarihi: null } });
+  if (!lisans) return bulunamadiHatasi(res, "Lisans bulunamadi.");
+  if (lisans.durum === "iptal" || lisans.durum === "silindi") return dogrulamaHatasi(res, "Lisans zaten iptal/silinmiş durumda.");
+
+  const moduller = lisans.moduller || {};
+
+  /* İade bilgisi hesapla */
+  let iadeBilgi = null;
+  const sablonVerileri = moduller.sablon_verileri || {};
+  const iptalIadeOrani = sablonVerileri.iptal_iade_orani ? Number(sablonVerileri.iptal_iade_orani) : 0;
+  if (iptalIadeOrani > 0 && lisans.net_tutar) {
+    iadeBilgi = {
+      oran: iptalIadeOrani,
+      tutar: (Number(lisans.net_tutar) * iptalIadeOrani / 100).toFixed(2),
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.lisans.update({
+      where: { id },
+      data: {
+        durum: "iptal",
+        silinme_tarihi: new Date(),
+        moduller: {
+          ...moduller,
+          iptal_tarihi: new Date().toISOString(),
+          iptal_iade: iadeBilgi,
+        },
+        guncelleme_tarihi: new Date(),
+      },
+    });
+    await tx.aktiviteLog.create({
+      data: {
+        tip: "lisans_iptal",
+        mesaj: `Lisans #${id} iptal edildi.${iadeBilgi ? ` İade: %${iadeBilgi.oran} (${iadeBilgi.tutar} TL)` : ""}`,
+        kullanici_id: req.kullanici?.id || null,
+      },
+    });
+  });
+
+  res.json({
+    basarili: true,
+    mesaj: "Lisans iptal edildi.",
+    iade: iadeBilgi,
+  });
 }));
 
 module.exports = router;

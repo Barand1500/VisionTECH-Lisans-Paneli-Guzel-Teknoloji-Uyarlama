@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../baglam/AuthContext";
 import { useAktiviteLog } from "../baglam/AktiviteLogContext";
+import { API_URL } from "../yardimcilar/api";
 
 export default function LoginPage() {
   /* ---- Form State Tanımlamaları ---- */
@@ -87,7 +88,7 @@ export default function LoginPage() {
     setModalSonuc("");
 
     try {
-      const yanit = await fetch("http://localhost:5000/api/yetki/sifre-sifirla", {
+      const yanit = await fetch(`${API_URL}/yetki/sifre-sifirla`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

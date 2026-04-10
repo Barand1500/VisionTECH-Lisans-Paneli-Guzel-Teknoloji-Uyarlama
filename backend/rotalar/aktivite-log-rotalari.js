@@ -37,6 +37,10 @@ router.delete("/", hataYakala(async (req, res) => {
     if (!baslangic || !bitis) {
       return res.status(400).json({ basarili: false, mesaj: "Başlangıç ve bitiş tarihi zorunludur." });
     }
+    const tarihRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!tarihRegex.test(baslangic) || !tarihRegex.test(bitis)) {
+      return res.status(400).json({ basarili: false, mesaj: "Tarih formatı geçersiz. YYYY-MM-DD formatında olmalı." });
+    }
     const silinen = await prisma.$executeRawUnsafe(
       "DELETE FROM aktivite_loglari WHERE DATE(tarih) >= ? AND DATE(tarih) <= ?",
       baslangic, bitis

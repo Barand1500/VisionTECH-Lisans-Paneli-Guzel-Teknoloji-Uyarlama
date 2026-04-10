@@ -15,13 +15,21 @@ async function apiIstek(yol, secenekler = {}) {
   const basliklar = { "Content-Type": "application/json", ...secenekler.headers };
   if (token) basliklar["Authorization"] = `Bearer ${token}`;
 
+  const controller = new AbortController();
+  const zamanlayici = setTimeout(() => controller.abort(), 30000);
+
   let yanit;
   try {
-    yanit = await fetch(`${API_URL}${yol}`, { ...secenekler, headers: basliklar });
+    yanit = await fetch(`${API_URL}${yol}`, { ...secenekler, headers: basliklar, signal: controller.signal });
   } catch (agHatasi) {
+    clearTimeout(zamanlayici);
+    if (agHatasi.name === "AbortError") {
+      throw new Error("İstek zaman aşımına uğradı (30s). Lütfen tekrar deneyin.");
+    }
     console.error(`Ağ Hatası [${yol}]:`, agHatasi);
     throw new Error("Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin.");
   }
+  clearTimeout(zamanlayici);
 
   /* 401 = Yetki yok → tokeni temizle ve login'e yönlendir (giris istekleri hariç) */
   if (yanit.status === 401 && !yol.includes("/yetki/giris")) {

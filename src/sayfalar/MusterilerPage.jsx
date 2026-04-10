@@ -664,9 +664,10 @@ export default function MusterilerPage() {
   });
 
   const toplamSayfa = Math.max(1, Math.ceil(siraliListe.length / sayfaBoyutu));
+  const etkinSayfa = Math.min(aktifSayfa, toplamSayfa);
   const sayfalananlar = siraliListe.slice(
-    (aktifSayfa - 1) * sayfaBoyutu,
-    aktifSayfa * sayfaBoyutu
+    (etkinSayfa - 1) * sayfaBoyutu,
+    etkinSayfa * sayfaBoyutu
   );
 
   const musteriAdi = (m) => m.adSoyad || m.sirketAdi || `Müşteri #${m.id}`;

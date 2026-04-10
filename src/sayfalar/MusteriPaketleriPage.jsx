@@ -158,6 +158,7 @@ export default function MusteriPaketleriPage() {
           bayiId: l.bayi_id,
           lisansTipiId: l.lisans_tipi_id,
           surumId: l.surum_id,
+          durum: l.durum || "aktif",
         })));
       }
     }).catch(() => {}).finally(() => setYukleniyor(false));
@@ -230,10 +231,49 @@ export default function MusteriPaketleriPage() {
   const [bilgiDetay, setBilgiDetay] = useState(null);
   const [bilgiYukleniyor, setBilgiYukleniyor] = useState(false);
   const [transferModal, setTransferModal] = useState(false);
+  const [transferAdim, setTransferAdim] = useState(1); // 1=seç, 2=onayla, 3=süre, 4=sonuç
   const [transferArama, setTransferArama] = useState("");
   const [transferMusteri, setTransferMusteri] = useState(null);
   const [transferYukleniyor, setTransferYukleniyor] = useState(false);
   const [tumMusteriler, setTumMusteriler] = useState([]);
+  const [transferSureSecim, setTransferSureSecim] = useState("mevcut"); // "mevcut" | "yeni"
+  const [transferYeniGun, setTransferYeniGun] = useState(365);
+  const [transferSonuc, setTransferSonuc] = useState(null); // { hedef_musteri_id, hedef_musteri_ad }
+  const [islemYukleniyor, setIslemYukleniyor] = useState(false);
+  const [iptalOnay, setIptalOnay] = useState(false);
+  const [durdurOnay, setDurdurOnay] = useState(false);
+  const [askiyaOnay, setAskiyaOnay] = useState(false);
+
+  /* Paketleri sunucudan yeniden yükle */
+  const paketleriYenile = async () => {
+    try {
+      const r = await apiGet(`/lisanslar/musteri/${id}`);
+      if (r.basarili) {
+        setPaketler(r.veri.map((l) => ({
+          id: l.id, urun: l.urun_adi || "-", urunId: l.urun_id,
+          paket: l.paket_adi || "-", paketId: l.paket_id, bayiAdi: l.bayi_adi || "",
+          lisansTipi: l.lisans_tipi || "standart", domain: l.domain || "",
+          faturaNo: l.fatura_no || "", faturaTarihi: l.fatura_tarihi ? l.fatura_tarihi.slice(0, 10) : "",
+          kullanimGunu: l.kullanim_gunu || 365,
+          baslangicTarihi: l.baslangic_tarihi ? l.baslangic_tarihi.slice(0, 10) : "",
+          bitisTarihi: l.bitis_tarihi ? l.bitis_tarihi.slice(0, 10) : "",
+          kullanici: l.kullanici_sayisi ? String(l.kullanici_sayisi) : "1",
+          ekKullanici: l.ek_kullanici || 0,
+          fiyat: l.fiyat ? Number(l.fiyat).toFixed(2) : "0.00",
+          indirimOrani: l.indirim_orani || 0,
+          netTutar: l.net_tutar ? Number(l.net_tutar).toFixed(2) : "0.00",
+          odemeDurumu: l.odeme_durumu || "odenmedi", odemeYontemi: l.odeme_yontemi || "",
+          faturaGeldi: !!l.fatura_geldi, lisansAnahtari: l.lisans_anahtari || "",
+          otomatikYenileme: !!l.otomatik_yenileme, bildirimGun: l.bildirim_gun || 30,
+          notlar: l.notlar || "", suresiz: !!l.suresiz,
+          macAdresi: l.mac_adresi || "", ipAdresi: l.ip_adresi || "",
+          moduller: l.moduller || null, musteriId: l.musteri_id,
+          bayiId: l.bayi_id, lisansTipiId: l.lisans_tipi_id, surumId: l.surum_id,
+          durum: l.durum || "aktif",
+        })));
+      }
+    } catch (e) { console.error("Paketler yenilenemedi:", e); }
+  };
 
   /* Filtre & sayfalama */
   const filtreliPaketler = paketler.filter((p) => {
@@ -502,11 +542,16 @@ export default function MusteriPaketleriPage() {
             <tbody className={`${cizgiStil === "yatay" || cizgiStil === "tam" ? "divide-y divide-gray-200 dark:divide-white/10" : cizgiStil === "yok" ? "" : "divide-y divide-gray-100 dark:divide-white/5"}`}>
               {sayfaliPaketler.length > 0 ? sayfaliPaketler.map((p) => {
                 const gecmis = suAnGecmisMi(p.bitisTarihi);
+                const durumRenk = p.durum === "durduruldu" ? "bg-amber-50 dark:bg-amber-500/5" : p.durum === "askida" ? "bg-orange-50 dark:bg-orange-500/5" : p.durum === "iptal" ? "bg-red-100 dark:bg-red-500/10 opacity-60" : gecmis ? "bg-red-50 dark:bg-red-500/5" : "hover:bg-gray-50 dark:hover:bg-white/[0.02]";
                 return (
-                  <tr key={p.id} className={`transition-colors ${gecmis ? "bg-red-50 dark:bg-red-500/5" : "hover:bg-gray-50 dark:hover:bg-white/[0.02]"}`}>
+                  <tr key={p.id} className={`transition-colors ${durumRenk}`}>
                     {sutunSirasi.map((key) => sutunHucre(p, key, gecmis))}
+                    {/* Durum badge */}
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-1.5">
+                        {p.durum === "durduruldu" && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 whitespace-nowrap">Durduruldu</span>}
+                        {p.durum === "askida" && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400 whitespace-nowrap">Askıda</span>}
+                        {p.durum === "iptal" && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 whitespace-nowrap">İptal</span>}
                         {/* Bilgi */}
                         <button onClick={async () => {
                           setBilgiModal(p);
@@ -1040,7 +1085,7 @@ export default function MusteriPaketleriPage() {
                             <span className={`px-2 py-0.5 rounded-full font-medium ${t.geri_alma ? "bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400" : "bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400"}`}>
                               {t.geri_alma ? "Geri Alma" : "Transfer"}
                             </span>
-                            <span className="text-gray-500 dark:text-slate-400">Müşteri #{t.eski_musteri_id} → #{t.yeni_musteri_id}</span>
+                            <span className="text-gray-500 dark:text-slate-400">{t.eski_musteri_adi || `#${t.eski_musteri_id}`} → {t.yeni_musteri_adi || `#${t.yeni_musteri_id}`}</span>
                             <span className="ml-auto text-gray-400 dark:text-slate-500">{new Date(t.tarih).toLocaleDateString("tr-TR")}</span>
                           </div>
                         ))}
@@ -1054,10 +1099,10 @@ export default function MusteriPaketleriPage() {
                     const uy = uyOz ? (typeof uyOz.deger === "string" ? (() => { try { return JSON.parse(uyOz.deger); } catch { return null; } })() : uyOz.deger) : null;
                     if (!uy) return null;
                     const islemler = [
-                      { anahtar: "transfer_edilebilir", etiket: "Transfer Et", renk: "fuchsia", detay: uy.transfer_ucreti ? `Ücret: ${uy.transfer_ucreti} ${uy.transfer_ucreti_birimi || "TL"}` : null, ikon: <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />, onClick: async () => { setTransferModal(true); setTransferArama(""); setTransferMusteri(null); try { const r = await apiGet("/musteriler"); if (r.basarili) setTumMusteriler(r.veri.filter(m => String(m.id) !== String(id))); } catch {} } },
-                      { anahtar: "durdurulabilir", etiket: "Durdur", renk: "amber", detay: uy.durdurma_suresi_gun ? `Max ${uy.durdurma_suresi_gun} gün` : null, ikon: <path strokeLinecap="round" strokeLinejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /> },
-                      { anahtar: "askiya_alinabilir", etiket: "Askıya Al", renk: "orange", detay: uy.askiya_alma_suresi_gun ? `Max ${uy.askiya_alma_suresi_gun} gün` : null, ikon: <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /> },
-                      { anahtar: "iptal_edilebilir", etiket: "İptal Et", renk: "red", detay: uy.iptal_iade_orani ? `İade: %${uy.iptal_iade_orani}` : null, ikon: <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /> },
+                      { anahtar: "transfer_edilebilir", etiket: "Transfer Et", renk: "fuchsia", detay: uy.transfer_ucreti ? `Ücret: ${uy.transfer_ucreti} ${uy.transfer_ucreti_birimi || "TL"}` : null, ikon: <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />, onClick: async () => { setTransferModal(true); setTransferAdim(1); setTransferArama(""); setTransferMusteri(null); setTransferSureSecim("mevcut"); setTransferYeniGun(365); setTransferSonuc(null); try { const r = await apiGet("/musteriler"); if (r.basarili) setTumMusteriler(r.veri.filter(m => String(m.id) !== String(id))); } catch {} } },
+                      { anahtar: "durdurulabilir", etiket: bilgiDetay.durum === "durduruldu" ? "Devam Ettir" : "Durdur", renk: bilgiDetay.durum === "durduruldu" ? "green" : "amber", detay: uy.durdurma_suresi_gun ? `Max ${uy.durdurma_suresi_gun} gün` : null, ikon: bilgiDetay.durum === "durduruldu" ? <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /> : <path strokeLinecap="round" strokeLinejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />, onClick: () => setDurdurOnay(true) },
+                      { anahtar: "askiya_alinabilir", etiket: bilgiDetay.durum === "askida" ? "Aktif Et" : "Askıya Al", renk: bilgiDetay.durum === "askida" ? "green" : "orange", detay: uy.askiya_alma_suresi_gun ? `Max ${uy.askiya_alma_suresi_gun} gün` : null, ikon: <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />, onClick: () => setAskiyaOnay(true) },
+                      { anahtar: "iptal_edilebilir", etiket: "İptal Et", renk: "red", detay: uy.iptal_iade_orani ? `İade: %${uy.iptal_iade_orani}` : null, ikon: <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />, onClick: () => setIptalOnay(true) },
                       { anahtar: "devir_edilebilir", etiket: "Devret", renk: "indigo", detay: null, ikon: <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /> },
                     ].filter(i => uy[i.anahtar]);
                     if (islemler.length === 0) return null;
@@ -1115,65 +1160,301 @@ export default function MusteriPaketleriPage() {
         </div>
       )}
 
-      {/* ========== Domain Transfer Modalı ========== */}
+      {/* ========== Transfer Wizard Modalı (4 adım) ========== */}
       {transferModal && bilgiModal && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setTransferModal(false)}>
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => { if (transferAdim !== 4) setTransferModal(false); }}>
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
             <div className="bg-gradient-to-r from-fuchsia-600 to-pink-600 px-6 py-4 flex items-center justify-between rounded-t-2xl">
               <div>
-                <h4 className="font-bold text-white">Domain Transfer</h4>
-                <p className="text-white/70 text-xs">{bilgiDetay?.domain}</p>
+                <h4 className="font-bold text-white">Transfer Et</h4>
+                <p className="text-white/70 text-xs">{bilgiDetay?.domain} • Adım {transferAdim}/4</p>
               </div>
-              <button onClick={() => setTransferModal(false)} className="text-white/70 hover:text-white cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className={LABEL_STIL}>Hedef Müşteri</label>
-                <input type="text" value={transferArama} onChange={(e) => setTransferArama(e.target.value)} placeholder="Müşteri adı ara..."
-                  className={INPUT_STIL} />
-              </div>
-              {transferArama.length > 0 && (
-                <div className="max-h-48 overflow-y-auto border border-gray-200 dark:border-white/10 rounded-lg">
-                  {tumMusteriler.filter(m => (m.ad_soyad || m.sirket_adi || "").toLowerCase().includes(transferArama.toLowerCase())).slice(0, 20).map((m) => (
-                    <button key={m.id} onClick={() => { setTransferMusteri(m); setTransferArama(m.ad_soyad || m.sirket_adi || `#${m.id}`); }}
-                      className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer border-b border-gray-100 dark:border-white/5 last:border-0 ${transferMusteri?.id === m.id ? "bg-fuchsia-50 dark:bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-400 font-medium" : "text-gray-700 dark:text-slate-300"}`}>
-                      <p className="font-medium">{m.ad_soyad || m.sirket_adi || `Müşteri #${m.id}`}</p>
-                      <p className="text-xs text-gray-400 dark:text-slate-500">{m.eposta || ""} {m.tur === "tuzel" ? "• Tüzel" : m.tur === "yabanci" ? "• Yabancı" : "• Gerçek"}</p>
-                    </button>
-                  ))}
-                  {tumMusteriler.filter(m => (m.ad_soyad || m.sirket_adi || "").toLowerCase().includes(transferArama.toLowerCase())).length === 0 && (
-                    <p className="px-4 py-3 text-sm text-gray-400 dark:text-slate-500 text-center">Eşleşen müşteri bulunamadı.</p>
-                  )}
-                </div>
-              )}
-              {transferMusteri && (
-                <div className="p-3 rounded-lg bg-fuchsia-50 dark:bg-fuchsia-500/10 border border-fuchsia-200 dark:border-fuchsia-500/20">
-                  <p className="text-xs text-fuchsia-600 dark:text-fuchsia-400 font-medium">Seçilen: {transferMusteri.ad_soyad || transferMusteri.sirket_adi || `#${transferMusteri.id}`}</p>
-                </div>
-              )}
-              <div className="flex gap-3">
-                <button onClick={() => setTransferModal(false)}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">İptal</button>
-                <button disabled={!transferMusteri || transferYukleniyor}
-                  onClick={async () => {
-                    setTransferYukleniyor(true);
-                    try {
-                      const r = await apiPost(`/lisanslar/${bilgiDetay.id}/domain-transfer`, { hedef_musteri_id: transferMusteri.id });
-                      if (r.basarili) {
-                        alert(r.mesaj);
-                        setTransferModal(false);
-                        setBilgiModal(null); setBilgiDetay(null);
-                        apiGet(`/lisanslar/musteri/${id}`).then((r2) => { if (r2.basarili) setPaketler(r2.veri.map((l) => ({ id: l.id, urun: l.urun_adi || "-", urunId: l.urun_id, paket: l.paket_adi || "-", paketId: l.paket_id, bayiAdi: l.bayi_adi || "", lisansTipi: l.lisans_tipi || "standart", domain: l.domain || "", faturaNo: l.fatura_no || "", faturaTarihi: l.fatura_tarihi ? l.fatura_tarihi.slice(0, 10) : "", kullanimGunu: l.kullanim_gunu || 365, baslangicTarihi: l.baslangic_tarihi ? l.baslangic_tarihi.slice(0, 10) : "", bitisTarihi: l.bitis_tarihi ? l.bitis_tarihi.slice(0, 10) : "", kullanici: l.kullanici_sayisi ? String(l.kullanici_sayisi) : "1", ekKullanici: l.ek_kullanici || 0, fiyat: l.fiyat ? Number(l.fiyat).toFixed(2) : "0.00", indirimOrani: l.indirim_orani || 0, netTutar: l.net_tutar ? Number(l.net_tutar).toFixed(2) : "0.00", odemeDurumu: l.odeme_durumu || "odenmedi", odemeYontemi: l.odeme_yontemi || "", faturaGeldi: !!l.fatura_geldi, lisansAnahtari: l.lisans_anahtari || "", otomatikYenileme: !!l.otomatik_yenileme, bildirimGun: l.bildirim_gun || 30, notlar: l.notlar || "", suresiz: !!l.suresiz, macAdresi: l.mac_adresi || "", ipAdresi: l.ip_adresi || "", moduller: l.moduller || null, musteriId: l.musteri_id, bayiId: l.bayi_id, lisansTipiId: l.lisans_tipi_id, surumId: l.surum_id }))); });
-                      }
-                    } catch (e) { alert(e.message || "Transfer başarısız."); }
-                    setTransferYukleniyor(false);
-                  }}
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 disabled:opacity-50 text-white text-sm font-semibold cursor-pointer transition-colors">
-                  {transferYukleniyor ? "Transfer ediliyor..." : "Transfer Et"}
+              {transferAdim !== 4 && (
+                <button onClick={() => setTransferModal(false)} className="text-white/70 hover:text-white cursor-pointer">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
+              )}
+            </div>
+
+            {/* Progress bar */}
+            <div className="flex gap-1 px-6 pt-3">
+              {[1,2,3,4].map(s => (
+                <div key={s} className={`h-1 flex-1 rounded-full ${s <= transferAdim ? "bg-fuchsia-500" : "bg-gray-200 dark:bg-white/10"}`} />
+              ))}
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* ADIM 1: Müşteri seç */}
+              {transferAdim === 1 && (
+                <>
+                  <div>
+                    <label className={LABEL_STIL}>Hedef Müşteri</label>
+                    <input type="text" value={transferArama} onChange={(e) => setTransferArama(e.target.value)} placeholder="Müşteri adı ara..."
+                      className={INPUT_STIL} />
+                  </div>
+                  {transferArama.length > 0 && (
+                    <div className="max-h-48 overflow-y-auto border border-gray-200 dark:border-white/10 rounded-lg">
+                      {tumMusteriler.filter(m => (m.ad_soyad || m.sirket_adi || "").toLowerCase().includes(transferArama.toLowerCase())).slice(0, 20).map((m) => (
+                        <button key={m.id} onClick={() => { setTransferMusteri(m); setTransferArama(m.ad_soyad || m.sirket_adi || `#${m.id}`); }}
+                          className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer border-b border-gray-100 dark:border-white/5 last:border-0 ${transferMusteri?.id === m.id ? "bg-fuchsia-50 dark:bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-400 font-medium" : "text-gray-700 dark:text-slate-300"}`}>
+                          <p className="font-medium">{m.ad_soyad || m.sirket_adi || `Müşteri #${m.id}`}</p>
+                          <p className="text-xs text-gray-400 dark:text-slate-500">{m.eposta || ""} {m.tur === "tuzel" ? "• Tüzel" : m.tur === "yabanci" ? "• Yabancı" : "• Gerçek"}</p>
+                        </button>
+                      ))}
+                      {tumMusteriler.filter(m => (m.ad_soyad || m.sirket_adi || "").toLowerCase().includes(transferArama.toLowerCase())).length === 0 && (
+                        <p className="px-4 py-3 text-sm text-gray-400 dark:text-slate-500 text-center">Eşleşen müşteri bulunamadı.</p>
+                      )}
+                    </div>
+                  )}
+                  {transferMusteri && (
+                    <div className="p-3 rounded-lg bg-fuchsia-50 dark:bg-fuchsia-500/10 border border-fuchsia-200 dark:border-fuchsia-500/20">
+                      <p className="text-xs text-fuchsia-600 dark:text-fuchsia-400 font-medium">Seçilen: {transferMusteri.ad_soyad || transferMusteri.sirket_adi || `#${transferMusteri.id}`}</p>
+                    </div>
+                  )}
+                  <div className="flex gap-3">
+                    <button onClick={() => setTransferModal(false)}
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">İptal</button>
+                    <button disabled={!transferMusteri} onClick={() => setTransferAdim(2)}
+                      className="flex-1 px-4 py-2.5 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 disabled:opacity-50 text-white text-sm font-semibold cursor-pointer transition-colors">Devam</button>
+                  </div>
+                </>
+              )}
+
+              {/* ADIM 2: Onay */}
+              {transferAdim === 2 && (
+                <>
+                  <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 space-y-2">
+                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Transfer Onayı</p>
+                    <p className="text-sm text-amber-700 dark:text-amber-400">
+                      <strong>{bilgiDetay?.domain}</strong> lisansı <strong>{transferMusteri?.ad_soyad || transferMusteri?.sirket_adi}</strong> müşterisine transfer edilecek.
+                    </p>
+                    <p className="text-xs text-amber-600 dark:text-amber-500">Bu işlem geri alınabilir ancak kayıt geçmişte tutulur.</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button onClick={() => setTransferAdim(1)}
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">Geri</button>
+                    <button onClick={() => setTransferAdim(3)}
+                      className="flex-1 px-4 py-2.5 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 text-white text-sm font-semibold cursor-pointer transition-colors">Onayla</button>
+                  </div>
+                </>
+              )}
+
+              {/* ADIM 3: Süre seçimi */}
+              {transferAdim === 3 && (
+                <>
+                  <p className="text-sm font-medium text-gray-700 dark:text-slate-300">Lisans Süre Seçimi</p>
+                  <div className="space-y-2">
+                    <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${transferSureSecim === "mevcut" ? "border-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-500/10" : "border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5"}`}>
+                      <input type="radio" checked={transferSureSecim === "mevcut"} onChange={() => setTransferSureSecim("mevcut")} className="accent-fuchsia-600" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-800 dark:text-white">Mevcut süreyi devam ettir</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-400">Kalan gün sayısı korunur ({bilgiDetay?.bitisTarihi ? `Bitiş: ${bilgiDetay.bitisTarihi}` : "Süresiz"})</p>
+                      </div>
+                    </label>
+                    <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${transferSureSecim === "yeni" ? "border-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-500/10" : "border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5"}`}>
+                      <input type="radio" checked={transferSureSecim === "yeni"} onChange={() => setTransferSureSecim("yeni")} className="accent-fuchsia-600" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-800 dark:text-white">Yeni süre belirle</p>
+                        {transferSureSecim === "yeni" && (
+                          <div className="mt-2">
+                            <input type="number" min={1} value={transferYeniGun} onChange={(e) => setTransferYeniGun(Math.max(1, Number(e.target.value)))}
+                              className={INPUT_STIL + " !py-1.5 !text-sm"} placeholder="Gün sayısı" />
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+                  <div className="flex gap-3">
+                    <button onClick={() => setTransferAdim(2)}
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">Geri</button>
+                    <button disabled={transferYukleniyor}
+                      onClick={async () => {
+                        setTransferYukleniyor(true);
+                        try {
+                          const body = { hedef_musteri_id: transferMusteri.id, sure_secim: transferSureSecim };
+                          if (transferSureSecim === "yeni") body.yeni_gun = transferYeniGun;
+                          const r = await apiPost(`/lisanslar/${bilgiDetay.id}/transfer`, body);
+                          if (r.basarili) {
+                            setTransferSonuc({ hedef_musteri_id: transferMusteri.id, hedef_musteri_ad: transferMusteri.ad_soyad || transferMusteri.sirket_adi || `#${transferMusteri.id}` });
+                            setTransferAdim(4);
+                            await paketleriYenile();
+                          }
+                        } catch (e) { alert(e.message || "Transfer başarısız."); }
+                        setTransferYukleniyor(false);
+                      }}
+                      className="flex-1 px-4 py-2.5 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 disabled:opacity-50 text-white text-sm font-semibold cursor-pointer transition-colors">
+                      {transferYukleniyor ? "Transfer ediliyor..." : "Transfer Et"}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* ADIM 4: Sonuç */}
+              {transferAdim === 4 && transferSonuc && (
+                <>
+                  <div className="text-center py-4">
+                    <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-green-100 dark:bg-green-500/20 flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                    <h4 className="text-lg font-bold text-gray-900 dark:text-white">Transfer Başarılı!</h4>
+                    <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+                      Lisans <strong>{transferSonuc.hedef_musteri_ad}</strong> müşterisine transfer edildi.
+                    </p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button onClick={() => { setTransferModal(false); setBilgiModal(null); setBilgiDetay(null); }}
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">Bu Sayfada Kal</button>
+                    <button onClick={() => { setTransferModal(false); setBilgiModal(null); setBilgiDetay(null); git(`/dashboard/musteriler/${transferSonuc.hedef_musteri_id}/paketler`); }}
+                      className="flex-1 px-4 py-2.5 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 text-white text-sm font-semibold cursor-pointer transition-colors">Müşteriye Git</button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========== Durdur / Devam Ettir Onay Modalı ========== */}
+      {durdurOnay && bilgiDetay && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setDurdurOnay(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-sm mx-4 p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            {bilgiDetay.durum === "durduruldu" ? (
+              <>
+                <div className="text-center">
+                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-green-100 dark:bg-green-500/20 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /></svg>
+                  </div>
+                  <h4 className="font-bold text-gray-900 dark:text-white">Devam Ettir</h4>
+                  <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Lisans kaldığı yerden devam edecek. Kalan süre yeniden hesaplanacak.</p>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => setDurdurOnay(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">Vazgeç</button>
+                  <button disabled={islemYukleniyor} onClick={async () => {
+                    setIslemYukleniyor(true);
+                    try {
+                      const r = await apiPost(`/lisanslar/${bilgiDetay.id}/devam-ettir`);
+                      if (r.basarili) { alert(r.mesaj); setDurdurOnay(false); setBilgiModal(null); setBilgiDetay(null); await paketleriYenile(); }
+                    } catch (e) { alert(e.message || "İşlem başarısız."); }
+                    setIslemYukleniyor(false);
+                  }} className="flex-1 px-4 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-semibold cursor-pointer transition-colors">
+                    {islemYukleniyor ? "İşleniyor..." : "Devam Ettir"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-center">
+                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  </div>
+                  <h4 className="font-bold text-gray-900 dark:text-white">Lisansı Durdur</h4>
+                  <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Lisans geçici olarak durdurulacak. Kalan süre korunur ve tekrar başlatılabilir.</p>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => setDurdurOnay(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">Vazgeç</button>
+                  <button disabled={islemYukleniyor} onClick={async () => {
+                    setIslemYukleniyor(true);
+                    try {
+                      const r = await apiPost(`/lisanslar/${bilgiDetay.id}/durdur`);
+                      if (r.basarili) { alert(r.mesaj); setDurdurOnay(false); setBilgiModal(null); setBilgiDetay(null); await paketleriYenile(); }
+                    } catch (e) { alert(e.message || "İşlem başarısız."); }
+                    setIslemYukleniyor(false);
+                  }} className="flex-1 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-sm font-semibold cursor-pointer transition-colors">
+                    {islemYukleniyor ? "İşleniyor..." : "Durdur"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========== Askıya Al / Aktif Et Onay Modalı ========== */}
+      {askiyaOnay && bilgiDetay && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setAskiyaOnay(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-sm mx-4 p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            {bilgiDetay.durum === "askida" ? (
+              <>
+                <div className="text-center">
+                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-green-100 dark:bg-green-500/20 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                  </div>
+                  <h4 className="font-bold text-gray-900 dark:text-white">Aktif Et</h4>
+                  <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Lisans askı durumundan çıkarılarak aktif edilecek.</p>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => setAskiyaOnay(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">Vazgeç</button>
+                  <button disabled={islemYukleniyor} onClick={async () => {
+                    setIslemYukleniyor(true);
+                    try {
+                      const r = await apiPost(`/lisanslar/${bilgiDetay.id}/aktif-et`);
+                      if (r.basarili) { alert(r.mesaj); setAskiyaOnay(false); setBilgiModal(null); setBilgiDetay(null); await paketleriYenile(); }
+                    } catch (e) { alert(e.message || "İşlem başarısız."); }
+                    setIslemYukleniyor(false);
+                  }} className="flex-1 px-4 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-semibold cursor-pointer transition-colors">
+                    {islemYukleniyor ? "İşleniyor..." : "Aktif Et"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-center">
+                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  </div>
+                  <h4 className="font-bold text-gray-900 dark:text-white">Askıya Al</h4>
+                  <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Lisans askıya alınacak. Kalan süre korunur.</p>
+                  <div className="mt-3 p-3 rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20">
+                    <p className="text-xs font-semibold text-orange-700 dark:text-orange-400">⚠ Aktif etmeyi unutmayınız!</p>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => setAskiyaOnay(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">Vazgeç</button>
+                  <button disabled={islemYukleniyor} onClick={async () => {
+                    setIslemYukleniyor(true);
+                    try {
+                      const r = await apiPost(`/lisanslar/${bilgiDetay.id}/askiya-al`);
+                      if (r.basarili) { alert(r.mesaj); setAskiyaOnay(false); setBilgiModal(null); setBilgiDetay(null); await paketleriYenile(); }
+                    } catch (e) { alert(e.message || "İşlem başarısız."); }
+                    setIslemYukleniyor(false);
+                  }} className="flex-1 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white text-sm font-semibold cursor-pointer transition-colors">
+                    {islemYukleniyor ? "İşleniyor..." : "Askıya Al"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========== İptal Onay Modalı ========== */}
+      {iptalOnay && bilgiDetay && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setIptalOnay(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-sm mx-4 p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
               </div>
+              <h4 className="font-bold text-gray-900 dark:text-white">Lisansı İptal Et</h4>
+              <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+                <strong>{bilgiDetay?.domain}</strong> lisansı kalıcı olarak iptal edilecek ve listeden kaldırılacak.
+              </p>
+              {bilgiDetay.moduller?.sablon_verileri?.iptal_iade_orani && (
+                <p className="text-xs text-red-600 dark:text-red-400 mt-2">İade oranı: %{bilgiDetay.moduller.sablon_verileri.iptal_iade_orani}</p>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setIptalOnay(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">Vazgeç</button>
+              <button disabled={islemYukleniyor} onClick={async () => {
+                setIslemYukleniyor(true);
+                try {
+                  const r = await apiPost(`/lisanslar/${bilgiDetay.id}/iptal`);
+                  if (r.basarili) { alert(r.mesaj); setIptalOnay(false); setBilgiModal(null); setBilgiDetay(null); await paketleriYenile(); }
+                } catch (e) { alert(e.message || "İşlem başarısız."); }
+                setIslemYukleniyor(false);
+              }} className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-semibold cursor-pointer transition-colors">
+                {islemYukleniyor ? "İşleniyor..." : "İptal Et"}
+              </button>
             </div>
           </div>
         </div>

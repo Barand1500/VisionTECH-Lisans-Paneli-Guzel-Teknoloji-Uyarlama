@@ -8,7 +8,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { apiGet, apiPost, apiPut } from "../yardimcilar/api";
+import { apiGet, apiPost, apiPut, API_URL } from "../yardimcilar/api";
 import { useAktiviteLog } from "../baglam/AktiviteLogContext";
 
 /* ============================================= */
@@ -316,7 +316,7 @@ export default function BayiEklePage() {
           fd.append("dosyalar", dosya);
           try {
             const token = localStorage.getItem("token");
-            await fetch(`http://localhost:5000/api/bayiler/${bayiId}/dosyalar`, {
+            await fetch(`${API_URL}/bayiler/${bayiId}/dosyalar`, {
               method: "POST",
               headers: token ? { Authorization: `Bearer ${token}` } : {},
               body: fd,

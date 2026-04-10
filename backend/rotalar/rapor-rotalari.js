@@ -22,7 +22,7 @@ router.get("/satislar", hataYakala(async (req, res) => {
     LEFT JOIN urunler u ON l.urun_id = u.id
     LEFT JOIN paketler p ON l.paket_id = p.id
     LEFT JOIN bayiler b ON l.bayi_id = b.id
-    WHERE 1=1 ${where}
+    WHERE l.silinme_tarihi IS NULL ${where}
     ORDER BY l.olusturma_tarihi DESC
   `, ...params);
   /* Alan adlarını frontend'in beklediği formata dönüştür */
@@ -52,7 +52,7 @@ router.get("/aktif-paketler", hataYakala(async (_req, res) => {
     LEFT JOIN musteriler m ON l.musteri_id = m.id
     LEFT JOIN urunler u ON l.urun_id = u.id
     LEFT JOIN paketler p ON l.paket_id = p.id
-    WHERE l.durum = 'aktif' AND (l.bitis_tarihi IS NULL OR l.bitis_tarihi >= CURDATE())
+    WHERE l.durum = 'aktif' AND l.silinme_tarihi IS NULL AND (l.bitis_tarihi IS NULL OR l.bitis_tarihi >= CURDATE())
     ORDER BY l.suresiz ASC, l.bitis_tarihi ASC
   `);
   const mapped = temizle(rows).map((r) => ({
@@ -112,7 +112,7 @@ router.get("/suresi-yaklasanlar", hataYakala(async (req, res) => {
     LEFT JOIN urunler u ON l.urun_id = u.id
     LEFT JOIN paketler p ON l.paket_id = p.id
     LEFT JOIN bayiler b ON l.bayi_id = b.id
-    WHERE l.durum = 'aktif' AND l.suresiz = 0 AND l.bitis_tarihi BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? DAY)
+    WHERE l.durum = 'aktif' AND l.silinme_tarihi IS NULL AND l.suresiz = 0 AND l.bitis_tarihi BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? DAY)
     ORDER BY l.bitis_tarihi ASC
   `, gun);
   const mapped = temizle(rows).map((r) => ({
@@ -138,7 +138,7 @@ router.get("/suresi-bitenler", hataYakala(async (_req, res) => {
     LEFT JOIN urunler u ON l.urun_id = u.id
     LEFT JOIN paketler p ON l.paket_id = p.id
     LEFT JOIN bayiler b ON l.bayi_id = b.id
-    WHERE l.durum = 'suresi-dolmus'
+    WHERE l.durum = 'suresi-dolmus' AND l.silinme_tarihi IS NULL
     ORDER BY l.bitis_tarihi DESC
   `);
   const mapped = temizle(rows).map((r) => ({
@@ -168,7 +168,7 @@ router.get("/tahsilatlar", hataYakala(async (req, res) => {
     FROM lisanslar l
     LEFT JOIN musteriler m ON l.musteri_id = m.id
     LEFT JOIN urunler u ON l.urun_id = u.id
-    WHERE 1=1 ${where}
+    WHERE l.silinme_tarihi IS NULL ${where}
     ORDER BY l.olusturma_tarihi DESC
   `, ...params);
   const yontemMap = { nakit: 'Nakit', havale: 'Havale', eft: 'EFT', 'kredi-karti': 'Kredi Kartı', cek: 'Çek', senet: 'Senet' };
@@ -195,6 +195,7 @@ router.get("/ozet", hataYakala(async (_req, res) => {
            SUM(CASE WHEN odeme_durumu = 'odenmedi' THEN 1 ELSE 0 END) as odenmedi_adet,
            SUM(CASE WHEN odeme_durumu = 'kismi' THEN 1 ELSE 0 END) as kismi_adet
     FROM lisanslar
+    WHERE silinme_tarihi IS NULL
   `);
   res.json({ basarili: true, veri: temizle(toplam) });
 }));
@@ -207,7 +208,7 @@ router.get("/aylik-satis", hataYakala(async (_req, res) => {
            COALESCE(SUM(net_tutar), 0) as toplam_tutar,
            COALESCE(SUM(odenen_tutar), 0) as odenen_tutar
     FROM lisanslar
-    WHERE olusturma_tarihi >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+    WHERE olusturma_tarihi >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH) AND silinme_tarihi IS NULL
     GROUP BY ay ORDER BY ay ASC
   `);
   res.json({ basarili: true, veri: temizle(rows) });
@@ -219,6 +220,7 @@ router.get("/urun-dagilimi", hataYakala(async (_req, res) => {
     SELECT COALESCE(u.ad, 'Belirtilmemis') as urun_adi, COUNT(*) as sayi,
            COALESCE(SUM(l.net_tutar), 0) as toplam_tutar
     FROM lisanslar l LEFT JOIN urunler u ON l.urun_id = u.id
+    WHERE l.silinme_tarihi IS NULL
     GROUP BY u.ad ORDER BY sayi DESC
   `);
   res.json({ basarili: true, veri: temizle(rows) });
@@ -231,6 +233,7 @@ router.get("/bayi-satis", hataYakala(async (_req, res) => {
            COALESCE(SUM(l.net_tutar), 0) as toplam_tutar,
            COALESCE(SUM(l.odenen_tutar), 0) as odenen_tutar
     FROM lisanslar l LEFT JOIN bayiler b ON l.bayi_id = b.id
+    WHERE l.silinme_tarihi IS NULL
     GROUP BY b.ad ORDER BY toplam_tutar DESC
   `);
   res.json({ basarili: true, veri: temizle(rows) });

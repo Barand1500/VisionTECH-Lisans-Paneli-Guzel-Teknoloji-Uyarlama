@@ -189,12 +189,19 @@ router.post("/yukle-sql", hataYakala(async (req, res) => {
   let basariliSayi = 0;
   let hataSayi = 0;
 
-  /* Guvenlik: Sadece INSERT, DELETE, SET izinli (kendi export formatimiz bunlari uretir) */
+  /* Güvenlik: Sadece INSERT, DELETE, SET izinli (kendi export formatimiz bunlari uretir) */
   const izinliKomutlar = /^\s*(INSERT|DELETE|SET)/i;
+  /* Tablo adı beyaz listesi - INSERT INTO ve DELETE FROM ifadelerinde kontrol */
+  const tabloRegex = /^\s*(?:INSERT\s+INTO|DELETE\s+FROM)\s+`?(\w+)`?/i;
 
   await prisma.$transaction(async (tx) => {
     for (const satir of satirlar) {
       if (!izinliKomutlar.test(satir)) {
+        hataSayi++;
+        continue;
+      }
+      const tabloMatch = satir.match(tabloRegex);
+      if (tabloMatch && !TABLO_SIRASI.includes(tabloMatch[1])) {
         hataSayi++;
         continue;
       }

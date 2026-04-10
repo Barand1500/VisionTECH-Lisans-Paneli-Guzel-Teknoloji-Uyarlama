@@ -142,7 +142,7 @@ export default function DashboardHome() {
   useEffect(() => {
     const verileriYukle = async () => {
       try {
-        const [ozetRes, aylikMusteriRes, aylikBayiRes, dagilimRes, musteriRes, lisansRes, yaklasanRes] = await Promise.all([
+        const [ozetRes, aylikMusteriRes, aylikBayiRes, dagilimRes, musteriRes, lisansRes, yaklasanRes] = await Promise.allSettled([
           apiGet("/dashboard/ozet"),
           apiGet("/dashboard/aylik-musteriler"),
           apiGet("/dashboard/aylik-bayiler"),
@@ -151,13 +151,13 @@ export default function DashboardHome() {
           apiGet("/dashboard/son-lisanslar"),
           apiGet("/dashboard/yaklasan-lisanslar"),
         ]);
-        if (ozetRes.veri) setOzetVerisi(ozetRes.veri);
-        if (aylikMusteriRes.veri) setAylikMusteriler(aylikMusteriRes.veri);
-        if (aylikBayiRes.veri) setAylikBayiler(aylikBayiRes.veri);
-        if (dagilimRes.veri) setMusteriDagilimi(dagilimRes.veri);
-        if (musteriRes.veri) setSonMusteriler(musteriRes.veri);
-        if (lisansRes.veri) setSonLisanslar(lisansRes.veri);
-        if (yaklasanRes.veri) setYaklasanLisanslar(yaklasanRes.veri);
+        if (ozetRes.status === "fulfilled" && ozetRes.value?.veri) setOzetVerisi(ozetRes.value.veri);
+        if (aylikMusteriRes.status === "fulfilled" && aylikMusteriRes.value?.veri) setAylikMusteriler(aylikMusteriRes.value.veri);
+        if (aylikBayiRes.status === "fulfilled" && aylikBayiRes.value?.veri) setAylikBayiler(aylikBayiRes.value.veri);
+        if (dagilimRes.status === "fulfilled" && dagilimRes.value?.veri) setMusteriDagilimi(dagilimRes.value.veri);
+        if (musteriRes.status === "fulfilled" && musteriRes.value?.veri) setSonMusteriler(musteriRes.value.veri);
+        if (lisansRes.status === "fulfilled" && lisansRes.value?.veri) setSonLisanslar(lisansRes.value.veri);
+        if (yaklasanRes.status === "fulfilled" && yaklasanRes.value?.veri) setYaklasanLisanslar(yaklasanRes.value.veri);
       } catch (e) {
         console.error("Dashboard verileri yuklenemedi:", e);
       }
