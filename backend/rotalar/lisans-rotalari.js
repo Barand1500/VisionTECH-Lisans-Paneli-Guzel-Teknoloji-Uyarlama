@@ -577,6 +577,7 @@ router.post("/:id/devam-ettir", hataYakala(async (req, res) => {
 /* ---- Lisans Askıya Al (Suspend) ---- */
 router.post("/:id/askiya-al", hataYakala(async (req, res) => {
   const id = Number(req.params.id);
+  const { tip, sure_gun } = req.body || {};
   const lisans = await prisma.lisans.findFirst({ where: { id, silinme_tarihi: null } });
   if (!lisans) return bulunamadiHatasi(res, "Lisans bulunamadi.");
   if (lisans.durum === "iptal" || lisans.durum === "silindi") return dogrulamaHatasi(res, "İptal edilmiş veya silinmiş lisans askıya alınamaz.");
@@ -594,29 +595,37 @@ router.post("/:id/askiya-al", hataYakala(async (req, res) => {
     kalanGun = Math.max(0, Math.ceil((bitis - bugun) / (1000 * 60 * 60 * 24)));
   }
 
+  const askiyaBilgi = {
+    askiya_alma_tarihi: new Date().toISOString(),
+    askida_kalan_gun: kalanGun,
+    askiya_tip: tip || "belirsiz",
+  };
+  if (tip === "sureli" && sure_gun) {
+    askiyaBilgi.askiya_sure_gun = Number(sure_gun);
+    const bitisTarihi = new Date();
+    bitisTarihi.setDate(bitisTarihi.getDate() + Number(sure_gun));
+    askiyaBilgi.askiya_bitis_tarihi = bitisTarihi.toISOString();
+  }
+
   await prisma.$transaction(async (tx) => {
     await tx.lisans.update({
       where: { id },
       data: {
         durum: "askida",
-        moduller: {
-          ...moduller,
-          askiya_alma_tarihi: new Date().toISOString(),
-          askida_kalan_gun: kalanGun,
-        },
+        moduller: { ...moduller, ...askiyaBilgi },
         guncelleme_tarihi: new Date(),
       },
     });
     await tx.aktiviteLog.create({
       data: {
         tip: "lisans_askiya_al",
-        mesaj: `Lisans #${id} askıya alındı.`,
+        mesaj: `Lisans #${id} askıya alındı. ${tip === "sureli" ? `(${sure_gun} gün)` : "(belirsiz süre)"}`,
         kullanici_id: req.kullanici?.id || null,
       },
     });
   });
 
-  res.json({ basarili: true, mesaj: "Lisans askıya alındı." });
+  res.json({ basarili: true, mesaj: tip === "sureli" ? `Lisans ${sure_gun} gün süreyle askıya alındı.` : "Lisans askıya alındı." });
 }));
 
 /* ---- Lisans Askıdan Aktif Et ---- */

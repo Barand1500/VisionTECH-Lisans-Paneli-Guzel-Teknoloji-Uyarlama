@@ -243,6 +243,8 @@ export default function MusteriPaketleriPage() {
   const [iptalOnay, setIptalOnay] = useState(false);
   const [durdurOnay, setDurdurOnay] = useState(false);
   const [askiyaOnay, setAskiyaOnay] = useState(false);
+  const [askiyaTip, setAskiyaTip] = useState("belirsiz"); // "belirsiz" | "sureli"
+  const [askiyaSureGun, setAskiyaSureGun] = useState(30);
 
   /* Paketleri sunucudan yeniden yükle */
   const paketleriYenile = async () => {
@@ -1085,7 +1087,7 @@ export default function MusteriPaketleriPage() {
                             <span className={`px-2 py-0.5 rounded-full font-medium ${t.geri_alma ? "bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400" : "bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400"}`}>
                               {t.geri_alma ? "Geri Alma" : "Transfer"}
                             </span>
-                            <span className="text-gray-500 dark:text-slate-400">{t.eski_musteri_adi || `#${t.eski_musteri_id}`} → {t.yeni_musteri_adi || `#${t.yeni_musteri_id}`}</span>
+                            <span className="text-gray-500 dark:text-slate-400">{t.eski_musteri_ad || `#${t.eski_musteri_id}`} → {t.yeni_musteri_ad || `#${t.yeni_musteri_id}`}</span>
                             <span className="ml-auto text-gray-400 dark:text-slate-500">{new Date(t.tarih).toLocaleDateString("tr-TR")}</span>
                           </div>
                         ))}
@@ -1101,7 +1103,7 @@ export default function MusteriPaketleriPage() {
                     const islemler = [
                       { anahtar: "transfer_edilebilir", etiket: "Transfer Et", renk: "fuchsia", detay: uy.transfer_ucreti ? `Ücret: ${uy.transfer_ucreti} ${uy.transfer_ucreti_birimi || "TL"}` : null, ikon: <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />, onClick: async () => { setTransferModal(true); setTransferAdim(1); setTransferArama(""); setTransferMusteri(null); setTransferSureSecim("mevcut"); setTransferYeniGun(365); setTransferSonuc(null); try { const r = await apiGet("/musteriler"); if (r.basarili) setTumMusteriler(r.veri.filter(m => String(m.id) !== String(id))); } catch {} } },
                       { anahtar: "durdurulabilir", etiket: bilgiDetay.durum === "durduruldu" ? "Devam Ettir" : "Durdur", renk: bilgiDetay.durum === "durduruldu" ? "green" : "amber", detay: uy.durdurma_suresi_gun ? `Max ${uy.durdurma_suresi_gun} gün` : null, ikon: bilgiDetay.durum === "durduruldu" ? <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /> : <path strokeLinecap="round" strokeLinejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />, onClick: () => setDurdurOnay(true) },
-                      { anahtar: "askiya_alinabilir", etiket: bilgiDetay.durum === "askida" ? "Aktif Et" : "Askıya Al", renk: bilgiDetay.durum === "askida" ? "green" : "orange", detay: uy.askiya_alma_suresi_gun ? `Max ${uy.askiya_alma_suresi_gun} gün` : null, ikon: <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />, onClick: () => setAskiyaOnay(true) },
+                      { anahtar: "askiya_alinabilir", etiket: bilgiDetay.durum === "askida" ? "Aktif Et" : "Askıya Al", renk: bilgiDetay.durum === "askida" ? "green" : "orange", detay: uy.askiya_alma_suresi_gun ? `Max ${uy.askiya_alma_suresi_gun} gün` : null, ikon: <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />, onClick: () => { setAskiyaTip("belirsiz"); setAskiyaSureGun(30); setAskiyaOnay(true); } },
                       { anahtar: "iptal_edilebilir", etiket: "İptal Et", renk: "red", detay: uy.iptal_iade_orani ? `İade: %${uy.iptal_iade_orani}` : null, ikon: <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />, onClick: () => setIptalOnay(true) },
                       { anahtar: "devir_edilebilir", etiket: "Devret", renk: "indigo", detay: null, ikon: <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /> },
                     ].filter(i => uy[i.anahtar]);
@@ -1228,7 +1230,11 @@ export default function MusteriPaketleriPage() {
                     <p className="text-sm text-amber-700 dark:text-amber-400">
                       <strong>{bilgiDetay?.domain}</strong> lisansı <strong>{transferMusteri?.ad_soyad || transferMusteri?.sirket_adi}</strong> müşterisine transfer edilecek.
                     </p>
-                    <p className="text-xs text-amber-600 dark:text-amber-500">Bu işlem geri alınabilir ancak kayıt geçmişte tutulur.</p>
+                    {bilgiDetay?.moduller?.transfer_gecmisi?.some(t => t.eski_musteri_id === transferMusteri?.id) ? (
+                      <p className="text-xs text-blue-600 dark:text-blue-400">ℹ Bu lisans daha önce bu müşteriden transfer edilmişti. Geri transfer yapılıyor.</p>
+                    ) : (
+                      <p className="text-xs text-amber-600 dark:text-amber-500">Bu işlem geri alınabilir ancak kayıt geçmişte tutulur.</p>
+                    )}
                   </div>
                   <div className="flex gap-3">
                     <button onClick={() => setTransferAdim(1)}
@@ -1304,7 +1310,7 @@ export default function MusteriPaketleriPage() {
                   <div className="flex gap-3">
                     <button onClick={() => { setTransferModal(false); setBilgiModal(null); setBilgiDetay(null); }}
                       className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">Bu Sayfada Kal</button>
-                    <button onClick={() => { setTransferModal(false); setBilgiModal(null); setBilgiDetay(null); git(`/dashboard/musteriler/${transferSonuc.hedef_musteri_id}/paketler`); }}
+                    <button onClick={() => { setTransferModal(false); setBilgiModal(null); setBilgiDetay(null); git(`/dashboard/musteri-paketleri/${transferSonuc.hedef_musteri_id}`); }}
                       className="flex-1 px-4 py-2.5 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 text-white text-sm font-semibold cursor-pointer transition-colors">Müşteriye Git</button>
                   </div>
                 </>
@@ -1404,16 +1410,40 @@ export default function MusteriPaketleriPage() {
                   </div>
                   <h4 className="font-bold text-gray-900 dark:text-white">Askıya Al</h4>
                   <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Lisans askıya alınacak. Kalan süre korunur.</p>
-                  <div className="mt-3 p-3 rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20">
-                    <p className="text-xs font-semibold text-orange-700 dark:text-orange-400">⚠ Aktif etmeyi unutmayınız!</p>
-                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${askiyaTip === "belirsiz" ? "border-orange-400 bg-orange-50 dark:bg-orange-500/10" : "border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5"}`}>
+                    <input type="radio" checked={askiyaTip === "belirsiz"} onChange={() => setAskiyaTip("belirsiz")} className="accent-orange-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-800 dark:text-white">Ben açana kadar</p>
+                      <p className="text-xs text-gray-500 dark:text-slate-400">Manuel olarak aktif edene kadar askıda kalır</p>
+                    </div>
+                  </label>
+                  <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${askiyaTip === "sureli" ? "border-orange-400 bg-orange-50 dark:bg-orange-500/10" : "border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5"}`}>
+                    <input type="radio" checked={askiyaTip === "sureli"} onChange={() => setAskiyaTip("sureli")} className="accent-orange-600" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-800 dark:text-white">Belirli süre</p>
+                      {askiyaTip === "sureli" && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <input type="number" min={1} value={askiyaSureGun} onChange={(e) => setAskiyaSureGun(Math.max(1, Number(e.target.value)))}
+                            className="w-20 px-2 py-1.5 text-sm border border-gray-300 dark:border-white/10 rounded-lg bg-white dark:bg-slate-700 text-gray-800 dark:text-white" />
+                          <span className="text-xs text-gray-500 dark:text-slate-400">gün sonra otomatik aktif olur</span>
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                </div>
+                <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20">
+                  <p className="text-xs font-semibold text-orange-700 dark:text-orange-400">⚠ {askiyaTip === "belirsiz" ? "Aktif etmeyi unutmayınız!" : `${askiyaSureGun} gün sonra otomatik aktif edilecek.`}</p>
                 </div>
                 <div className="flex gap-3">
                   <button onClick={() => setAskiyaOnay(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 text-sm font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">Vazgeç</button>
                   <button disabled={islemYukleniyor} onClick={async () => {
                     setIslemYukleniyor(true);
                     try {
-                      const r = await apiPost(`/lisanslar/${bilgiDetay.id}/askiya-al`);
+                      const body = { tip: askiyaTip };
+                      if (askiyaTip === "sureli") body.sure_gun = askiyaSureGun;
+                      const r = await apiPost(`/lisanslar/${bilgiDetay.id}/askiya-al`, body);
                       if (r.basarili) { alert(r.mesaj); setAskiyaOnay(false); setBilgiModal(null); setBilgiDetay(null); await paketleriYenile(); }
                     } catch (e) { alert(e.message || "İşlem başarısız."); }
                     setIslemYukleniyor(false);
