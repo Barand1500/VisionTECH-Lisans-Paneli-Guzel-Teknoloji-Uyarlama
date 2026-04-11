@@ -789,6 +789,194 @@ function PaketlerModal({ urun, kapat, paketler, setPaketler, tumUrunler, paketle
 }
 
 /* ============================================= */
+/*  Paket Tipi Seçici (Arama + Ekle/Düzenle/Sil) */
+/* ============================================= */
+
+function PaketTipiSecici({ value, onChange, paketTipleri, setPaketTipleri }) {
+  const [acik, setAcik] = useState(false);
+  const [arama, setArama] = useState(value || "");
+  const [ekleMod, setEkleMod] = useState(false);
+  const [yeniAd, setYeniAd] = useState("");
+  const [duzenlenen, setDuzenlenen] = useState(null); // { id, ad }
+  const [duzenleAd, setDuzenleAd] = useState("");
+  const containerRef = useRef(null);
+  const inputRef = useRef(null);
+
+  // Dışarı tıklanınca kapat
+  useEffect(() => {
+    const handler = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) { setAcik(false); setEkleMod(false); setDuzenlenen(null); } };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // Arama input'u değişince
+  useEffect(() => { setArama(value || ""); }, [value]);
+
+  const filtrelenmis = paketTipleri.filter(t => t.aktif && t.ad.toLowerCase().includes(arama.toLowerCase()));
+
+  const tipSec = (ad) => {
+    onChange(ad);
+    setArama(ad);
+    setAcik(false);
+  };
+
+  const tipEkle = async () => {
+    const ad = yeniAd.trim();
+    if (!ad) return;
+    try {
+      const res = await apiPost("/paket-tipleri", { ad });
+      if (res.basarili) {
+        const yeniTip = { id: res.id, ad, aktif: 1, sira: 0 };
+        setPaketTipleri(prev => [...prev, yeniTip]);
+        tipSec(ad);
+        setYeniAd("");
+        setEkleMod(false);
+      }
+    } catch (e) { console.error("Paket tipi eklenemedi:", e); }
+  };
+
+  const tipGuncelle = async () => {
+    if (!duzenlenen) return;
+    const ad = duzenleAd.trim();
+    if (!ad) return;
+    try {
+      const res = await apiPut(`/paket-tipleri/${duzenlenen.id}`, { ad });
+      if (res.basarili) {
+        setPaketTipleri(prev => prev.map(t => t.id === duzenlenen.id ? { ...t, ad } : t));
+        if (value === duzenlenen.ad) onChange(ad);
+        setDuzenlenen(null);
+        setDuzenleAd("");
+      }
+    } catch (e) { console.error("Paket tipi güncellenemedi:", e); }
+  };
+
+  const tipSil = async (tip) => {
+    try {
+      const res = await apiDelete(`/paket-tipleri/${tip.id}`);
+      if (res.basarili) {
+        setPaketTipleri(prev => prev.filter(t => t.id !== tip.id));
+        if (value === tip.ad) onChange("");
+      }
+    } catch (e) { console.error("Paket tipi silinemedi:", e); }
+  };
+
+  return (
+    <div ref={containerRef} className="relative">
+      <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Paket Tipi</label>
+      <div className="flex items-center gap-2">
+        {/* Arama Input */}
+        <div className="relative flex-1">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            ref={inputRef}
+            type="text"
+            value={arama}
+            onChange={(e) => { setArama(e.target.value); setAcik(true); if (!e.target.value) onChange(""); }}
+            onFocus={() => setAcik(true)}
+            placeholder="Paket tipi ara veya seç..."
+            className={INPUT_STIL + " pl-9 w-full"}
+          />
+          {value && (
+            <button type="button" onClick={() => { onChange(""); setArama(""); inputRef.current?.focus(); }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-white cursor-pointer">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+        {/* Ekle Butonu */}
+        <button type="button" onClick={() => { setEkleMod(!ekleMod); setAcik(false); setYeniAd(""); setDuzenlenen(null); }}
+          className="w-9 h-9 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center cursor-pointer shrink-0" title="Yeni paket tipi ekle">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Yeni Tip Ekleme Alanı */}
+      {ekleMod && (
+        <div className="mt-2 flex items-center gap-2 p-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
+          <input
+            type="text"
+            value={yeniAd}
+            onChange={(e) => setYeniAd(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); tipEkle(); } if (e.key === "Escape") setEkleMod(false); }}
+            placeholder="Yeni paket tipi adı..."
+            className="flex-1 px-3 py-1.5 text-sm rounded-md border border-emerald-300 dark:border-emerald-500/30 bg-white dark:bg-white/10 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500"
+            autoFocus
+          />
+          <button type="button" onClick={tipEkle} disabled={!yeniAd.trim()}
+            className="px-3 py-1.5 rounded-md bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white text-xs font-semibold cursor-pointer">Ekle</button>
+          <button type="button" onClick={() => setEkleMod(false)}
+            className="px-2 py-1.5 rounded-md text-gray-500 hover:text-gray-700 dark:hover:text-white text-xs cursor-pointer">İptal</button>
+        </div>
+      )}
+
+      {/* Dropdown Listesi */}
+      {acik && !ekleMod && (
+        <div className="absolute z-50 mt-1 w-full bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-white/10 shadow-xl max-h-52 overflow-y-auto">
+          {filtrelenmis.length === 0 ? (
+            <div className="px-3 py-4 text-center text-xs text-gray-400 dark:text-slate-500">
+              {arama ? `"${arama}" ile eşleşen tip bulunamadı` : "Henüz paket tipi eklenmedi"}
+              <button type="button" onClick={() => { setEkleMod(true); setYeniAd(arama); setAcik(false); }}
+                className="block mx-auto mt-2 text-emerald-600 dark:text-emerald-400 hover:underline text-xs cursor-pointer font-medium">
+                + Yeni ekle
+              </button>
+            </div>
+          ) : (
+            filtrelenmis.map(tip => (
+              <div key={tip.id} className="group relative">
+                {duzenlenen?.id === tip.id ? (
+                  /* Düzenleme Modu */
+                  <div className="flex items-center gap-1 px-3 py-2 bg-blue-50 dark:bg-blue-500/10">
+                    <input
+                      type="text"
+                      value={duzenleAd}
+                      onChange={(e) => setDuzenleAd(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); tipGuncelle(); } if (e.key === "Escape") { setDuzenlenen(null); setDuzenleAd(""); } }}
+                      className="flex-1 px-2 py-1 text-sm rounded border border-blue-300 dark:border-blue-500/30 bg-white dark:bg-white/10 text-gray-900 dark:text-white outline-none"
+                      autoFocus
+                    />
+                    <button type="button" onClick={tipGuncelle}
+                      className="w-6 h-6 rounded bg-blue-500 text-white flex items-center justify-center cursor-pointer text-xs">✓</button>
+                    <button type="button" onClick={() => { setDuzenlenen(null); setDuzenleAd(""); }}
+                      className="w-6 h-6 rounded bg-gray-300 dark:bg-white/10 text-gray-600 dark:text-white flex items-center justify-center cursor-pointer text-xs">✕</button>
+                  </div>
+                ) : (
+                  /* Normal Seçenek */
+                  <button type="button" onClick={() => tipSec(tip.ad)}
+                    className={`w-full text-left px-3 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-white/5 flex items-center justify-between cursor-pointer transition-colors ${value === tip.ad ? "bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400 font-medium" : "text-gray-700 dark:text-slate-300"}`}>
+                    <span>{tip.ad}</span>
+                    {/* Hover'da Düzenle/Sil Butonları */}
+                    <span className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setDuzenlenen(tip); setDuzenleAd(tip.ad); }}
+                        className="w-5 h-5 rounded bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center hover:bg-blue-200 dark:hover:bg-blue-500/30 cursor-pointer" title="Düzenle">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); tipSil(tip); }}
+                        className="w-5 h-5 rounded bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center hover:bg-red-200 dark:hover:bg-red-500/30 cursor-pointer" title="Sil">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </span>
+                  </button>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================= */
 /*  Paket Oluştur / Düzenle Modalı               */
 /* ============================================= */
 
@@ -885,19 +1073,12 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
           </div>
 
           {/* Paket Tipi */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Paket Tipi</label>
-            <select
-              value={form.tipi}
-              onChange={(e) => guncelle("tipi", e.target.value)}
-              className={INPUT_STIL}
-            >
-              <option value="">Seçiniz...</option>
-              {paketTipleri.filter(t => t.aktif).map(t => (
-                <option key={t.id} value={t.ad}>{t.ad}</option>
-              ))}
-            </select>
-          </div>
+          <PaketTipiSecici
+            value={form.tipi}
+            onChange={(val) => guncelle("tipi", val)}
+            paketTipleri={paketTipleri}
+            setPaketTipleri={setPaketTipleri}
+          />
 
           {/* Fiyat */}
           <div>
