@@ -1842,6 +1842,8 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                     const seciliGrup = urunGruplari.find((g) => g.id === gid);
                     guncelle("grup_id", gid);
                     guncelle("grubu", seciliGrup?.ad || "");
+                    guncelle("urunTipi", "");
+                    guncelle("uygulamaTipi", "-");
                   }} className={INPUT_STIL}>
                     <option value="">Grup Yok</option>
                     {urunGruplari.map((g) => <option key={g.id} value={g.id}>{g.ad}</option>)}
@@ -1854,10 +1856,10 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                     <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ürün Tipi</label>
                     <select value={form.urunTipi} onChange={(e) => {
                       guncelle("urunTipi", e.target.value);
-                      guncelle("uygulamaTipi", "-"); // Ürün tipi değişince uygulama tipini sıfırla
-                    }} className={INPUT_STIL}>
-                      <option value="">Seçiniz</option>
-                      {urunTipleri.filter(t => !form.grup_id || t.grup_id === form.grup_id).map((t) => <option key={t.id} value={t.ad}>{t.ad}</option>)}
+                      guncelle("uygulamaTipi", "-");
+                    }} className={INPUT_STIL + (!form.grup_id ? " opacity-50 cursor-not-allowed" : "")} disabled={!form.grup_id}>
+                      <option value="">{!form.grup_id ? "Önce grup seçiniz" : "Seçiniz"}</option>
+                      {urunTipleri.filter(t => t.grup_id === form.grup_id).map((t) => <option key={t.id} value={t.ad}>{t.ad}</option>)}
                     </select>
                   </div>
                   <div>
@@ -1865,11 +1867,12 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                     <select 
                       value={form.uygulamaTipi} 
                       onChange={(e) => guncelle("uygulamaTipi", e.target.value)} 
-                      className={INPUT_STIL}
+                      className={INPUT_STIL + (!form.urunTipi ? " opacity-50 cursor-not-allowed" : "")}
+                      disabled={!form.urunTipi}
                     >
-                      <option value="-">-</option>
+                      <option value="-">{!form.urunTipi ? "Önce ürün tipi seçiniz" : "-"}</option>
                       {uygulamaTipleri
-                        .filter((t) => !form.urunTipi || t.urun_tipi_adi === form.urunTipi)
+                        .filter((t) => t.urun_tipi_adi === form.urunTipi)
                         .map((t) => <option key={t.id} value={t.ad}>{t.ad}</option>)}
                     </select>
                   </div>
@@ -1893,53 +1896,54 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                   />
                 </div>
 
-                {/* Fiyat + Para Birimi */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Fiyat</label>
-                  <div className="relative">
-                    <input 
-                      type="number" 
-                      min="0" 
-                      step="0.01"
-                      value={form.fiyat} 
-                      onChange={(e) => guncelle("fiyat", e.target.value)} 
-                      placeholder="0.00" 
-                      className={INPUT_STIL + " w-full pr-20"} 
-                    />
+                {/* Fiyat + Lisans Tipi */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Fiyat</label>
+                    <div className="relative">
+                      <input 
+                        type="number" 
+                        min="0" 
+                        step="0.01"
+                        value={form.fiyat} 
+                        onChange={(e) => guncelle("fiyat", e.target.value)} 
+                        placeholder="0.00" 
+                        className={INPUT_STIL + " w-full pr-20"} 
+                      />
+                      <select 
+                        value={form.paraBirimi} 
+                        onChange={(e) => guncelle("paraBirimi", e.target.value)} 
+                        className="absolute right-1 top-1/2 -translate-y-1/2 bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-slate-300 text-xs font-medium rounded-md px-2 py-1.5 border-0 outline-none cursor-pointer"
+                      >
+                        <option value="TL">₺ TL</option>
+                        <option value="USD">$ USD</option>
+                        <option value="EUR">€ EUR</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Lisans Tipi</label>
                     <select 
-                      value={form.paraBirimi} 
-                      onChange={(e) => guncelle("paraBirimi", e.target.value)} 
-                      className="absolute right-1 top-1/2 -translate-y-1/2 bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-slate-300 text-xs font-medium rounded-md px-2 py-1.5 border-0 outline-none cursor-pointer"
+                      value={form.lisansTipiId} 
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        guncelle("lisansTipiId", id);
+                        if (id) {
+                          const tip = lisansTipleri.find((t) => String(t.id) === String(id));
+                          if (tip) guncelle("varsayilanGun", tip.suresiz ? 0 : (tip.gun || 365));
+                        }
+                      }} 
+                      className={INPUT_STIL}
                     >
-                      <option value="TL">₺ TL</option>
-                      <option value="USD">$ USD</option>
-                      <option value="EUR">€ EUR</option>
+                      <option value="">Seçiniz...</option>
+                      {lisansTipleri.map((tip) => (
+                        <option key={tip.id} value={tip.id}>
+                          {tip.ad} {tip.suresiz ? "(Süresiz)" : `(${tip.gun} gün)`}
+                        </option>
+                      ))}
                     </select>
                   </div>
-                </div>
-
-                {/* Lisans Tipi */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Lisans Tipi</label>
-                  <select 
-                    value={form.lisansTipiId} 
-                    onChange={(e) => {
-                      const id = e.target.value;
-                      guncelle("lisansTipiId", id);
-                      if (id) {
-                        const tip = lisansTipleri.find((t) => String(t.id) === String(id));
-                        if (tip) guncelle("varsayilanGun", tip.suresiz ? 0 : (tip.gun || 365));
-                      }
-                    }} 
-                    className={INPUT_STIL}
-                  >
-                    <option value="">Seçiniz...</option>
-                    {lisansTipleri.map((tip) => (
-                      <option key={tip.id} value={tip.id}>
-                        {tip.ad} {tip.suresiz ? "(Süresiz)" : `(${tip.gun} gün)`}
-                      </option>
-                    ))}
-                  </select>
                 </div>
 
                 {/* Versiyon */}
@@ -2052,11 +2056,11 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                         <div key={oz.id} className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
                           <button type="button" onClick={() => ozToggle(oz.id, oz.varsayilan)}
                             className="w-full p-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                            <div className="flex items-center gap-2 min-w-0">
+                            <div className="flex items-center gap-2 min-w-0 text-left">
                               <span className="inline-flex items-center justify-center text-base w-6 h-6 shrink-0">{oz.ikon}</span>
-                              <div className="min-w-0">
-                                <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300 truncate leading-none">{oz.ad}</h4>
-                                <p className="text-[10px] text-gray-400 dark:text-slate-500 truncate leading-none mt-0.5">{oz.aciklama}</p>
+                              <div className="min-w-0 text-left">
+                                <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300 truncate leading-none text-left">{oz.ad}</h4>
+                                <p className="text-[10px] text-gray-400 dark:text-slate-500 truncate leading-none mt-0.5 text-left">{oz.aciklama}</p>
                               </div>
                             </div>
                             <div

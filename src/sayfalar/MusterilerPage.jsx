@@ -1586,12 +1586,29 @@ export default function MusterilerPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  {genislemisler.size > 0 && (
-                    <button onClick={() => setGenislemisler(new Set())}
-                      className="text-xs text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 cursor-pointer font-medium">
-                      Tümünü Kapat
-                    </button>
-                  )}
+                  <button onClick={() => {
+                    if (genislemisler.size > 0) {
+                      setGenislemisler(new Set());
+                    } else {
+                      const tumIdler = new Set();
+                      if (hiyerarsiMod === "musteriPaketleri") {
+                        musteriler.filter(m => (m.durum || "").toLowerCase() === "aktif").forEach(m => tumIdler.add(m.id));
+                      } else {
+                        bayiListesi.filter(b => (b.durum || "").toLowerCase() === "aktif").forEach(b => tumIdler.add(`bayi-${b.id}`));
+                      }
+                      setGenislemisler(tumIdler);
+                    }
+                  }}
+                    className="text-xs text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 cursor-pointer font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      {genislemisler.size > 0 ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      )}
+                    </svg>
+                    {genislemisler.size > 0 ? "Tümünü Kapat" : "Tümünü Aç"}
+                  </button>
                   {lisanslarYukleniyor && (
                     <span className="text-xs text-gray-400 dark:text-slate-500 flex items-center gap-1">
                       <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
