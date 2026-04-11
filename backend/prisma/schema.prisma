@@ -437,6 +437,7 @@ model Paket {
   tipi             String?   @db.VarChar(50)
   kullanim_gunu    Int       @default(365)
   fiyat            Decimal   @default(0) @db.Decimal(10, 2)
+  para_birimi      String    @default("TL") @db.VarChar(10)
   kullanici_sayisi Int       @default(1)
   ozellikler       Json?     // Pakete özel özellikler (hediye ürün, ek fiyat vb.)
   aktif            Int       @default(1) @db.TinyInt

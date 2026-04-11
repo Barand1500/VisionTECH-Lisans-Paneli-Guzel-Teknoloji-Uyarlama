@@ -195,7 +195,8 @@ function UrunlerSekmesi() {
         tipi: p.tipi || "",
         adi: p.ad,
         kullanimGunu: p.kullanim_gunu || 365,
-        fiyati: p.fiyat || 0,
+        fiyat: p.fiyat || 0,
+        paraBirimi: p.para_birimi || "TL",
         kullaniciSayisi: p.kullanici_sayisi || 0,
         aktif: !!p.aktif,
         ozellikler: p.ozellikler || null,
@@ -639,6 +640,8 @@ function PaketlerModal({ urun, kapat, paketler, setPaketler, tumUrunler, paketle
         ad: veri.adi,
         tipi: veri.tipi,
         kullanim_gunu: veri.kullanimGunu,
+        fiyat: Number(veri.fiyat) || 0,
+        para_birimi: veri.paraBirimi || "TL",
         aktif: veri.aktif,
         ozellikler: veri.ozellikler,
       };
@@ -804,6 +807,8 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
     urunId: duzenle ? modal.urunId : urun.id,
     tipi: duzenle ? (modal.tipi || "") : "",
     adi: duzenle ? modal.adi : "",
+    fiyat: duzenle ? (modal.fiyat || "") : "",
+    paraBirimi: duzenle ? (modal.paraBirimi || "TL") : "TL",
     kullanimGunu: duzenle ? modal.kullanimGunu : 0,
     aktif: duzenle ? modal.aktif : true,
   });
@@ -811,9 +816,14 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
   const [yeniKart, setYeniKart] = useState("");
   const [duzenleIdx, setDuzenleIdx] = useState(null);
   const [duzenleMetin, setDuzenleMetin] = useState("");
+  const [paketTipleri, setPaketTipleri] = useState([]);
   const ref = useRef(null);
   const inputRef = useRef(null);
   const sallanma = () => { if (ref.current) { ref.current.classList.remove("sallan"); void ref.current.offsetWidth; ref.current.classList.add("sallan"); } };
+
+  useEffect(() => {
+    apiGet("/paket-tipleri").then(r => { if (r.basarili) setPaketTipleri(r.veri || []); }).catch(() => {});
+  }, []);
 
   const guncelle = (alan, val) => setForm((o) => ({ ...o, [alan]: val }));
 
@@ -850,7 +860,7 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
       tip: "metin_karti",
       deger: metin,
     }));
-    kaydet({ ...form, urunId: urun.id, urunAdi: urun.adi, ozellikler: ozellikler.length > 0 ? ozellikler : null });
+    kaydet({ ...form, fiyat: form.fiyat || 0, paraBirimi: form.paraBirimi || "TL", urunId: urun.id, urunAdi: urun.adi, ozellikler: ozellikler.length > 0 ? ozellikler : null });
   };
 
   return (
@@ -872,6 +882,47 @@ function PaketOlusturModal({ modal, kapat, kaydet, urun, tumUrunler, urunGruplar
           <div>
             <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Paket Adı <span className="text-red-500">*</span></label>
             <input type="text" value={form.adi} onChange={(e) => guncelle("adi", e.target.value)} placeholder="Paket adını giriniz" className={INPUT_STIL} required autoFocus />
+          </div>
+
+          {/* Paket Tipi */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Paket Tipi</label>
+            <select
+              value={form.tipi}
+              onChange={(e) => guncelle("tipi", e.target.value)}
+              className={INPUT_STIL}
+            >
+              <option value="">Seçiniz...</option>
+              {paketTipleri.filter(t => t.aktif).map(t => (
+                <option key={t.id} value={t.ad}>{t.ad}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Fiyat */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Paket Fiyatı</label>
+            <div className="relative">
+              <input 
+                type="number" 
+                min="0" 
+                step="0.01"
+                value={form.fiyat} 
+                onChange={(e) => guncelle("fiyat", e.target.value)} 
+                placeholder="0.00" 
+                className={INPUT_STIL + " w-full pr-20"} 
+              />
+              <select 
+                value={form.paraBirimi} 
+                onChange={(e) => guncelle("paraBirimi", e.target.value)} 
+                className="absolute right-1 top-1/2 -translate-y-1/2 bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-slate-300 text-xs font-medium rounded-md px-2 py-1.5 border-0 outline-none cursor-pointer"
+              >
+                <option value="TL">₺ TL</option>
+                <option value="USD">$ USD</option>
+                <option value="EUR">€ EUR</option>
+              </select>
+            </div>
+            <p className="text-[10px] text-amber-500 dark:text-amber-400 mt-1">⚠ Boş bırakılırsa fiyatsız paket olarak kaydedilir</p>
           </div>
 
           {/* Kart Tabanlı Özellikler */}
