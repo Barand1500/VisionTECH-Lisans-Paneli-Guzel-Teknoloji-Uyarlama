@@ -1686,7 +1686,7 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                 {/* Fiyat + Para Birimi */}
                 <div>
                   <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Fiyat</label>
-                  <div className="flex items-center gap-2">
+                  <div className="relative">
                     <input 
                       type="number" 
                       min="0" 
@@ -1694,12 +1694,12 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                       value={form.fiyat} 
                       onChange={(e) => guncelle("fiyat", e.target.value)} 
                       placeholder="0.00" 
-                      className={INPUT_STIL + " flex-1"} 
+                      className={INPUT_STIL + " w-full pr-20"} 
                     />
                     <select 
                       value={form.paraBirimi} 
                       onChange={(e) => guncelle("paraBirimi", e.target.value)} 
-                      className={INPUT_STIL + " w-24 shrink-0"}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-slate-300 text-xs font-medium rounded-md px-2 py-1.5 border-0 outline-none cursor-pointer"
                     >
                       <option value="TL">₺ TL</option>
                       <option value="USD">$ USD</option>
