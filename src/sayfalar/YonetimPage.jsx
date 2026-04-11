@@ -409,24 +409,39 @@ function UrunlerSekmesi() {
             </select>
           </div>
 
-          {/* Durum Filtresi */}
-          <div className="flex-1 min-w-[120px]">
-            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Durum</label>
-            <select value={filtreDurum} onChange={(e) => { setFiltreDurum(e.target.value); setSayfa(1); }} className={INPUT_STIL}>
+          {/* Uygulama Tipi Filtresi */}
+          <div className="flex-1 min-w-[140px]">
+            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Uygulama Tipi</label>
+            <select value={filtreUygulamaTip} onChange={(e) => { setFiltreUygulamaTip(e.target.value); setSayfa(1); }} disabled={!filtreTip} className={`${INPUT_STIL} ${!filtreTip ? "opacity-50 cursor-not-allowed" : ""}`}>
               <option value="">Tümü</option>
-              <option value="aktif">Aktif</option>
-              <option value="pasif">Pasif</option>
+              {filtreliUygulamaTipleri.map((t) => <option key={t.id} value={t.ad}>{t.ad}</option>)}
             </select>
           </div>
 
-          {/* Özel Proje Filtresi */}
-          <div className="flex-1 min-w-[120px]">
+          {/* Durum Filtresi - Compact */}
+          <div className="min-w-fit">
+            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Durum</label>
+            <div className="flex rounded-lg border border-gray-300 dark:border-white/10 overflow-hidden h-[38px]">
+              {[{ v: "", l: "Tümü" }, { v: "aktif", l: "Aktif" }, { v: "pasif", l: "Pasif" }].map((d) => (
+                <button key={d.v} onClick={() => { setFiltreDurum(d.v); setSayfa(1); }}
+                  className={`px-3 text-xs font-medium transition-colors cursor-pointer ${filtreDurum === d.v ? "bg-emerald-600 text-white" : "bg-white dark:bg-white/5 text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-white/10"} ${d.v !== "" ? "border-l border-gray-300 dark:border-white/10" : ""}`}>
+                  {d.l}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Özel Proje Filtresi - Compact */}
+          <div className="min-w-fit">
             <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Özel Proje</label>
-            <select value={filtreOzelProje} onChange={(e) => { setFiltreOzelProje(e.target.value); setSayfa(1); }} className={INPUT_STIL}>
-              <option value="">Tümü</option>
-              <option value="evet">Evet</option>
-              <option value="hayir">Hayır</option>
-            </select>
+            <div className="flex rounded-lg border border-gray-300 dark:border-white/10 overflow-hidden h-[38px]">
+              {[{ v: "", l: "Tümü" }, { v: "evet", l: "Evet" }, { v: "hayir", l: "Hayır" }].map((d) => (
+                <button key={d.v} onClick={() => { setFiltreOzelProje(d.v); setSayfa(1); }}
+                  className={`px-3 text-xs font-medium transition-colors cursor-pointer ${filtreOzelProje === d.v ? "bg-violet-600 text-white" : "bg-white dark:bg-white/5 text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-white/10"} ${d.v !== "" ? "border-l border-gray-300 dark:border-white/10" : ""}`}>
+                  {d.l}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Butonlar */}
