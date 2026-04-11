@@ -182,6 +182,9 @@ export default function MusteriPaketleriPage() {
           urunId: p.urun_id,
           adi: p.ad,
           tipi: p.tipi,
+          lisansTipiAdi: p.lisans_tipi_adi || null,
+          lisansTipiGun: p.lisans_tipi_gun || null,
+          lisansTipiSuresiz: p.lisans_tipi_suresiz || 0,
           kullanimGunu: p.kullanim_gunu || 365,
           fiyati: p.fiyat || 0,
           kullaniciSayisi: p.kullanici_sayisi || 1,
@@ -1001,6 +1004,23 @@ export default function MusteriPaketleriPage() {
                       {bilgiDetay.odeme_yontemi && <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Ödeme Yöntemi</p><p className="text-sm font-medium text-gray-900 dark:text-white capitalize">{bilgiDetay.odeme_yontemi}</p></div>}
                     </div>
                   </div>
+
+                  {/* Paket Özellikleri */}
+                  {bilgiDetay.paket_adi && (
+                    <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                      <div className="px-4 py-2.5 bg-gray-50 dark:bg-white/5 border-b border-gray-200 dark:border-white/10">
+                        <h5 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Paket Özellikleri</h5>
+                      </div>
+                      <div className="p-4 grid grid-cols-2 gap-3">
+                        <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Paket Adı</p><p className="text-sm font-medium text-gray-900 dark:text-white">{bilgiDetay.paket_adi}</p></div>
+                        {bilgiDetay.paket_lisans_tipi_adi && <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Lisans Tipi</p><p className="text-sm font-medium text-gray-900 dark:text-white"><span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: (bilgiDetay.paket_lisans_tipi_renk || '#6366f1') + '20', color: bilgiDetay.paket_lisans_tipi_renk || '#6366f1' }}>{bilgiDetay.paket_lisans_tipi_adi}</span></p></div>}
+                        <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Kullanım Süresi</p><p className="text-sm font-medium text-gray-900 dark:text-white">{bilgiDetay.paket_lisans_tipi_suresiz ? 'Süresiz' : `${bilgiDetay.paket_gun || bilgiDetay.paket_lisans_tipi_gun || '-'} gün`}</p></div>
+                        {bilgiDetay.paket_fiyat != null && <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Paket Fiyatı</p><p className="text-sm font-bold text-gray-900 dark:text-white">{Number(bilgiDetay.paket_fiyat).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</p></div>}
+                        {bilgiDetay.paket_kullanici_sayisi && <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Kullanıcı Sayısı</p><p className="text-sm font-medium text-gray-900 dark:text-white">{bilgiDetay.paket_kullanici_sayisi}</p></div>}
+                        {bilgiDetay.paket_tipi && !bilgiDetay.paket_lisans_tipi_adi && <div><p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase">Paket Tipi</p><p className="text-sm font-medium text-gray-900 dark:text-white">{bilgiDetay.paket_tipi}</p></div>}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Şablon Özellikleri */}
                   {bilgiDetay.sablon_ozellikleri?.length > 0 && (
@@ -2174,7 +2194,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                         }`}
                       >
                         <p className={`font-medium ${form.paketId === p.id ? "text-blue-700 dark:text-blue-400" : "text-gray-900 dark:text-white"}`}>{p.adi}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{p.tipi} • {p.kullanimGunu} gün • ₺{Number(p.fiyati).toLocaleString("tr-TR")}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{p.lisansTipiAdi || p.tipi || "-"} • {p.lisansTipiSuresiz ? "Süresiz" : `${p.kullanimGunu} gün`} • ₺{Number(p.fiyati).toLocaleString("tr-TR")}</p>
                       </button>
                     ))}
                   </div>

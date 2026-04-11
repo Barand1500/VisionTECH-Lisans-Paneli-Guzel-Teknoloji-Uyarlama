@@ -372,25 +372,36 @@ router.delete("/:id", hataYakala(async (req, res) => {
 router.get("/paketler/tumu", hataYakala(async (_req, res) => {
   const veriler = await prisma.paket.findMany({
     where: { silinme_tarihi: null },
-    include: { urun: { select: { ad: true } } },
+    include: { urun: { select: { ad: true } }, lisansTipi: { select: { id: true, ad: true, kod: true, gun: true, suresiz: true, renk: true } } },
     orderBy: { id: "desc" },
   });
-  const sonuc = veriler.map(({ urun, ...p }) => ({ ...p, urun_adi: urun?.ad || null }));
+  const sonuc = veriler.map(({ urun, lisansTipi, ...p }) => ({ ...p, urun_adi: urun?.ad || null, lisans_tipi_adi: lisansTipi?.ad || null, lisans_tipi_gun: lisansTipi?.gun || null, lisans_tipi_suresiz: lisansTipi?.suresiz || 0, lisans_tipi_renk: lisansTipi?.renk || null }));
   res.json({ basarili: true, veri: temizle(sonuc) });
 }));
 
 router.get("/:urunId/paketler", hataYakala(async (req, res) => {
   const urun_id = Number(req.params.urunId);
-  const paketler = await prisma.paket.findMany({ where: { urun_id, silinme_tarihi: null }, orderBy: { id: "desc" } });
-  res.json({ basarili: true, veri: temizle(paketler) });
+  const paketler = await prisma.paket.findMany({
+    where: { urun_id, silinme_tarihi: null },
+    include: { lisansTipi: { select: { id: true, ad: true, kod: true, gun: true, suresiz: true, renk: true } } },
+    orderBy: { id: "desc" },
+  });
+  const sonuc = paketler.map(({ lisansTipi, ...p }) => ({ ...p, lisans_tipi_adi: lisansTipi?.ad || null, lisans_tipi_gun: lisansTipi?.gun || null, lisans_tipi_suresiz: lisansTipi?.suresiz || 0, lisans_tipi_renk: lisansTipi?.renk || null }));
+  res.json({ basarili: true, veri: temizle(sonuc) });
 }));
 
 router.post("/paketler", hataYakala(async (req, res) => {
-  const { urun_id, ad, tipi, kullanim_gunu, fiyat, para_birimi, kullanici_sayisi, aktif, ozellikler } = req.body;
+  const { urun_id, ad, tipi, lisans_tipi_id, kullanim_gunu, fiyat, para_birimi, kullanici_sayisi, aktif, ozellikler } = req.body;
   if (!urun_id || !ad) return dogrulamaHatasi(res, "Urun ve paket adi zorunludur.");
 
   const urunVar = await prisma.urun.findUnique({ where: { id: Number(urun_id) }, select: { id: true } });
   if (!urunVar) return dogrulamaHatasi(res, "Belirtilen urun bulunamadi.");
+
+  // Lisans tipi FK validasyonu
+  if (lisans_tipi_id) {
+    const ltVar = await prisma.lisansTipi.findUnique({ where: { id: Number(lisans_tipi_id) }, select: { id: true } });
+    if (!ltVar) return dogrulamaHatasi(res, "Belirtilen lisans tipi bulunamadi.");
+  }
 
   let nihaiFiyat = guvenliSayi(fiyat, 0);
   let nihaiOzellikler = ozellikler || null;
@@ -418,6 +429,7 @@ router.post("/paketler", hataYakala(async (req, res) => {
   const sonuc = await prisma.paket.create({
     data: {
       urun_id: Number(urun_id), ad, tipi: tipi || null,
+      lisans_tipi_id: lisans_tipi_id ? Number(lisans_tipi_id) : null,
       kullanim_gunu: guvenliSayi(kullanim_gunu, 365),
       fiyat: nihaiFiyat,
       para_birimi: para_birimi || "TL",
@@ -431,10 +443,11 @@ router.post("/paketler", hataYakala(async (req, res) => {
 
 router.put("/paketler/:id", hataYakala(async (req, res) => {
   const id = Number(req.params.id);
-  const { ad, tipi, kullanim_gunu, fiyat, para_birimi, kullanici_sayisi, aktif, ozellikler } = req.body;
+  const { ad, tipi, lisans_tipi_id, kullanim_gunu, fiyat, para_birimi, kullanici_sayisi, aktif, ozellikler } = req.body;
   const data = {};
   if (ad) data.ad = ad;
   if (tipi !== undefined) data.tipi = tipi || null;
+  if (lisans_tipi_id !== undefined) data.lisans_tipi_id = lisans_tipi_id ? Number(lisans_tipi_id) : null;
   if (kullanim_gunu !== undefined) data.kullanim_gunu = guvenliSayi(kullanim_gunu, 365);
   if (fiyat !== undefined) data.fiyat = guvenliSayi(fiyat, 0);
   if (para_birimi !== undefined) data.para_birimi = para_birimi || "TL";

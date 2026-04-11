@@ -288,7 +288,8 @@ router.get("/:id/detay", hataYakala(async (req, res) => {
            m.ad_soyad AS musteri_adi, m.sirket_adi AS musteri_sirket, m.tur AS musteri_turu, m.eposta AS musteri_eposta,
            u.ad AS urun_adi, u.urun_tipi, u.uygulama_tipi, u.versiyon, u.sablon_id,
            ug.ad AS grup_adi,
-           p.ad AS paket_adi, p.tipi AS paket_tipi, p.kullanim_gunu AS paket_gun,
+           p.ad AS paket_adi, p.tipi AS paket_tipi, p.lisans_tipi_id AS paket_lisans_tipi_id, p.kullanim_gunu AS paket_gun, p.fiyat AS paket_fiyat, p.kullanici_sayisi AS paket_kullanici_sayisi,
+           plt.ad AS paket_lisans_tipi_adi, plt.gun AS paket_lisans_tipi_gun, plt.suresiz AS paket_lisans_tipi_suresiz, plt.renk AS paket_lisans_tipi_renk,
            b.ad AS bayi_adi, b.eposta AS bayi_eposta,
            lt.ad AS lisans_tipi_adi, lt.renk AS lisans_tipi_renk,
            s.surum AS surum_no, s.tarih AS surum_tarihi
@@ -297,6 +298,7 @@ router.get("/:id/detay", hataYakala(async (req, res) => {
     LEFT JOIN urunler u ON l.urun_id = u.id
     LEFT JOIN urun_gruplari ug ON u.grup_id = ug.id
     LEFT JOIN paketler p ON l.paket_id = p.id
+    LEFT JOIN lisans_tipleri plt ON p.lisans_tipi_id = plt.id
     LEFT JOIN bayiler b ON l.bayi_id = b.id
     LEFT JOIN lisans_tipleri lt ON l.lisans_tipi = lt.kod
     LEFT JOIN surumler s ON l.surum_id = s.id
