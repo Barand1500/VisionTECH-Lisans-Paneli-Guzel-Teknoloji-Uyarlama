@@ -179,6 +179,8 @@ function UrunlerSekmesi() {
         maxKullanici: u.max_kullanici || null,
         demoGun: u.demo_gun || 30,
         temelFiyat: u.temel_fiyat || 0,
+        paraBirimi: u.para_birimi || "TL",
+        lisansTipiId: u.lisans_tipi_id || "",
         versiyon: u.versiyon || "",
         sablonId: u.sablon_id || null,
         sablonAdi: u.sablon_adi || "",
@@ -296,10 +298,18 @@ function UrunlerSekmesi() {
         min_kullanici: veri.gelismisAyarlar?.kullanici_sayisi?.min || 1,
         max_kullanici: veri.gelismisAyarlar?.kullanici_sayisi?.max || null,
         demo_gun: veri.gelismisAyarlar?.demo_suresi?.gun || 30,
-        temel_fiyat: veri.gelismisAyarlar?.temel_fiyat?.fiyat || 0,
+        temel_fiyat: Number(veri.fiyat) > 0 ? Number(veri.fiyat) : (veri.gelismisAyarlar?.temel_fiyat?.fiyat || 0),
+        para_birimi: veri.paraBirimi || veri.gelismisAyarlar?.temel_fiyat?.para_birimi || "TL",
+        lisans_tipi_id: veri.lisansTipiId ? Number(veri.lisansTipiId) : null,
         versiyon: veri.versiyon || null,
         sablon_id: veri.sablonId || null,
-        ozellikler: JSON.stringify(veri.gelismisAyarlar || {}),
+        ozellikler: JSON.stringify((() => {
+          const oz = { ...(veri.gelismisAyarlar || {}) };
+          if (Number(veri.fiyat) > 0) {
+            oz.temel_fiyat = { fiyat: Number(veri.fiyat), para_birimi: veri.paraBirimi || "TL" };
+          }
+          return oz;
+        })()),
       };
       let urunId = veri.id;
       if (veri.id) {
@@ -1325,6 +1335,9 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
     ozelProje: duzenle ? modal.ozelProje : false,
     aktif: duzenle ? modal.aktif : true,
     versiyon: duzenle ? (modal.versiyon || "") : "",
+    fiyat: duzenle ? (modal.temelFiyat || "") : "",
+    paraBirimi: duzenle ? (modal.paraBirimi || "TL") : "TL",
+    lisansTipiId: duzenle ? (modal.lisansTipiId || "") : "",
     sablonId: duzenle ? (modal.sablonId || null) : null,
     gelismisAyarlar: duzenle ? (() => {
       try {
@@ -1346,7 +1359,15 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
   const [mevcutSurumler, setMevcutSurumler] = useState([]);
   const [mevcutSurumBilgisi, setMevcutSurumBilgisi] = useState(null);
   const [benzerUrunBilgisi, setBenzerUrunBilgisi] = useState(null);
+  const [lisansTipleri, setLisansTipleri] = useState([]);
   const ref = useRef(null);
+
+  /* Lisans tiplerini yükle */
+  useEffect(() => {
+    apiGet("/lisans-tipleri/aktif").then((r) => {
+      if (r.basarili) setLisansTipleri(r.veri || []);
+    }).catch(() => {});
+  }, []);
 
   /* Mevcut sürümleri yükle */
   useEffect(() => {
@@ -1662,6 +1683,55 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                   />
                 </div>
 
+                {/* Fiyat + Para Birimi */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Fiyat</label>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="number" 
+                      min="0" 
+                      step="0.01"
+                      value={form.fiyat} 
+                      onChange={(e) => guncelle("fiyat", e.target.value)} 
+                      placeholder="0.00" 
+                      className={INPUT_STIL + " flex-1"} 
+                    />
+                    <select 
+                      value={form.paraBirimi} 
+                      onChange={(e) => guncelle("paraBirimi", e.target.value)} 
+                      className={INPUT_STIL + " w-24 shrink-0"}
+                    >
+                      <option value="TL">₺ TL</option>
+                      <option value="USD">$ USD</option>
+                      <option value="EUR">€ EUR</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Lisans Tipi */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Lisans Tipi</label>
+                  <select 
+                    value={form.lisansTipiId} 
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      guncelle("lisansTipiId", id);
+                      if (id) {
+                        const tip = lisansTipleri.find((t) => String(t.id) === String(id));
+                        if (tip) guncelle("varsayilanGun", tip.suresiz ? 0 : (tip.gun || 365));
+                      }
+                    }} 
+                    className={INPUT_STIL}
+                  >
+                    <option value="">Seçiniz...</option>
+                    {lisansTipleri.map((tip) => (
+                      <option key={tip.id} value={tip.id}>
+                        {tip.ad} {tip.suresiz ? "(Süresiz)" : `(${tip.gun} gün)`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Versiyon */}
                 <div>
                   <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Varsayılan Versiyon</label>
@@ -1766,7 +1836,7 @@ function UrunModal({ modal, kapat, kaydet, urunGruplari, urunTipleri, uygulamaTi
                 ) : (
                   /* Tüm Özellik Tipleri - Toggle Kartlar */
                   <div className="space-y-2">
-                    {OZELLIK_TIPLERI.map(oz => {
+                    {OZELLIK_TIPLERI.filter(oz => !(oz.id === "temel_fiyat" && Number(form.fiyat) > 0)).map(oz => {
                       const aktif = !!form.gelismisAyarlar[oz.id];
                       return (
                         <div key={oz.id} className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">

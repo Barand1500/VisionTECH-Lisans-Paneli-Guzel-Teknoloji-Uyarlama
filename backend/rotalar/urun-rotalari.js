@@ -291,7 +291,7 @@ router.get("/:id/kullanim", hataYakala(async (req, res) => {
 }));
 
 router.post("/", hataYakala(async (req, res) => {
-  const { ad, grup_id, sablon_id, urun_tipi, uygulama_tipi, urun_tipi_id, uygulama_tipi_id, varsayilan_gun, ozel_proje, aktif, aciklama, min_kullanici, max_kullanici, demo_gun, temel_fiyat, versiyon, logo_url, ozellikler } = req.body;
+  const { ad, grup_id, sablon_id, urun_tipi, uygulama_tipi, urun_tipi_id, uygulama_tipi_id, varsayilan_gun, ozel_proje, aktif, aciklama, min_kullanici, max_kullanici, demo_gun, temel_fiyat, para_birimi, lisans_tipi_id, versiyon, logo_url, ozellikler } = req.body;
   if (!ad) return dogrulamaHatasi(res, "Urun adi zorunludur.");
 
   const sonuc = await prisma.urun.create({
@@ -303,6 +303,7 @@ router.post("/", hataYakala(async (req, res) => {
       aktif: aktif !== undefined ? (aktif ? 1 : 0) : 1, aciklama: aciklama || null,
       min_kullanici: guvenliSayi(min_kullanici, 1), max_kullanici: max_kullanici ? Number(max_kullanici) : null,
       demo_gun: guvenliSayi(demo_gun, 30), temel_fiyat: guvenliSayi(temel_fiyat, 0),
+      para_birimi: para_birimi || "TL", lisans_tipi_id: lisans_tipi_id ? Number(lisans_tipi_id) : null,
       versiyon: versiyon || null, logo_url: logo_url || null,
       ozellikler: ozellikler || undefined,
     },
@@ -315,7 +316,7 @@ router.put("/:id", hataYakala(async (req, res) => {
   const mevcut = await prisma.urun.findUnique({ where: { id }, select: { id: true } });
   if (!mevcut) return bulunamadiHatasi(res, "Urun bulunamadi.");
 
-  const { ad, grup_id, sablon_id, urun_tipi, uygulama_tipi, urun_tipi_id, uygulama_tipi_id, varsayilan_gun, ozel_proje, aktif, aciklama, min_kullanici, max_kullanici, demo_gun, temel_fiyat, versiyon, logo_url, ozellikler } = req.body;
+  const { ad, grup_id, sablon_id, urun_tipi, uygulama_tipi, urun_tipi_id, uygulama_tipi_id, varsayilan_gun, ozel_proje, aktif, aciklama, min_kullanici, max_kullanici, demo_gun, temel_fiyat, para_birimi, lisans_tipi_id, versiyon, logo_url, ozellikler } = req.body;
   const data = {};
   if (ad) data.ad = ad;
   if (grup_id !== undefined) data.grup_id = grup_id || null;
@@ -332,6 +333,8 @@ router.put("/:id", hataYakala(async (req, res) => {
   if (max_kullanici !== undefined) data.max_kullanici = max_kullanici ? Number(max_kullanici) : null;
   if (demo_gun !== undefined) data.demo_gun = guvenliSayi(demo_gun, 30);
   if (temel_fiyat !== undefined) data.temel_fiyat = guvenliSayi(temel_fiyat, 0);
+  if (para_birimi !== undefined) data.para_birimi = para_birimi || "TL";
+  if (lisans_tipi_id !== undefined) data.lisans_tipi_id = lisans_tipi_id ? Number(lisans_tipi_id) : null;
   if (versiyon !== undefined) data.versiyon = versiyon || null;
   if (logo_url !== undefined) data.logo_url = logo_url || null;
   if (ozellikler !== undefined) data.ozellikler = ozellikler;

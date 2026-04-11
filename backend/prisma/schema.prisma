@@ -398,6 +398,8 @@ model Urun {
   max_kullanici    Int?
   demo_gun         Int      @default(30)
   temel_fiyat      Decimal  @default(0) @db.Decimal(10, 2)
+  para_birimi      String   @default("TL") @db.VarChar(10)
+  lisans_tipi_id   Int?
   versiyon         String?  @db.VarChar(50)
   versiyon_kontrol Int      @default(0) @db.TinyInt
   logo_url         String?  @db.VarChar(500)
@@ -408,6 +410,7 @@ model Urun {
   sablon        UrunSablon?   @relation(fields: [sablon_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
   urunTipFK     UrunTipi?     @relation("UrunTipFK", fields: [urun_tipi_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
   uygulamaTipFK UygulamaTipi? @relation("UygulamaTipFK", fields: [uygulama_tipi_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  lisansTipFK   LisansTipi?   @relation(fields: [lisans_tipi_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
   paketler      Paket[]
   lisanslar     Lisans[]
   surumler      Surum[]
@@ -420,6 +423,7 @@ model Urun {
   @@index([urun_tipi])
   @@index([urun_tipi_id])
   @@index([uygulama_tipi_id])
+  @@index([lisans_tipi_id])
   @@index([silinme_tarihi])
 }
 
@@ -466,6 +470,7 @@ model LisansTipi {
   silinme_tarihi   DateTime? @db.DateTime(0)
 
   lisanslar Lisans[]
+  urunler   Urun[]
 
   @@map("lisans_tipleri")
   @@index([aktif])
