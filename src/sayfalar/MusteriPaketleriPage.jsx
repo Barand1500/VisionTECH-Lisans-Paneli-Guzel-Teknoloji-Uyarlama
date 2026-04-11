@@ -2612,19 +2612,35 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
               </div>
               
               {/* Sağ Taraf - Paket Özellikleri Paneli */}
-              <div className="w-72 shrink-0 border-l border-gray-200 dark:border-white/10 pl-6 space-y-4">
-                {/* Paket Başlığı */}
-                <div className="pb-3 border-b border-gray-200 dark:border-white/10">
-                  <h4 className="text-sm font-semibold text-gray-800 dark:text-white flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>
-                    {seciliPaket ? seciliPaket.adi : "Paket Seçilmedi"}
-                  </h4>
-                  {seciliPaket && (
-                    <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{form.suresiz ? "Süresiz" : `${form.kullanimGunu} gün`}</p>
-                  )}
-                </div>
+              <div className="w-80 shrink-0 border-l border-gray-200 dark:border-white/10 pl-6 space-y-4">
+                {/* Paket Başlık Kartı */}
+                {seciliPaket ? (
+                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 p-4 shadow-lg shadow-blue-500/20">
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-6 -mt-6" />
+                    <div className="absolute bottom-0 left-0 w-14 h-14 bg-white/5 rounded-full -ml-4 -mb-4" />
+                    <div className="relative">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-7 h-7 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                          </svg>
+                        </div>
+                        <h4 className="text-sm font-bold text-white">{seciliPaket.adi}</h4>
+                      </div>
+                      <p className="text-xs text-blue-100 ml-9">{form.suresiz ? "Süresiz lisans" : `${form.kullanimGunu} gün`}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border-2 border-dashed border-gray-200 dark:border-white/10 p-6 text-center">
+                    <div className="w-12 h-12 mx-auto rounded-xl bg-gray-100 dark:bg-white/5 flex items-center justify-center mb-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-gray-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                    </div>
+                    <p className="text-xs font-medium text-gray-400 dark:text-slate-500">Paket Seçilmedi</p>
+                    <p className="text-[10px] text-gray-300 dark:text-slate-600 mt-1">Adım 1'de paket seçin</p>
+                  </div>
+                )}
 
                 {/* Paket Özellikleri Listesi */}
                 {seciliPaket && seciliPaket.ozellikler && (() => {
@@ -2633,23 +2649,25 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                     : seciliPaket.ozellikler;
                   
                   if (paketOzellikler.length === 0) return (
-                    <p className="text-xs text-gray-400 dark:text-slate-500 py-4 text-center">Bu pakette özellik bulunmuyor</p>
+                    <div className="py-6 text-center">
+                      <p className="text-xs text-gray-400 dark:text-slate-500">Bu pakette özellik bulunmuyor</p>
+                    </div>
                   );
 
                   const ozellikStilleri = {
-                    hediye_urun: { icon: "🎁", baslik: "Hediye Ürün", renk: "emerald" },
-                    ek_kullanici_fiyat: { icon: "👥", baslik: "Ek Kullanıcı", renk: "blue" },
-                    indirim: { icon: "🏷️", baslik: "İndirim", renk: "amber" },
-                    ozel_not: { icon: "📝", baslik: "Not", renk: "purple" },
-                    ek_sure: { icon: "⏱️", baslik: "Ek Süre", renk: "cyan" },
-                    temel_fiyat: { icon: "💰", baslik: "Temel Fiyat", renk: "emerald" },
-                    aktivasyon_yenileme: { icon: "🔄", baslik: "Aktivasyon", renk: "amber" },
-                    kullanici_sayisi: { icon: "👤", baslik: "Kullanıcı", renk: "blue" },
-                    sicil_domain: { icon: "🌐", baslik: "Domain", renk: "cyan" },
-                    kademeli_fiyat: { icon: "📊", baslik: "Kademeli", renk: "purple" },
-                    domain_fiyat: { icon: "🔗", baslik: "Domain Fiyat", renk: "teal" },
-                    demo_suresi: { icon: "⏰", baslik: "Demo", renk: "rose" },
-                    metin_karti: { icon: "📝", baslik: "Metin Kartı", renk: "violet" },
+                    hediye_urun: { icon: "🎁", baslik: "Hediye Ürün", bg: "bg-emerald-50 dark:bg-emerald-500/10", border: "border-emerald-200 dark:border-emerald-500/20", accent: "bg-emerald-500" },
+                    ek_kullanici_fiyat: { icon: "👥", baslik: "Ek Kullanıcı", bg: "bg-blue-50 dark:bg-blue-500/10", border: "border-blue-200 dark:border-blue-500/20", accent: "bg-blue-500" },
+                    indirim: { icon: "🏷️", baslik: "İndirim", bg: "bg-amber-50 dark:bg-amber-500/10", border: "border-amber-200 dark:border-amber-500/20", accent: "bg-amber-500" },
+                    ozel_not: { icon: "📝", baslik: "Not", bg: "bg-purple-50 dark:bg-purple-500/10", border: "border-purple-200 dark:border-purple-500/20", accent: "bg-purple-500" },
+                    ek_sure: { icon: "⏱️", baslik: "Ek Süre", bg: "bg-cyan-50 dark:bg-cyan-500/10", border: "border-cyan-200 dark:border-cyan-500/20", accent: "bg-cyan-500" },
+                    temel_fiyat: { icon: "💰", baslik: "Temel Fiyat", bg: "bg-emerald-50 dark:bg-emerald-500/10", border: "border-emerald-200 dark:border-emerald-500/20", accent: "bg-emerald-500" },
+                    aktivasyon_yenileme: { icon: "🔄", baslik: "Aktivasyon", bg: "bg-amber-50 dark:bg-amber-500/10", border: "border-amber-200 dark:border-amber-500/20", accent: "bg-amber-500" },
+                    kullanici_sayisi: { icon: "👤", baslik: "Kullanıcı", bg: "bg-blue-50 dark:bg-blue-500/10", border: "border-blue-200 dark:border-blue-500/20", accent: "bg-blue-500" },
+                    sicil_domain: { icon: "🌐", baslik: "Domain", bg: "bg-cyan-50 dark:bg-cyan-500/10", border: "border-cyan-200 dark:border-cyan-500/20", accent: "bg-cyan-500" },
+                    kademeli_fiyat: { icon: "📊", baslik: "Kademeli", bg: "bg-purple-50 dark:bg-purple-500/10", border: "border-purple-200 dark:border-purple-500/20", accent: "bg-purple-500" },
+                    domain_fiyat: { icon: "🔗", baslik: "Domain Fiyat", bg: "bg-teal-50 dark:bg-teal-500/10", border: "border-teal-200 dark:border-teal-500/20", accent: "bg-teal-500" },
+                    demo_suresi: { icon: "⏰", baslik: "Demo", bg: "bg-rose-50 dark:bg-rose-500/10", border: "border-rose-200 dark:border-rose-500/20", accent: "bg-rose-500" },
+                    metin_karti: { icon: "📋", baslik: "Metin Kartı", bg: "bg-violet-50 dark:bg-violet-500/10", border: "border-violet-200 dark:border-violet-500/20", accent: "bg-violet-500" },
                   };
 
                   const parseDeger = (d) => typeof d === 'string' ? (() => { try { return JSON.parse(d); } catch { return d; } })() : (d || {});
@@ -2683,18 +2701,24 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                   };
 
                   return (
-                    <div className="space-y-2">
+                    <div className="space-y-2.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Paket Özellikleri ({paketOzellikler.length})</p>
                       {paketOzellikler.map((oz, idx) => {
                         const d = parseDeger(oz.deger);
                         const tip = oz.tip || oz.ozellik_tipi;
-                        const stil = ozellikStilleri[tip] || { icon: "⚙️", baslik: tip, renk: "gray" };
+                        const stil = ozellikStilleri[tip] || { icon: "⚙️", baslik: tip, bg: "bg-gray-50 dark:bg-white/5", border: "border-gray-200 dark:border-white/10", accent: "bg-gray-400" };
                         const baslik = tip === 'metin_karti' && d?.baslik ? d.baslik : stil.baslik;
                         return (
-                          <div key={idx} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
-                            <span className="text-sm">{stil.icon}</span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium text-gray-700 dark:text-slate-300">{baslik}</p>
-                              <p className="text-[10px] text-gray-400 dark:text-slate-500 truncate">{degerGoster(d, tip)}</p>
+                          <div key={idx} className={`relative overflow-hidden rounded-xl ${stil.bg} border ${stil.border} p-3 transition-all hover:shadow-md hover:scale-[1.02]`}>
+                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${stil.accent} rounded-l-xl`} />
+                            <div className="flex items-center gap-3 pl-2">
+                              <div className="w-9 h-9 rounded-lg bg-white dark:bg-white/10 shadow-sm flex items-center justify-center shrink-0">
+                                <span className="text-base">{stil.icon}</span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold text-gray-800 dark:text-slate-200">{baslik}</p>
+                                <p className="text-[11px] text-gray-500 dark:text-slate-400 truncate mt-0.5">{degerGoster(d, tip)}</p>
+                              </div>
                             </div>
                           </div>
                         );
@@ -2705,14 +2729,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
 
 
 
-                {!seciliPaket && (
-                  <div className="py-8 text-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 mx-auto text-gray-300 dark:text-slate-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>
-                    <p className="text-xs text-gray-400 dark:text-slate-500">Adım 1'de paket seçin</p>
-                  </div>
-                )}
+                {!seciliPaket && null}
               </div>
             </div>
           )}
