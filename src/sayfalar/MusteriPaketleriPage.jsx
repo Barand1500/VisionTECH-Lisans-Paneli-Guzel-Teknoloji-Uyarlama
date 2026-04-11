@@ -1908,7 +1908,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
   /* Adım validasyonu */
   const adimGecerliMi = (a) => {
     switch (a) {
-      case 1: return !!form.urunId && !!form.paketId;
+      case 1: return !!form.urunId;
       case 2: return !!form.baslangicTarihi && (form.suresiz || !!form.bitisTarihi);
       case 3: return true;
       default: return true;
