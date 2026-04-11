@@ -1666,7 +1666,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
       if (kademe) {
         kademeFiyat = Number(kademe.fiyat) || 0;
         const kademeValue = kademe[birimKey] ?? kademe.adet ?? kademe.kapasite;
-        kademeAdi = `${kademeValue} ${kademe.birim || ""}`;
+        kademeAdi = kademeValue != null ? `${kademeValue} ${kademe.birim || ""}`.trim() : (kademe.birim || "Kademe");
       }
     }
     
@@ -1691,8 +1691,8 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
       }
     }
     
-    // 5. Paket fiyatı
-    if (paket) {
+    // 5. Paket fiyatı (sadece şablon yoksa ekle, şablon varsa özellikler zaten fiyatı içerir)
+    if (paket && !sablonData) {
       paketFiyat = Number(paket.fiyati) || 0;
     }
     
@@ -1756,9 +1756,10 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
       });
     }
     
-    // Toplam hesapla (aktivasyon_yenileme varsa aktivasyon fiyatı, yoksa temel fiyat)
-    const anaFiyat = aktivasyonFiyat > 0 ? aktivasyonFiyat : temelFiyat;
-    const toplam = anaFiyat + paketFiyat + ekKullaniciFiyat + kademeFiyat + domainFiyat + paketOzellikFiyat;
+    // Toplam hesapla
+    // Kademeli fiyat varsa temel fiyatı değil kademe fiyatını kullan (kademe zaten temel fiyatı içerir)
+    const anaFiyat = aktivasyonFiyat > 0 ? aktivasyonFiyat : (kademeFiyat > 0 ? kademeFiyat : temelFiyat);
+    const toplam = anaFiyat + paketFiyat + ekKullaniciFiyat + domainFiyat + paketOzellikFiyat;
     
     // KDV hesapla
     const kdvAktif = sablonData?.kdv_aktif || false;
@@ -2762,7 +2763,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                       <span className="font-medium">₺{fiyatBreakdown.aktivasyonFiyat.toLocaleString("tr-TR")}</span>
                     </div>
                   )}
-                  {fiyatBreakdown.temelFiyat > 0 && !fiyatBreakdown.aktivasyonFiyat && (
+                  {fiyatBreakdown.temelFiyat > 0 && !fiyatBreakdown.aktivasyonFiyat && !fiyatBreakdown.kademeFiyat && (
                     <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-white/10">
                       <span className="text-gray-600 dark:text-slate-400">Temel Fiyat</span>
                       <span className="font-medium">₺{fiyatBreakdown.temelFiyat.toLocaleString("tr-TR")}</span>
