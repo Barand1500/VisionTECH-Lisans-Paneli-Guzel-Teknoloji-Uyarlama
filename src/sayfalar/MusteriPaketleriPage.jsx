@@ -1522,11 +1522,11 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
     urunId: "",
     paketId: "",
     /* Adım 2: Lisans Bilgileri */
-    lisansTipi: "standart",
-    suresiz: false,
+    lisansTipi: lisansTipleri.length > 0 ? lisansTipleri[0].id : "",
+    suresiz: lisansTipleri.length > 0 ? !!lisansTipleri[0].suresiz : false,
     baslangicTarihi: new Date().toISOString().slice(0, 10),
-    kullanimGunu: 365,
-    bitisTarihi: tarihEkle(new Date().toISOString().slice(0, 10), 365),
+    kullanimGunu: lisansTipleri.length > 0 ? (lisansTipleri[0].suresiz ? 0 : lisansTipleri[0].gun) : 365,
+    bitisTarihi: tarihEkle(new Date().toISOString().slice(0, 10), lisansTipleri.length > 0 ? (lisansTipleri[0].suresiz ? 0 : lisansTipleri[0].gun) : 365),
     domain: "",
     kullaniciSayisi: 1,
     ekKullanici: 0,
@@ -1830,7 +1830,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
         const oran = alan === "indirimOrani" ? Number(deger) : Number(o.indirimOrani);
         let tutar = alan === "indirimTutari" ? Number(deger) : Number(o.indirimTutari);
         
-        if (alan === "indirimOrani") {
+        if (alan === "indirimOrani" || alan === "fiyat") {
           tutar = brut * oran / 100;
           yeni.indirimTutari = tutar;
         }
@@ -2228,7 +2228,6 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                       <button
                         key={t.id}
                         onClick={() => {
-                          guncelle("lisansTipi", t.id);
                           if (t.suresiz) {
                             setForm(o => ({ ...o, lisansTipi: t.id, suresiz: true, kullanimGunu: 0 }));
                           } else {
