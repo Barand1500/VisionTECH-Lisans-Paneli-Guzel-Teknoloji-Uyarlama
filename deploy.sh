@@ -33,6 +33,7 @@ ssh ${SUNUCU_KULLANICI}@${SUNUCU_IP} << 'UZAK_KOMUT'
   cd backend
   npm install --production
   npx prisma generate
+  npx prisma db push --accept-data-loss
   echo "  -> Backend yeniden baslatiliyor..."
   pm2 restart guzel-teknoloji || pm2 start sunucu.js --name guzel-teknoloji
   cd ..
