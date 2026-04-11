@@ -306,9 +306,7 @@ function UrunlerSekmesi() {
         sablon_id: veri.sablonId || null,
         ozellikler: JSON.stringify((() => {
           const oz = { ...(veri.gelismisAyarlar || {}) };
-          if (Number(veri.fiyat) > 0) {
-            oz.temel_fiyat = { fiyat: Number(veri.fiyat), para_birimi: veri.paraBirimi || "TL" };
-          }
+          oz.temel_fiyat = { fiyat: Number(veri.fiyat) || 0, para_birimi: veri.paraBirimi || "TL" };
           return oz;
         })()),
       };

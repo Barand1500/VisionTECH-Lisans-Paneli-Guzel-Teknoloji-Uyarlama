@@ -1863,7 +1863,7 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
   /* Adım validasyonu */
   const adimGecerliMi = (a) => {
     switch (a) {
-      case 1: return !!form.urunId;
+      case 1: return !!form.urunId && !!form.paketId;
       case 2: return !!form.baslangicTarihi && (form.suresiz || !!form.bitisTarihi);
       case 3: return true;
       default: return true;

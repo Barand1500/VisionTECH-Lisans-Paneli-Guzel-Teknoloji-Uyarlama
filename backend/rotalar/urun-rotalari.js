@@ -389,6 +389,9 @@ router.post("/paketler", hataYakala(async (req, res) => {
   const { urun_id, ad, tipi, kullanim_gunu, fiyat, para_birimi, kullanici_sayisi, aktif, ozellikler } = req.body;
   if (!urun_id || !ad) return dogrulamaHatasi(res, "Urun ve paket adi zorunludur.");
 
+  const urunVar = await prisma.urun.findUnique({ where: { id: Number(urun_id) }, select: { id: true } });
+  if (!urunVar) return dogrulamaHatasi(res, "Belirtilen urun bulunamadi.");
+
   let nihaiFiyat = guvenliSayi(fiyat, 0);
   let nihaiOzellikler = ozellikler || null;
 

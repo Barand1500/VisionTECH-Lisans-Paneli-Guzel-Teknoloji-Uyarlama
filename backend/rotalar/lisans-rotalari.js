@@ -113,10 +113,24 @@ router.post("/", hataYakala(async (req, res) => {
   if (!baslangic_tarihi) return dogrulamaHatasi(res, "Baslangic tarihi zorunludur.");
   if (!suresiz && !bitis_tarihi) return dogrulamaHatasi(res, "Bitis tarihi zorunludur (suresiz degilse).");
 
+  /* FK varlık kontrolleri */
+  if (urun_id) {
+    const urunVar = await prisma.urun.findUnique({ where: { id: Number(urun_id) }, select: { id: true } });
+    if (!urunVar) return dogrulamaHatasi(res, "Belirtilen urun bulunamadi.");
+  }
+  if (paket_id) {
+    const paketVar = await prisma.paket.findUnique({ where: { id: Number(paket_id) }, select: { id: true } });
+    if (!paketVar) return dogrulamaHatasi(res, "Belirtilen paket bulunamadi.");
+  }
+  if (bayi_id) {
+    const bayiVar = await prisma.bayi.findUnique({ where: { id: Number(bayi_id) }, select: { id: true } });
+    if (!bayiVar) return dogrulamaHatasi(res, "Belirtilen bayi bulunamadi.");
+  }
+
   const brut = Number(fiyat) || 0;
   const indOran = Number(indirim_orani) || 0;
   const indTutar = Number(indirim_tutari) || 0;
-  const hesaplananNet = net_tutar !== undefined ? Number(net_tutar) : brut - (brut * indOran / 100) - indTutar;
+  const hesaplananNet = Math.max(0, net_tutar !== undefined ? Number(net_tutar) : brut - (brut * indOran / 100) - indTutar);
 
   /* Şablon verilerini moduller alanına birleştir */
   let birlesikModuller = moduller || {};
@@ -229,9 +243,9 @@ router.put("/:id", hataYakala(async (req, res) => {
     if (indTutar !== undefined) data.indirim_tutari = indTutar;
 
     if (net_tutar !== undefined) {
-      data.net_tutar = Number(net_tutar);
+      data.net_tutar = Math.max(0, Number(net_tutar));
     } else if (brut !== undefined) {
-      data.net_tutar = brut - (brut * (indOran || 0) / 100) - (indTutar || 0);
+      data.net_tutar = Math.max(0, brut - (brut * (indOran || 0) / 100) - (indTutar || 0));
     }
   }
 

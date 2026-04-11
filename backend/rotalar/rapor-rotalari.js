@@ -3,9 +3,13 @@ const router = express.Router();
 const { prisma, temizle } = require("../veritabani/prisma");
 const { hataYakala } = require("../yardimcilar/hata-yonetimi");
 
+const tarihRegex = /^\d{4}-\d{2}-\d{2}/;
+const tarihGecerliMi = (val) => !val || tarihRegex.test(val);
+
 /* ---- Satis Raporu ---- */
 router.get("/satislar", hataYakala(async (req, res) => {
   const { baslangic, bitis } = req.query;
+  if (!tarihGecerliMi(baslangic) || !tarihGecerliMi(bitis)) return res.status(400).json({ basarili: false, mesaj: "Gecersiz tarih formati (YYYY-MM-DD)." });
   let where = "";
   const params = [];
   if (baslangic) { where += " AND l.olusturma_tarihi >= ?"; params.push(baslangic); }
@@ -155,6 +159,7 @@ router.get("/suresi-bitenler", hataYakala(async (_req, res) => {
 /* ---- Tahsilat Raporu ---- */
 router.get("/tahsilatlar", hataYakala(async (req, res) => {
   const { baslangic, bitis } = req.query;
+  if (!tarihGecerliMi(baslangic) || !tarihGecerliMi(bitis)) return res.status(400).json({ basarili: false, mesaj: "Gecersiz tarih formati (YYYY-MM-DD)." });
   let where = "";
   const params = [];
   if (baslangic) { where += " AND l.olusturma_tarihi >= ?"; params.push(baslangic); }
