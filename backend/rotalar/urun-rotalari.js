@@ -219,11 +219,21 @@ router.get("/", hataYakala(async (_req, res) => {
    ============================================================ */
 
 router.get("/paketler/tumu", hataYakala(async (_req, res) => {
-  const veriler = await prisma.paket.findMany({
-    where: { silinme_tarihi: null },
-    include: { urun: { select: { ad: true } }, lisansTipi: { select: { id: true, ad: true, kod: true, gun: true, suresiz: true, renk: true } } },
-    orderBy: { id: "desc" },
-  });
+  let veriler;
+  try {
+    veriler = await prisma.paket.findMany({
+      where: { silinme_tarihi: null },
+      include: { urun: { select: { ad: true } }, lisansTipi: { select: { id: true, ad: true, kod: true, gun: true, suresiz: true, renk: true } } },
+      orderBy: { id: "desc" },
+    });
+  } catch {
+    // lisans_tipi_id kolonu henuz yoksa lisansTipi olmadan sorgula
+    veriler = await prisma.paket.findMany({
+      where: { silinme_tarihi: null },
+      include: { urun: { select: { ad: true } } },
+      orderBy: { id: "desc" },
+    });
+  }
   const sonuc = veriler.map(({ urun, lisansTipi, ...p }) => ({ ...p, urun_adi: urun?.ad || null, lisans_tipi_adi: lisansTipi?.ad || null, lisans_tipi_gun: lisansTipi?.gun || null, lisans_tipi_suresiz: lisansTipi?.suresiz || 0, lisans_tipi_renk: lisansTipi?.renk || null }));
   res.json({ basarili: true, veri: temizle(sonuc) });
 }));
@@ -455,11 +465,19 @@ router.delete("/:id", hataYakala(async (req, res) => {
 
 router.get("/:urunId/paketler", hataYakala(async (req, res) => {
   const urun_id = Number(req.params.urunId);
-  const paketler = await prisma.paket.findMany({
-    where: { urun_id, silinme_tarihi: null },
-    include: { lisansTipi: { select: { id: true, ad: true, kod: true, gun: true, suresiz: true, renk: true } } },
-    orderBy: { id: "desc" },
-  });
+  let paketler;
+  try {
+    paketler = await prisma.paket.findMany({
+      where: { urun_id, silinme_tarihi: null },
+      include: { lisansTipi: { select: { id: true, ad: true, kod: true, gun: true, suresiz: true, renk: true } } },
+      orderBy: { id: "desc" },
+    });
+  } catch {
+    paketler = await prisma.paket.findMany({
+      where: { urun_id, silinme_tarihi: null },
+      orderBy: { id: "desc" },
+    });
+  }
   const sonuc = paketler.map(({ lisansTipi, ...p }) => ({ ...p, lisans_tipi_adi: lisansTipi?.ad || null, lisans_tipi_gun: lisansTipi?.gun || null, lisans_tipi_suresiz: lisansTipi?.suresiz || 0, lisans_tipi_renk: lisansTipi?.renk || null }));
   res.json({ basarili: true, veri: temizle(sonuc) });
 }));
