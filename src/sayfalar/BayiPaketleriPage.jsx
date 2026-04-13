@@ -1494,11 +1494,11 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
     urunId: "",
     paketId: "",
     /* Adım 2: Lisans Bilgileri */
-    lisansTipi: lisansTipleri.length > 0 ? lisansTipleri[0].id : "",
-    suresiz: lisansTipleri.length > 0 ? !!lisansTipleri[0].suresiz : false,
+    lisansTipi: "",
+    suresiz: false,
     baslangicTarihi: new Date().toISOString().slice(0, 10),
-    kullanimGunu: lisansTipleri.length > 0 ? (lisansTipleri[0].suresiz ? 0 : lisansTipleri[0].gun) : 365,
-    bitisTarihi: tarihEkle(new Date().toISOString().slice(0, 10), lisansTipleri.length > 0 ? (lisansTipleri[0].suresiz ? 0 : lisansTipleri[0].gun) : 365),
+    kullanimGunu: 365,
+    bitisTarihi: tarihEkle(new Date().toISOString().slice(0, 10), 365),
     domain: "",
     kullaniciSayisi: 1,
     ekKullanici: 0,
@@ -1732,7 +1732,8 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
       });
     }
     
-    const anaFiyat = aktivasyonFiyat > 0 ? aktivasyonFiyat : (kademeFiyat > 0 ? kademeFiyat : temelFiyat);
+    // Temel fiyat her zaman dahil, kademe ve aktivasyon üzerine eklenir
+    const anaFiyat = temelFiyat + kademeFiyat + aktivasyonFiyat;
     const toplam = anaFiyat + paketFiyat + ekKullaniciFiyat + domainFiyat + paketOzellikFiyat;
     
     // KDV hesapla
@@ -2671,13 +2672,27 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
                   };
 
                   return (
-                    <div className="space-y-2.5">
+                    <div className="space-y-2">
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Paket Özellikleri ({paketOzellikler.length})</p>
                       {paketOzellikler.map((oz, idx) => {
-                        const d = parseDeger(oz.deger);
                         const tip = oz.tip || oz.ozellik_tipi;
+                        
+                        // metin_karti: sadece yazıyı göster
+                        if (tip === 'metin_karti') {
+                          const metin = String(oz.deger ?? "");
+                          return (
+                            <div key={idx} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                              <span className="text-xs text-indigo-500 font-bold">{idx + 1}.</span>
+                              <span className="text-xs text-gray-700 dark:text-slate-300">{metin}</span>
+                            </div>
+                          );
+                        }
+
+                        // Diğer tipler: icon + başlık + değer
+                        const d = parseDeger(oz.deger);
                         const stil = ozellikStilleri[tip] || { icon: "⚙️", baslik: tip, bg: "bg-gray-50 dark:bg-white/5", border: "border-gray-200 dark:border-white/10", accent: "bg-gray-400" };
-                        const baslik = tip === 'metin_karti' && d?.baslik ? d.baslik : stil.baslik;
+                        const baslik = oz.ozellik_adi || stil.baslik;
+                        const altMetin = degerGoster(d, tip);
                         return (
                           <div key={idx} className={`relative overflow-hidden rounded-xl ${stil.bg} border ${stil.border} p-3 transition-all hover:shadow-md hover:scale-[1.02]`}>
                             <div className={`absolute left-0 top-0 bottom-0 w-1 ${stil.accent} rounded-l-xl`} />
@@ -2687,7 +2702,9 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-semibold text-gray-800 dark:text-slate-200">{baslik}</p>
-                                <p className="text-[11px] text-gray-500 dark:text-slate-400 truncate mt-0.5">{degerGoster(d, tip)}</p>
+                                {altMetin && altMetin !== "-" && (
+                                  <p className="text-[11px] text-gray-500 dark:text-slate-400 truncate mt-0.5">{altMetin}</p>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -2730,7 +2747,7 @@ function YeniPaketModal({ bayiId, kapat, onBasarili, urunler, gruplar = [], pake
                       <span className="font-medium">₺{fiyatBreakdown.aktivasyonFiyat.toLocaleString("tr-TR")}</span>
                     </div>
                   )}
-                  {fiyatBreakdown.temelFiyat > 0 && !fiyatBreakdown.aktivasyonFiyat && !fiyatBreakdown.kademeFiyat && (
+                  {fiyatBreakdown.temelFiyat > 0 && (
                     <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-white/10">
                       <span className="text-gray-600 dark:text-slate-400">Temel Fiyat</span>
                       <span className="font-medium">₺{fiyatBreakdown.temelFiyat.toLocaleString("tr-TR")}</span>
