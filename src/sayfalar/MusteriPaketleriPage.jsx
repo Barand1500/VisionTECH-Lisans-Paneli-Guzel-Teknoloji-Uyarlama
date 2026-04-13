@@ -2863,25 +2863,27 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                   };
 
                   return (
-                    <div className="space-y-2.5">
+                    <div className="space-y-2">
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Paket Özellikleri ({paketOzellikler.length})</p>
                       {paketOzellikler.map((oz, idx) => {
-                        const d = parseDeger(oz.deger);
                         const tip = oz.tip || oz.ozellik_tipi;
-                        const stil = ozellikStilleri[tip] || { icon: "⚙️", baslik: tip, bg: "bg-gray-50 dark:bg-white/5", border: "border-gray-200 dark:border-white/10", accent: "bg-gray-400" };
                         
-                        // metin_karti: değerin kendisi başlık olarak gösterilir
-                        let baslik = stil.baslik;
-                        let altMetin = degerGoster(d, tip);
+                        // metin_karti: sadece yazıyı göster, başka bir şey yok
                         if (tip === 'metin_karti') {
-                          // oz.deger ham veriyi kullan (parseDeger sayıya çevirebilir)
-                          const ham = oz.deger;
-                          const icerik = typeof ham === 'string' ? ham : (typeof d === 'string' ? d : (d?.icerik || d?.baslik || d?.aciklama || d?.metin || String(d ?? "")));
-                          baslik = icerik || stil.baslik;
-                          altMetin = null;
-                        } else {
-                          baslik = oz.ozellik_adi || baslik;
+                          const metin = String(oz.deger ?? "");
+                          return (
+                            <div key={idx} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                              <span className="text-xs text-indigo-500 font-bold">{idx + 1}.</span>
+                              <span className="text-xs text-gray-700 dark:text-slate-300">{metin}</span>
+                            </div>
+                          );
                         }
+
+                        // Diğer tipler: icon + başlık + değer
+                        const d = parseDeger(oz.deger);
+                        const stil = ozellikStilleri[tip] || { icon: "⚙️", baslik: tip, bg: "bg-gray-50 dark:bg-white/5", border: "border-gray-200 dark:border-white/10", accent: "bg-gray-400" };
+                        const baslik = oz.ozellik_adi || stil.baslik;
+                        const altMetin = degerGoster(d, tip);
                         
                         return (
                           <div key={idx} className={`relative overflow-hidden rounded-xl ${stil.bg} border ${stil.border} p-3 transition-all hover:shadow-md hover:scale-[1.02]`}>
