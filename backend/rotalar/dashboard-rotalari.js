@@ -6,8 +6,11 @@ const { hataYakala } = require("../yardimcilar/hata-yonetimi");
 /* ---- Ozet Kartlar ---- */
 router.get("/ozet", hataYakala(async (_req, res) => {
   const [musteriler] = await prisma.$queryRawUnsafe(`SELECT COUNT(*) as toplam FROM musteriler WHERE silinme_tarihi IS NULL`);
-  const [bayiler] = await prisma.$queryRawUnsafe(`SELECT COUNT(*) as toplam FROM bayiler WHERE silinme_tarihi IS NULL`);
+  const [aktifBayiler] = await prisma.$queryRawUnsafe(`SELECT COUNT(*) as toplam FROM bayiler WHERE silinme_tarihi IS NULL AND durum = 'aktif'`);
+  const [toplamBayiler] = await prisma.$queryRawUnsafe(`SELECT COUNT(*) as toplam FROM bayiler WHERE silinme_tarihi IS NULL`);
   const [aktifLisanslar] = await prisma.$queryRawUnsafe(`SELECT COUNT(*) as toplam FROM lisanslar WHERE durum = 'aktif'`);
+  const [pasifLisanslar] = await prisma.$queryRawUnsafe(`SELECT COUNT(*) as toplam FROM lisanslar WHERE durum != 'aktif'`);
+  const [suresizLisanslar] = await prisma.$queryRawUnsafe(`SELECT COUNT(*) as toplam FROM lisanslar WHERE durum = 'aktif' AND suresiz = 1`);
   const [urunler] = await prisma.$queryRawUnsafe(`SELECT COUNT(*) as toplam FROM urunler WHERE aktif = 1`);
 
   const [aylikGelir] = await prisma.$queryRawUnsafe(`
@@ -24,8 +27,11 @@ router.get("/ozet", hataYakala(async (_req, res) => {
     basarili: true,
     veri: temizle({
       toplamMusteri: musteriler.toplam,
-      aktifBayi: bayiler.toplam,
+      aktifBayi: aktifBayiler.toplam,
+      toplamBayi: toplamBayiler.toplam,
       aktifLisans: aktifLisanslar.toplam,
+      pasifLisans: pasifLisanslar.toplam,
+      suresizLisans: suresizLisanslar.toplam,
       toplamUrun: urunler.toplam,
       aylikGelir: aylikGelir.toplam,
       buAyBitenLisans: yaklasanLisans.toplam,

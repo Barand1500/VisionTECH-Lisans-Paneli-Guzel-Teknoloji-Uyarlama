@@ -131,7 +131,7 @@ export default function DashboardHome() {
   const [grafikTuru, setGrafikTuru] = useState("musteriler");
 
   /* ---- API Verileri ---- */
-  const [ozetVerisi, setOzetVerisi] = useState({ toplamMusteri: 0, aktifBayi: 0, aktifLisans: 0, buAyBitenLisans: 0 });
+  const [ozetVerisi, setOzetVerisi] = useState({ toplamMusteri: 0, aktifBayi: 0, toplamBayi: 0, aktifLisans: 0, pasifLisans: 0, suresizLisans: 0, toplamUrun: 0, aylikGelir: 0, buAyBitenLisans: 0 });
   const [aylikMusteriler, setAylikMusteriler] = useState([]);
   const [aylikBayiler, setAylikBayiler] = useState([]);
   const [musteriDagilimi, setMusteriDagilimi] = useState([]);
@@ -206,9 +206,10 @@ export default function DashboardHome() {
 
   const bolumGorunurMu = (id) => bolumSirasi.find((b) => b.id === id)?.gorunur !== false;
 
-  /* ---- Özet Kartları ---- */
-  const ozetKartlari = [
+  /* ---- Tüm Özet Kart Tanımları ---- */
+  const TUMU_KARTLAR = [
     {
+      id: "toplamMusteri",
       baslik: "Toplam Müşteri",
       deger: String(ozetVerisi.toplamMusteri),
       degisim: "Toplam kayıtlı",
@@ -224,6 +225,7 @@ export default function DashboardHome() {
       ),
     },
     {
+      id: "aktifBayi",
       baslik: "Toplam Aktif Bayi",
       deger: String(ozetVerisi.aktifBayi),
       degisim: "Aktif bayiler",
@@ -239,6 +241,7 @@ export default function DashboardHome() {
       ),
     },
     {
+      id: "aktifLisans",
       baslik: "Toplam Aktif Lisans",
       deger: String(ozetVerisi.aktifLisans),
       degisim: "Aktif lisanslar",
@@ -254,6 +257,7 @@ export default function DashboardHome() {
       ),
     },
     {
+      id: "buAyBitenLisans",
       baslik: "Bu Ay Biten Lisanslar",
       deger: String(ozetVerisi.buAyBitenLisans),
       degisim: "Acil yenileme gerekli",
@@ -269,7 +273,127 @@ export default function DashboardHome() {
         </svg>
       ),
     },
+    {
+      id: "toplamBayi",
+      baslik: "Toplam Bayi",
+      deger: String(ozetVerisi.toplamBayi),
+      degisim: "Tüm bayiler",
+      degisimPositif: true,
+      renk: "from-teal-600 to-teal-400",
+      ikonBg: "bg-teal-100 dark:bg-teal-500/20",
+      ikonRenk: "text-teal-600 dark:text-teal-400",
+      yol: "/dashboard/bayiler",
+      ikon: (
+        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Z" />
+        </svg>
+      ),
+    },
+    {
+      id: "toplamUrun",
+      baslik: "Toplam Ürün",
+      deger: String(ozetVerisi.toplamUrun),
+      degisim: "Aktif ürünler",
+      degisimPositif: true,
+      renk: "from-cyan-600 to-cyan-400",
+      ikonBg: "bg-cyan-100 dark:bg-cyan-500/20",
+      ikonRenk: "text-cyan-600 dark:text-cyan-400",
+      yol: null,
+      ikon: (
+        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+        </svg>
+      ),
+    },
+    {
+      id: "aylikGelir",
+      baslik: "Bu Ay Gelir",
+      deger: String(ozetVerisi.aylikGelir),
+      degisim: "Bu ayki gelir",
+      degisimPositif: true,
+      renk: "from-amber-600 to-amber-400",
+      ikonBg: "bg-amber-100 dark:bg-amber-500/20",
+      ikonRenk: "text-amber-600 dark:text-amber-400",
+      yol: null,
+      paraFormatli: true,
+      ikon: (
+        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+      ),
+    },
+    {
+      id: "pasifLisans",
+      baslik: "Pasif Lisanslar",
+      deger: String(ozetVerisi.pasifLisans),
+      degisim: "Pasif/İptal lisanslar",
+      degisimPositif: false,
+      renk: "from-gray-600 to-gray-400",
+      ikonBg: "bg-gray-100 dark:bg-gray-500/20",
+      ikonRenk: "text-gray-600 dark:text-gray-400",
+      yol: null,
+      ikon: (
+        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
+        </svg>
+      ),
+    },
+    {
+      id: "suresizLisans",
+      baslik: "Süresiz Lisanslar",
+      deger: String(ozetVerisi.suresizLisans),
+      degisim: "Süresiz aktif lisanslar",
+      degisimPositif: true,
+      renk: "from-indigo-600 to-indigo-400",
+      ikonBg: "bg-indigo-100 dark:bg-indigo-500/20",
+      ikonRenk: "text-indigo-600 dark:text-indigo-400",
+      yol: null,
+      ikon: (
+        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" />
+        </svg>
+      ),
+    },
   ];
+
+  /* ---- Kart Seçimi (localStorage) ---- */
+  const VARSAYILAN_KARTLAR = ["toplamMusteri", "aktifBayi", "aktifLisans", "buAyBitenLisans"];
+
+  function kartSeciminiOku() {
+    try {
+      const kayitli = localStorage.getItem("gt_dashboard_kartlar");
+      if (kayitli) {
+        const parsed = JSON.parse(kayitli);
+        if (Array.isArray(parsed) && parsed.length <= 4 && parsed.every((k) => typeof k === "string")) {
+          return parsed;
+        }
+      }
+    } catch { /* ignore */ }
+    return VARSAYILAN_KARTLAR;
+  }
+
+  const [seciliKartlar, setSeciliKartlar] = useState(kartSeciminiOku);
+  const [kartAyarPaneli, setKartAyarPaneli] = useState(false);
+
+  const kartSeciminiKaydet = (yeni) => {
+    setSeciliKartlar(yeni);
+    localStorage.setItem("gt_dashboard_kartlar", JSON.stringify(yeni));
+  };
+
+  const kartToggle = (kartId) => {
+    if (seciliKartlar.includes(kartId)) {
+      kartSeciminiKaydet(seciliKartlar.filter((k) => k !== kartId));
+    } else if (seciliKartlar.length < 4) {
+      kartSeciminiKaydet([...seciliKartlar, kartId]);
+    }
+  };
+
+  const kartlariSifirla = () => {
+    kartSeciminiKaydet(VARSAYILAN_KARTLAR);
+  };
+
+  const ozetKartlari = TUMU_KARTLAR.filter((k) => seciliKartlar.includes(k.id))
+    .sort((a, b) => seciliKartlar.indexOf(a.id) - seciliKartlar.indexOf(b.id));
 
   /* ---- İşlem rozetleri ---- */
   const islemRozeti = (islem) => {
@@ -351,10 +475,15 @@ export default function DashboardHome() {
 
           {/* Ayar Paneli */}
           {ayarPaneli && (
-            <div className="absolute right-0 top-11 z-40 w-72 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 shadow-xl">
+            <div className="absolute right-0 top-11 z-40 w-80 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 shadow-xl max-h-[80vh] overflow-y-auto">
               <div className="px-4 py-3 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
                 <p className="text-sm font-bold text-gray-900 dark:text-white">Dashboard Özelleştir</p>
-                <button onClick={ayarlariSifirla} className="text-[11px] text-violet-600 dark:text-violet-400 hover:underline cursor-pointer font-medium">Sıfırla</button>
+                <button onClick={() => { ayarlariSifirla(); kartlariSifirla(); }} className="text-[11px] text-violet-600 dark:text-violet-400 hover:underline cursor-pointer font-medium">Tümünü Sıfırla</button>
+              </div>
+
+              {/* Bölüm Sıralaması */}
+              <div className="px-4 pt-3 pb-1">
+                <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Bölümler</p>
               </div>
               <div className="p-2 space-y-1">
                 {bolumSirasi.map((b, idx) => {
@@ -362,7 +491,6 @@ export default function DashboardHome() {
                   if (!tanim) return null;
                   return (
                     <div key={b.id} className={`flex items-center gap-2 px-2.5 py-2 rounded-lg transition-colors ${b.gorunur ? "bg-gray-50 dark:bg-white/[0.03]" : "opacity-50"}`}>
-                      {/* Yukarı / Aşağı */}
                       <div className="flex flex-col gap-0.5">
                         <button onClick={() => bolumTasi(idx, -1)} disabled={idx === 0}
                           className="w-5 h-4 flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-white disabled:opacity-20 cursor-pointer disabled:cursor-default transition-colors">
@@ -373,12 +501,10 @@ export default function DashboardHome() {
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                         </button>
                       </div>
-                      {/* İkon + İsim */}
                       <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400 dark:text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d={tanim.ikon} />
                       </svg>
                       <span className="flex-1 text-sm text-gray-700 dark:text-slate-300 font-medium">{tanim.baslik}</span>
-                      {/* Göster / Gizle Toggle */}
                       <button onClick={() => bolumGorunurluk(b.id)}
                         className={`w-9 h-5 rounded-full relative transition-colors duration-200 cursor-pointer ${
                           b.gorunur ? "bg-violet-500" : "bg-gray-300 dark:bg-white/10"
@@ -391,8 +517,47 @@ export default function DashboardHome() {
                   );
                 })}
               </div>
+
+              {/* Kart Seçimi */}
+              <div className="px-4 pt-3 pb-1 border-t border-gray-200 dark:border-white/10">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Özet Kartları</p>
+                  <span className="text-[11px] text-gray-400 dark:text-slate-500">{seciliKartlar.length}/4 seçili</span>
+                </div>
+              </div>
+              <div className="p-2 space-y-1">
+                {TUMU_KARTLAR.map((kart) => {
+                  const secili = seciliKartlar.includes(kart.id);
+                  const dolu = seciliKartlar.length >= 4 && !secili;
+                  return (
+                    <button
+                      key={kart.id}
+                      onClick={() => !dolu && kartToggle(kart.id)}
+                      disabled={dolu}
+                      className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-colors cursor-pointer disabled:cursor-not-allowed ${
+                        secili ? "bg-violet-50 dark:bg-violet-500/10" : dolu ? "opacity-30" : "hover:bg-gray-50 dark:hover:bg-white/[0.03]"
+                      }`}
+                    >
+                      <div className={`shrink-0 w-7 h-7 rounded-md ${kart.ikonBg} flex items-center justify-center ${kart.ikonRenk}`}>
+                        <div className="w-4 h-4">{kart.ikon}</div>
+                      </div>
+                      <span className="flex-1 text-sm text-gray-700 dark:text-slate-300 font-medium text-left">{kart.baslik}</span>
+                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                        secili ? "bg-violet-500 border-violet-500" : "border-gray-300 dark:border-white/20"
+                      }`}>
+                        {secili && (
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
               <div className="px-4 py-2.5 border-t border-gray-200 dark:border-white/10">
-                <p className="text-[11px] text-gray-400 dark:text-slate-500">Bölümleri yukarı/aşağı ok ile sıralayın, toggle ile gizleyin.</p>
+                <p className="text-[11px] text-gray-400 dark:text-slate-500">Bölümleri sıralayın/gizleyin. Kartlardan en fazla 4 adet seçin.</p>
               </div>
             </div>
           )}
@@ -435,7 +600,7 @@ export default function DashboardHome() {
                   {kart.baslik}
                 </p>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                  <AnimasyonluSayi hedef={kart.deger} />
+                  {kart.paraFormatli && "₺"}<AnimasyonluSayi hedef={kart.deger} />
                 </p>
                 <p
                   className={`text-xs font-medium ${
