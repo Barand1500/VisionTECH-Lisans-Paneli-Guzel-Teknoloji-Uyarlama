@@ -1,4 +1,5 @@
 const mysql = require("mysql2/promise");
+const { connect } = require("./rotalar/lisans-rotalari");
 require("dotenv").config();
 
 (async () => {

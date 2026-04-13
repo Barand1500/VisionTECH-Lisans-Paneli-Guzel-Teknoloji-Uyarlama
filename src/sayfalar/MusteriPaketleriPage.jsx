@@ -1535,6 +1535,8 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
   const [sablonDegerler, setSablonDegerler] = useState({});
   const [fiyatBreakdown, setFiyatBreakdown] = useState({ temelFiyat: 0, paketFiyat: 0, ekKullaniciFiyat: 0, ekKullaniciAdet: 0, ekKullaniciBirim: 0, toplam: 0 });
   const [suresizTarihAcik, setSuresizTarihAcik] = useState(false);
+  const [lisansTipiAcik, setLisansTipiAcik] = useState(false);
+  const [sureKaynagi, setSureKaynagi] = useState(null); // { tip: "paket"|"urun"|"lisansTipi", ad: string, gun: number }
 
   /* Form state */
   const [form, setForm] = useState({
@@ -1824,26 +1826,45 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
       if (alan === "lisansTipi") {
         const tip = lisansTipleri.find((t) => t.id === deger);
         if (tip) {
-          /* Lisans tipi her zaman süreyi belirler */
-          yeni.kullanimGunu = tip.gun;
-          yeni.bitisTarihi = tarihEkle(o.baslangicTarihi, tip.gun);
+          /* Lisans tipi kullanıcı tarafından seçildi — override */
+          yeni.suresiz = !!tip.suresiz;
+          yeni.kullanimGunu = tip.suresiz ? 0 : tip.gun;
+          yeni.bitisTarihi = tarihEkle(o.baslangicTarihi, tip.suresiz ? 0 : tip.gun);
         }
       }
       
       if (alan === "paketId" && deger) {
         const paket = paketler.find((p) => p.id === Number(deger));
         if (paket) {
-          /* Sadece kullanıcı sayısı paketten alınır - süre lisans tipinden gelir */
           yeni.kullaniciSayisi = paket.kullaniciSayisi || 1;
-          /* Fiyat hesaplaması useEffect'te yapılacak */
+          /* Süre paketten alınır */
+          const paketSuresiz = paket.lisansTipiSuresiz === 1;
+          const paketGun = paketSuresiz ? 0 : (paket.kullanimGunu || 365);
+          yeni.suresiz = paketSuresiz;
+          yeni.kullanimGunu = paketGun;
+          yeni.bitisTarihi = tarihEkle(o.baslangicTarihi, paketGun);
         }
       }
       
-      /* Paket kaldırılırsa varsayılan değerlere dön */
+      /* Paket kaldırılırsa ürünün varsayılan süresine dön */
       if (alan === "paketId" && !deger) {
         yeni.kullaniciSayisi = 1;
-        /* Süre zaten lisans tipinden geliyor - ek işlem gerekmez */
-        /* Fiyat hesaplaması useEffect'te yapılacak */
+        const urun = urunler.find((u) => u.id === Number(o.urunId));
+        if (urun && urun.varsayilan_gun) {
+          yeni.suresiz = false;
+          yeni.kullanimGunu = urun.varsayilan_gun;
+          yeni.bitisTarihi = tarihEkle(o.baslangicTarihi, urun.varsayilan_gun);
+        }
+      }
+
+      /* Ürün değiştiğinde (paket henüz yok) ürün süresini baz al */
+      if (alan === "urunId" && deger) {
+        const urun = urunler.find((u) => u.id === Number(deger));
+        if (urun && urun.varsayilan_gun) {
+          yeni.suresiz = false;
+          yeni.kullanimGunu = urun.varsayilan_gun;
+          yeni.bitisTarihi = tarihEkle(o.baslangicTarihi, urun.varsayilan_gun);
+        }
       }
       
       if (alan === "fiyat" || alan === "indirimOrani" || alan === "indirimTutari") {
@@ -1861,6 +1882,28 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
       return yeni;
     });
   };
+
+  /* Süre kaynağını takip et */
+  useEffect(() => {
+    if (seciliPaket) {
+      const paketSuresiz = seciliPaket.lisansTipiSuresiz === 1;
+      setSureKaynagi({
+        tip: "paket",
+        ad: seciliPaket.adi || seciliPaket.ad || "Paket",
+        gun: paketSuresiz ? 0 : (seciliPaket.kullanimGunu || 365),
+        suresiz: paketSuresiz,
+      });
+    } else if (seciliUrun) {
+      setSureKaynagi({
+        tip: "urun",
+        ad: seciliUrun.ad || "Ürün",
+        gun: seciliUrun.varsayilan_gun || 365,
+        suresiz: false,
+      });
+    } else {
+      setSureKaynagi(null);
+    }
+  }, [form.urunId, form.paketId]);
 
   /* Fiyat hesaplama useEffect */
   useEffect(() => {
@@ -2209,11 +2252,35 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
               {/* Sol Taraf - Lisans Bilgileri */}
               <div className="flex-1 space-y-5">
 
-              {/* Lisans Tipi - Kompakt kartlar */}
-              <div>
-                <label className={LABEL_STIL}>Lisans Tipi</label>
+              {/* Lisans Tipi - Açılır/Kapanır */}
+              <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setLisansTipiAcik(!lisansTipiAcik)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm font-medium text-gray-700 dark:text-slate-300">Lisans Tipi</span>
+                    {form.lisansTipi && (() => {
+                      const aktifTip = lisansTipleri.find((t) => t.id === form.lisansTipi);
+                      return aktifTip ? (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400">
+                          {aktifTip.ad}
+                        </span>
+                      ) : null;
+                    })()}
+                  </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" className={`w-4 h-4 text-gray-400 transition-transform ${lisansTipiAcik ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {lisansTipiAcik && (
+                  <div className="px-4 py-3 border-t border-gray-200 dark:border-white/10">
                 {lisansTipleri.length === 0 ? (
-                  <div className="mt-2 p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+                  <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
                     <div className="flex items-start gap-3">
                       <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -2236,7 +2303,9 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                     </div>
                   </div>
                 ) : (
-                <div className={`grid gap-2 mt-1 ${({ 1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3" })[lisansTipleri.length] || "grid-cols-4"}`}>
+                <>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mb-2">Farklı bir süre kullanmak istiyorsanız aşağıdan seçin:</p>
+                  <div className={`grid gap-2 ${({ 1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3" })[lisansTipleri.length] || "grid-cols-4"}`}>
                   {lisansTipleri.map((t) => {
                     const secili = form.lisansTipi === t.id;
                     const renkler = {
@@ -2254,6 +2323,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                           } else {
                             setForm(o => ({ ...o, lisansTipi: t.id, suresiz: false, kullanimGunu: t.gun, bitisTarihi: tarihEkle(o.baslangicTarihi, t.gun) }));
                           }
+                          setSureKaynagi({ tip: "lisansTipi", ad: t.ad, gun: t.suresiz ? 0 : t.gun, suresiz: !!t.suresiz });
                         }}
                         className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
                           secili ? renkler[t.renk] : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
@@ -2265,11 +2335,15 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                     );
                   })}
                 </div>
+                </>
+                )}
+                  </div>
                 )}
               </div>
 
               {/* Tarih Bilgileri - Lisans tipine göre */}
               {!form.suresiz ? (
+                <div>
                 <div className="flex gap-3">
                   <div className="flex-1">
                     <label className={LABEL_STIL}>Başlangıç Tarihi <span className="text-red-500">*</span></label>
@@ -2289,7 +2363,22 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                     <input type="date" value={form.bitisTarihi} className={`${INPUT_STIL} bg-gray-50 dark:bg-white/5 cursor-not-allowed`} readOnly />
                   </div>
                 </div>
+                {/* Süre kaynağı bilgi mesajı */}
+                {sureKaynagi && (
+                  <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-xs text-blue-600 dark:text-blue-400">
+                      {sureKaynagi.tip === "paket" && `Süre "${sureKaynagi.ad}" paketinden alındı (${sureKaynagi.gun} gün). Değiştirmek için Lisans Tipi bölümünü açın.`}
+                      {sureKaynagi.tip === "urun" && `Süre "${sureKaynagi.ad}" ürün varsayılanından alındı (${sureKaynagi.gun} gün). Değiştirmek için Lisans Tipi bölümünü açın.`}
+                      {sureKaynagi.tip === "lisansTipi" && `Süre "${sureKaynagi.ad}" lisans tipinden alındı (${sureKaynagi.gun} gün).`}
+                    </p>
+                  </div>
+                )}
+                </div>
               ) : (
+                <div>
                 <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
                   <div className="flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -2310,6 +2399,19 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                       <input type="date" value={form.baslangicTarihi} onChange={(e) => guncelle("baslangicTarihi", e.target.value)} className={`${INPUT_STIL} border-emerald-300 dark:border-emerald-500/30 max-w-[160px]`} />
                     </div>
                   )}
+                </div>
+                {/* Süre kaynağı bilgi mesajı */}
+                {sureKaynagi && sureKaynagi.suresiz && (
+                  <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-xs text-blue-600 dark:text-blue-400">
+                      {sureKaynagi.tip === "paket" && `"${sureKaynagi.ad}" paketi süresiz tanımlı. Değiştirmek için Lisans Tipi bölümünü açın.`}
+                      {sureKaynagi.tip === "lisansTipi" && `"${sureKaynagi.ad}" lisans tipi süresiz tanımlı.`}
+                    </p>
+                  </div>
+                )}
                 </div>
               )}
 

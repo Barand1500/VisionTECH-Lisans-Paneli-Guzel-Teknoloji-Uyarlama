@@ -20,6 +20,7 @@ const SURE_SECENEKLERI = [
   { etiket: "1 Yıllık", deger: 12 },
   { etiket: "2 Yıllık", deger: 24 },
   { etiket: "Özel Tarih", deger: 0 },
+  { etiket: "Süresiz", deger: -1 },
 ];
 
 const INPUT_STIL =
@@ -123,6 +124,12 @@ function aySonrasiTarih(aySayisi) {
   return d.toISOString().slice(0, 10);
 }
 
+function gunSonrasiTarih(gunSayisi) {
+  const d = new Date();
+  d.setDate(d.getDate() + gunSayisi);
+  return d.toISOString().slice(0, 10);
+}
+
 /* ============================================= */
 /*  Ana Bileşen: LisansYonetimiPage                */
 /* ============================================= */
@@ -131,7 +138,9 @@ export default function LisansYonetimiPage() {
   const { logEkle } = useAktiviteLog();
   const [lisanslar, setLisanslar] = useState([]);
   const [musteriler, setMusteriler] = useState([]);
+  const [urunListesi, setUrunListesi] = useState([]);
   const [paketListesi, setPaketListesi] = useState([]);
+  const [urunPaketleri, setUrunPaketleri] = useState([]);
   const [arama, setArama] = useState("");
   const [kartFiltre, setKartFiltre] = useState(null);
   const [formAcik, setFormAcik] = useState(false);
@@ -155,8 +164,9 @@ export default function LisansYonetimiPage() {
   const musteriRef = useRef(null);
 
   /* ---- Yeni Lisans Form State ---- */
-  const bosForm = { paket: "", domain: "", sureTipi: 12, ozelBitis: "" };
+  const bosForm = { urunId: "", paketId: "", domain: "", sureTipi: 12, ozelBitis: "", suresiz: false };
   const [form, setForm] = useState(bosForm);
+  const [surePakettenGeldi, setSurePakettenGeldi] = useState(false);
 
   /* ---- Backend'den veri çek ---- */
   const verileriYukle = async () => {
@@ -180,6 +190,7 @@ export default function LisansYonetimiPage() {
         id: m.id,
         ad: m.ad_soyad || m.sirket_adi || "Bilinmiyor",
       })));
+      setUrunListesi(uRes.veri.map((u) => ({ id: u.id, ad: u.ad })));
       setPaketListesi(uRes.veri.map((u) => u.ad));
     } catch (e) {
       console.error("Lisans verileri yuklenemedi:", e);
@@ -247,13 +258,56 @@ export default function LisansYonetimiPage() {
     }
   };
 
+  /* ---- Ürün seçildiğinde paketlerini getir ---- */
+  const urunDegistir = async (urunId) => {
+    setForm((o) => ({ ...o, urunId, paketId: "" }));
+    setUrunPaketleri([]);
+    setSurePakettenGeldi(false);
+    if (hatalar.urun) setHatalar((o) => { const y = { ...o }; delete y.urun; return y; });
+    if (!urunId) return;
+    try {
+      const res = await apiGet(`/urunler/${urunId}/paketler`);
+      setUrunPaketleri(
+        (res.veri || []).filter((p) => p.aktif).map((p) => ({
+          id: p.id,
+          ad: p.ad,
+          kullanımGunu: p.kullanim_gunu,
+          suresiz: p.lisans_tipi_suresiz === 1,
+          lisansTipiAdi: p.lisans_tipi_adi,
+          fiyat: p.fiyat,
+        }))
+      );
+    } catch (err) {
+      console.error("Paketler yuklenemedi:", err);
+    }
+  };
+
+  /* ---- Paket seçildiğinde süreyi otomatik doldur ---- */
+  const paketDegistir = (paketId) => {
+    setForm((o) => ({ ...o, paketId }));
+    if (hatalar.paket) setHatalar((o) => { const y = { ...o }; delete y.paket; return y; });
+    if (!paketId) { setSurePakettenGeldi(false); return; }
+    const paket = urunPaketleri.find((p) => p.id === Number(paketId));
+    if (!paket) return;
+    if (paket.suresiz) {
+      setForm((o) => ({ ...o, paketId, sureTipi: -1, suresiz: true }));
+      setSurePakettenGeldi(true);
+    } else if (paket.kullanımGunu) {
+      setForm((o) => ({ ...o, paketId, sureTipi: 0, suresiz: false, ozelBitis: gunSonrasiTarih(paket.kullanımGunu) }));
+      setSurePakettenGeldi(true);
+    } else {
+      setSurePakettenGeldi(false);
+    }
+  };
+
   /* ---- Form doğrulama ---- */
   const formuDogrula = () => {
     const h = {};
     if (!secilenMusteri) h.musteri = "Müşteri seçimi zorunludur.";
-    if (!form.paket) h.paket = "Paket seçimi zorunludur.";
+    if (!form.urunId) h.urun = "Ürün seçimi zorunludur.";
+    if (!form.paketId) h.paket = "Paket seçimi zorunludur.";
     if (!form.domain.trim()) h.domain = "Domain/URL zorunludur.";
-    if (form.sureTipi === 0 && !form.ozelBitis) h.ozelBitis = "Bitiş tarihi seçiniz.";
+    if (form.sureTipi === 0 && !form.ozelBitis && !form.suresiz) h.ozelBitis = "Bitiş tarihi seçiniz.";
     setHatalar(h);
     return Object.keys(h).length === 0;
   };
@@ -264,17 +318,29 @@ export default function LisansYonetimiPage() {
     if (!formuDogrula()) return;
 
     const bugun = new Date().toISOString().slice(0, 10);
-    const bitisTarihi = form.sureTipi === 0
-      ? form.ozelBitis
-      : aySonrasiTarih(form.sureTipi);
+    const isSuresiz = form.suresiz || form.sureTipi === -1;
+    let bitisTarihi = null;
+    if (!isSuresiz) {
+      if (form.sureTipi === 0) {
+        bitisTarihi = form.ozelBitis;
+      } else {
+        bitisTarihi = aySonrasiTarih(form.sureTipi);
+      }
+    }
+
+    // Seçilen paketin kullanım gününü bul
+    const secilenPaket = urunPaketleri.find((p) => p.id === Number(form.paketId));
+    const kullanimGunu = isSuresiz ? 0 : (secilenPaket?.kullanımGunu || 365);
 
     try {
       await apiPost("/lisanslar", {
         musteri_id: secilenMusteri.id,
-        urun_id: null,
-        paket_id: null,
+        urun_id: form.urunId ? Number(form.urunId) : null,
+        paket_id: form.paketId ? Number(form.paketId) : null,
         baslangic_tarihi: bugun,
         bitis_tarihi: bitisTarihi,
+        suresiz: isSuresiz,
+        kullanim_gunu: kullanimGunu,
         durum: "aktif",
         domain: form.domain,
       });
@@ -282,6 +348,8 @@ export default function LisansYonetimiPage() {
       setForm(bosForm);
       setSecilenMusteri(null);
       setMusteriArama("");
+      setUrunPaketleri([]);
+      setSurePakettenGeldi(false);
       setHatalar({});
       setFormAcik(false);
       await logEkle("lisans_olusturma", `${secilenMusteri?.adSoyad || secilenMusteri?.sirketAdi || ""} için yeni lisans oluşturuldu`);
@@ -604,17 +672,36 @@ export default function LisansYonetimiPage() {
                 {hatalar.musteri && <p className="text-red-500 text-xs mt-1">{hatalar.musteri}</p>}
               </div>
 
-              {/* Paket Seç */}
+              {/* Ürün Seç */}
               <div>
-                <label className={LABEL_STIL}>Ürün/Paket <span className="text-red-500">*</span></label>
+                <label className={LABEL_STIL}>Ürün <span className="text-red-500">*</span></label>
                 <select
-                  value={form.paket}
-                  onChange={(e) => alanGuncelle("paket", e.target.value)}
-                  className={(hatalar.paket ? INPUT_STIL.replace("border-gray-300 dark:border-white/10", "border-red-400 dark:border-red-500/40") : INPUT_STIL) + " [&>option]:bg-white [&>option]:dark:bg-slate-800 [&>option]:text-gray-900 [&>option]:dark:text-white"}
+                  value={form.urunId}
+                  onChange={(e) => urunDegistir(e.target.value)}
+                  className={(hatalar.urun ? INPUT_STIL.replace("border-gray-300 dark:border-white/10", "border-red-400 dark:border-red-500/40") : INPUT_STIL) + " [&>option]:bg-white [&>option]:dark:bg-slate-800 [&>option]:text-gray-900 [&>option]:dark:text-white"}
                 >
-                  <option value="">Paket seçiniz...</option>
-                  {paketListesi.map((p) => (
-                    <option key={p} value={p}>{p}</option>
+                  <option value="">Ürün seçiniz...</option>
+                  {urunListesi.map((u) => (
+                    <option key={u.id} value={u.id}>{u.ad}</option>
+                  ))}
+                </select>
+                {hatalar.urun && <p className="text-red-500 text-xs mt-1">{hatalar.urun}</p>}
+              </div>
+
+              {/* Paket Seç (Ürün seçilince aktif) */}
+              <div>
+                <label className={LABEL_STIL}>Paket <span className="text-red-500">*</span></label>
+                <select
+                  value={form.paketId}
+                  onChange={(e) => paketDegistir(e.target.value)}
+                  disabled={!form.urunId}
+                  className={(hatalar.paket ? INPUT_STIL.replace("border-gray-300 dark:border-white/10", "border-red-400 dark:border-red-500/40") : INPUT_STIL) + (!form.urunId ? " opacity-50 cursor-not-allowed" : "") + " [&>option]:bg-white [&>option]:dark:bg-slate-800 [&>option]:text-gray-900 [&>option]:dark:text-white"}
+                >
+                  <option value="">{form.urunId ? "Paket seçiniz..." : "Önce ürün seçin"}</option>
+                  {urunPaketleri.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.ad}{p.lisansTipiAdi ? ` (${p.lisansTipiAdi})` : ""}{p.suresiz ? " — Süresiz" : p.kullanımGunu ? ` — ${p.kullanımGunu} gün` : ""}
+                    </option>
                   ))}
                 </select>
                 {hatalar.paket && <p className="text-red-500 text-xs mt-1">{hatalar.paket}</p>}
@@ -635,31 +722,70 @@ export default function LisansYonetimiPage() {
 
               {/* Süre Belirleme */}
               <div>
-                <label className={LABEL_STIL}>Lisans Süresi <span className="text-red-500">*</span></label>
-                <div className="flex gap-2">
-                  {SURE_SECENEKLERI.map((s) => (
+                <label className={LABEL_STIL}>
+                  Lisans Süresi <span className="text-red-500">*</span>
+                  {surePakettenGeldi && (
+                    <span className="ml-2 text-xs font-normal text-emerald-600 dark:text-emerald-400">
+                      ✓ Paketten otomatik geldi
+                    </span>
+                  )}
+                </label>
+
+                {/* Süresiz ise bilgi göster */}
+                {(form.suresiz || form.sureTipi === -1) ? (
+                  <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Süresiz Lisans</span>
                     <button
-                      key={s.deger}
                       type="button"
-                      onClick={() => alanGuncelle("sureTipi", s.deger)}
-                      className={`flex-1 px-3 py-2.5 rounded-lg text-sm font-medium border transition-all cursor-pointer ${form.sureTipi === s.deger ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/25" : "bg-white dark:bg-white/5 border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-white/10"}`}
+                      onClick={() => { setForm((o) => ({ ...o, sureTipi: 12, suresiz: false, ozelBitis: "" })); setSurePakettenGeldi(false); }}
+                      className="ml-auto text-xs text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
                     >
-                      {s.etiket}
+                      Değiştir
                     </button>
-                  ))}
-                </div>
-                {/* Özel Tarih seçimi */}
-                {form.sureTipi === 0 && (
-                  <div className="mt-3">
-                    <input
-                      type="date"
-                      value={form.ozelBitis}
-                      onChange={(e) => alanGuncelle("ozelBitis", e.target.value)}
-                      min={new Date().toISOString().slice(0, 10)}
-                      className={hatalar.ozelBitis ? INPUT_STIL.replace("border-gray-300 dark:border-white/10", "border-red-400 dark:border-red-500/40") : INPUT_STIL}
-                    />
-                    {hatalar.ozelBitis && <p className="text-red-500 text-xs mt-1">{hatalar.ozelBitis}</p>}
                   </div>
+                ) : (
+                  <>
+                    <div className="flex gap-2">
+                      {SURE_SECENEKLERI.map((s) => (
+                        <button
+                          key={s.deger}
+                          type="button"
+                          onClick={() => {
+                            if (s.deger === -1) {
+                              setForm((o) => ({ ...o, sureTipi: -1, suresiz: true }));
+                            } else {
+                              setForm((o) => ({ ...o, sureTipi: s.deger, suresiz: false, ozelBitis: s.deger === 0 ? o.ozelBitis : "" }));
+                            }
+                            setSurePakettenGeldi(false);
+                          }}
+                          className={`flex-1 px-3 py-2.5 rounded-lg text-sm font-medium border transition-all cursor-pointer ${form.sureTipi === s.deger ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/25" : "bg-white dark:bg-white/5 border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-white/10"}`}
+                        >
+                          {s.etiket}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Özel Tarih seçimi */}
+                    {form.sureTipi === 0 && (
+                      <div className="mt-3">
+                        <input
+                          type="date"
+                          value={form.ozelBitis}
+                          onChange={(e) => { alanGuncelle("ozelBitis", e.target.value); setSurePakettenGeldi(false); }}
+                          min={new Date().toISOString().slice(0, 10)}
+                          className={hatalar.ozelBitis ? INPUT_STIL.replace("border-gray-300 dark:border-white/10", "border-red-400 dark:border-red-500/40") : INPUT_STIL}
+                        />
+                        {surePakettenGeldi && form.ozelBitis && (
+                          <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                            Paketin süresi: {urunPaketleri.find((p) => p.id === Number(form.paketId))?.kullanımGunu || "?"} gün → {form.ozelBitis}
+                          </p>
+                        )}
+                        {hatalar.ozelBitis && <p className="text-red-500 text-xs mt-1">{hatalar.ozelBitis}</p>}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -674,7 +800,7 @@ export default function LisansYonetimiPage() {
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => { setFormAcik(false); setHatalar({}); setForm(bosForm); setSecilenMusteri(null); setMusteriArama(""); }}
+                  onClick={() => { setFormAcik(false); setHatalar({}); setForm(bosForm); setSecilenMusteri(null); setMusteriArama(""); setUrunPaketleri([]); setSurePakettenGeldi(false); }}
                   className="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-white/10 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-sm font-medium cursor-pointer"
                 >
                   İptal
