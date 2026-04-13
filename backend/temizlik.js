@@ -14,8 +14,8 @@ async function temizle() {
 
   // Silme sırası: önce bağımlı tablolar, sonra ana tablolar
   const tablolar = [
-    "aktivite_log",
-    "yedekleme_log",
+    "aktivite_loglari",
+    "yedekleme_loglari",
     "iletisim_kayitlari",
     "iletisim_kisileri",
     "notlar",
@@ -34,6 +34,7 @@ async function temizle() {
     "urun_tipleri",
     "urun_gruplari",
     "lisans_tipleri",
+    "paket_tipleri",
     "musteriler",
     "bayiler",
     "sektorler",
@@ -44,25 +45,17 @@ async function temizle() {
 
   for (const tablo of tablolar) {
     try {
-      const sonuc = await prisma.$executeRawUnsafe(`DELETE FROM \`${tablo}\``);
-      console.log(`  ✅ ${tablo} — ${sonuc} kayıt silindi`);
+      await prisma.$executeRawUnsafe(`TRUNCATE TABLE \`${tablo}\``);
+      console.log(`  ✅ ${tablo} — temizlendi (ID sıfırlandı)`);
     } catch (err) {
       console.log(`  ⚠️  ${tablo} — ${err.message}`);
     }
   }
 
-  // Auto-increment sıfırla
-  console.log("\n🔄 Auto-increment sıfırlanıyor...\n");
-  for (const tablo of tablolar) {
-    try {
-      await prisma.$executeRawUnsafe(`ALTER TABLE \`${tablo}\` AUTO_INCREMENT = 1`);
-    } catch (_) {}
-  }
-
   // FK kısıtlamalarını geri aç
   await prisma.$executeRawUnsafe("SET FOREIGN_KEY_CHECKS = 1");
 
-  console.log("\n✅ TEMİZLİK TAMAMLANDI!\n");
+  console.log("\n✅ TEMİZLİK TAMAMLANDI! (Tüm ID'ler 1'den başlayacak)\n");
   console.log("Not: Kullanıcılar ve roller korundu.");
   console.log("Onları da silmek istersen scriptte yorum satırlarını kaldır.\n");
 }

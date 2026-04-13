@@ -18,6 +18,7 @@ const VARLIK_TIPLERI = {
   urunSablon:   { model: "urunSablon",   adAlan: (r) => r.ad, select: { id: true, ad: true, silinme_tarihi: true } },
   rol:          { model: "rol",          adAlan: (r) => r.ad, select: { id: true, ad: true, silinme_tarihi: true } },
   sektor:       { model: "sektor",       adAlan: (r) => r.ad, select: { id: true, ad: true, silinme_tarihi: true } },
+  paketTipi:    { model: "paketTipi",    adAlan: (r) => r.ad, select: { id: true, ad: true, silinme_tarihi: true } },
   kullanici:    { model: "kullanici",    adAlan: (r) => r.ad_soyad || r.kullanici_adi, select: { id: true, ad_soyad: true, kullanici_adi: true, silinme_tarihi: true } },
 };
 
@@ -48,7 +49,7 @@ router.post("/:tip/:id/geri-yukle", hataYakala(async (req, res) => {
 
   const data = { silinme_tarihi: null };
   // durum alanı olan modeller için aktif yap
-  if (["musteri", "bayi", "urun", "paket", "lisansTipi", "urunTipi", "uygulamaTipi", "urunGrubu", "surum", "urunSablon", "rol", "sektor"].includes(tip)) {
+  if (["musteri", "bayi", "urun", "paket", "lisansTipi", "urunTipi", "uygulamaTipi", "urunGrubu", "surum", "urunSablon", "rol", "sektor", "paketTipi"].includes(tip)) {
     data.durum = "aktif";
   }
   if (tip === "lisans") data.durum = "aktif";

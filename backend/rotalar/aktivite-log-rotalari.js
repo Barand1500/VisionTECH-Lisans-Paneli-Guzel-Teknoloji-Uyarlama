@@ -45,6 +45,15 @@ router.delete("/", hataYakala(async (req, res) => {
       "DELETE FROM aktivite_loglari WHERE DATE(tarih) >= ? AND DATE(tarih) <= ?",
       baslangic, bitis
     );
+    if (silinen > 0) {
+      await prisma.aktiviteLog.create({
+        data: {
+          kullanici_id: req.kullanici?.id || null,
+          tip: "log_silme",
+          mesaj: `${silinen} adet aktivite kaydı silindi (${baslangic} - ${bitis} arası).`,
+        },
+      });
+    }
     return res.json({ basarili: true, mesaj: `${silinen} log kaydı silindi.`, silinen });
   }
 
@@ -57,6 +66,16 @@ router.delete("/", hataYakala(async (req, res) => {
     default: return res.status(400).json({ basarili: false, mesaj: "Gecersiz periyot." });
   }
   const silinen = await prisma.$executeRawUnsafe(`DELETE FROM aktivite_loglari ${kosul}`);
+  const periyotEtiketleri = { bugun: "bugün", hafta: "son 7 gün", ay: "son 1 ay", tumu: "tümü" };
+  if (silinen > 0) {
+    await prisma.aktiviteLog.create({
+      data: {
+        kullanici_id: req.kullanici?.id || null,
+        tip: "log_silme",
+        mesaj: `${silinen} adet aktivite kaydı silindi (${periyotEtiketleri[periyot] || periyot}).`,
+      },
+    });
+  }
   res.json({ basarili: true, mesaj: `${silinen} log kaydı silindi.`, silinen });
 }));
 

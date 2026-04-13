@@ -35,6 +35,7 @@ const TUR_ETIKETLERI = {
   cikis: { etiket: "Çıkış", renk: "amber" },
   yedek_alma: { etiket: "Yedek Alma", renk: "cyan" },
   geri_yukleme: { etiket: "Geri Yükleme", renk: "orange" },
+  log_silme: { etiket: "Log Silme", renk: "red" },
   diger: { etiket: "Diğer", renk: "gray" },
 };
 
