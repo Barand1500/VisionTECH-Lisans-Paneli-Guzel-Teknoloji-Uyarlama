@@ -1805,9 +1805,8 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
     }
     
     // Toplam hesapla
-    // Kademeli fiyat varsa temel fiyatı değil kademe fiyatını kullan (kademe zaten temel fiyatı içerir)
-    // Aktivasyon ayrı bir kalemdir, üzerine eklenir
-    const anaFiyat = (kademeFiyat > 0 ? kademeFiyat : temelFiyat) + aktivasyonFiyat;
+    // Temel fiyat her zaman dahil, kademe ve aktivasyon üzerine eklenir
+    const anaFiyat = temelFiyat + kademeFiyat + aktivasyonFiyat;
     const toplam = anaFiyat + paketFiyat + ekKullaniciFiyat + domainFiyat + paketOzellikFiyat;
     
     // KDV hesapla
@@ -2870,7 +2869,8 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                         const d = parseDeger(oz.deger);
                         const tip = oz.tip || oz.ozellik_tipi;
                         const stil = ozellikStilleri[tip] || { icon: "⚙️", baslik: tip, bg: "bg-gray-50 dark:bg-white/5", border: "border-gray-200 dark:border-white/10", accent: "bg-gray-400" };
-                        const baslik = tip === 'metin_karti' && d?.baslik ? d.baslik : stil.baslik;
+                        const baslik = oz.ozellik_adi || (tip === 'metin_karti' && d?.baslik ? d.baslik : stil.baslik);
+                        const degerStr = degerGoster(d, tip);
                         return (
                           <div key={idx} className={`relative overflow-hidden rounded-xl ${stil.bg} border ${stil.border} p-3 transition-all hover:shadow-md hover:scale-[1.02]`}>
                             <div className={`absolute left-0 top-0 bottom-0 w-1 ${stil.accent} rounded-l-xl`} />
@@ -2880,7 +2880,9 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-semibold text-gray-800 dark:text-slate-200">{baslik}</p>
-                                <p className="text-[11px] text-gray-500 dark:text-slate-400 truncate mt-0.5">{degerGoster(d, tip)}</p>
+                                {degerStr && degerStr !== "-" && (
+                                  <p className="text-[11px] text-gray-500 dark:text-slate-400 truncate mt-0.5">{degerStr}</p>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -2925,7 +2927,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                       <span className="font-medium">₺{fiyatBreakdown.aktivasyonFiyat.toLocaleString("tr-TR")}</span>
                     </div>
                   )}
-                  {fiyatBreakdown.temelFiyat > 0 && !fiyatBreakdown.aktivasyonFiyat && !fiyatBreakdown.kademeFiyat && (
+                  {fiyatBreakdown.temelFiyat > 0 && (
                     <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-white/10">
                       <span className="text-gray-600 dark:text-slate-400">Temel Fiyat</span>
                       <span className="font-medium">₺{fiyatBreakdown.temelFiyat.toLocaleString("tr-TR")}</span>
