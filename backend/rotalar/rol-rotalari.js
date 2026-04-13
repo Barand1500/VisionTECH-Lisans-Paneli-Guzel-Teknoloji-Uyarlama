@@ -36,7 +36,7 @@ router.post("/", yetkiKontrol, sadaceAdmin, hataYakala(async (req, res) => {
   const gecersiz = izinler.filter(i => !GECERLI_IZINLER.includes(i));
   if (gecersiz.length > 0) return dogrulamaHatasi(res, "Gecersiz izin anahtarlari: " + gecersiz.join(", "));
 
-  const mevcut = await prisma.rol.findUnique({ where: { ad: ad.trim().toLowerCase() } });
+  const mevcut = await prisma.rol.findFirst({ where: { ad: ad.trim().toLowerCase(), silinme_tarihi: null } });
   if (mevcut) return dogrulamaHatasi(res, "Bu isimde bir rol zaten mevcut.");
 
   const sonuc = await prisma.rol.create({

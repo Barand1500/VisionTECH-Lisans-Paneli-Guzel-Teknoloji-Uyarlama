@@ -31,7 +31,7 @@ router.post("/", yetkiKontrol, hataYakala(async (req, res) => {
   const { ad } = req.body;
   if (!ad || !ad.trim()) return dogrulamaHatasi(res, "Sektör adı zorunludur.");
 
-  const mevcut = await prisma.sektor.findUnique({ where: { ad: ad.trim() } });
+  const mevcut = await prisma.sektor.findFirst({ where: { ad: ad.trim(), silinme_tarihi: null } });
   if (mevcut) return dogrulamaHatasi(res, "Bu isimde bir sektör zaten mevcut.");
 
   const sonuc = await prisma.sektor.create({ data: { ad: ad.trim() } });

@@ -17,7 +17,7 @@ router.post("/", hataYakala(async (req, res) => {
   const { ad, sira } = req.body;
   if (!ad || !ad.trim()) return dogrulamaHatasi(res, "Paket tipi adi zorunludur.");
 
-  const mevcut = await prisma.paketTipi.findUnique({ where: { ad: ad.trim() } });
+  const mevcut = await prisma.paketTipi.findFirst({ where: { ad: ad.trim(), silinme_tarihi: null } });
   if (mevcut) return dogrulamaHatasi(res, "Bu isimde bir paket tipi zaten mevcut.");
 
   const sonuc = await prisma.paketTipi.create({

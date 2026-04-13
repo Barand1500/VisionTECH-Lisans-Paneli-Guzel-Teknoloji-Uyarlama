@@ -27,7 +27,7 @@ router.post("/", hataYakala(async (req, res) => {
   const { ad, kod, renk, gun, sira, aktif, suresiz } = req.body;
   if (!ad || !kod) return dogrulamaHatasi(res, "Ad ve kod zorunludur.");
 
-  const mevcut = await prisma.lisansTipi.findUnique({ where: { kod } });
+  const mevcut = await prisma.lisansTipi.findFirst({ where: { kod, silinme_tarihi: null } });
   if (mevcut) return dogrulamaHatasi(res, "Bu kod zaten kullanilmaktadir.");
 
   const sonuc = await prisma.lisansTipi.create({
