@@ -1544,11 +1544,11 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
     urunId: "",
     paketId: "",
     /* Adım 2: Lisans Bilgileri */
-    lisansTipi: lisansTipleri.length > 0 ? lisansTipleri[0].id : "",
-    suresiz: lisansTipleri.length > 0 ? !!lisansTipleri[0].suresiz : false,
+    lisansTipi: "",
+    suresiz: false,
     baslangicTarihi: new Date().toISOString().slice(0, 10),
-    kullanimGunu: lisansTipleri.length > 0 ? (lisansTipleri[0].suresiz ? 0 : lisansTipleri[0].gun) : 365,
-    bitisTarihi: tarihEkle(new Date().toISOString().slice(0, 10), lisansTipleri.length > 0 ? (lisansTipleri[0].suresiz ? 0 : lisansTipleri[0].gun) : 365),
+    kullanimGunu: 365,
+    bitisTarihi: tarihEkle(new Date().toISOString().slice(0, 10), 365),
     domain: "",
     kullaniciSayisi: 1,
     ekKullanici: 0,
@@ -2264,7 +2264,7 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <span className="text-sm font-medium text-gray-700 dark:text-slate-300">Lisans Tipi</span>
-                    {form.lisansTipi && (() => {
+                    {form.lisansTipi && sureKaynagi?.tip === "lisansTipi" && (() => {
                       const aktifTip = lisansTipleri.find((t) => t.id === form.lisansTipi);
                       return aktifTip ? (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400">
