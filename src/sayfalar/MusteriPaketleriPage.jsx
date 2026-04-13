@@ -2869,8 +2869,18 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                         const d = parseDeger(oz.deger);
                         const tip = oz.tip || oz.ozellik_tipi;
                         const stil = ozellikStilleri[tip] || { icon: "⚙️", baslik: tip, bg: "bg-gray-50 dark:bg-white/5", border: "border-gray-200 dark:border-white/10", accent: "bg-gray-400" };
-                        const baslik = oz.ozellik_adi || (tip === 'metin_karti' && d?.baslik ? d.baslik : stil.baslik);
-                        const degerStr = degerGoster(d, tip);
+                        
+                        // metin_karti: değerin kendisi başlık olarak gösterilir
+                        let baslik = stil.baslik;
+                        let altMetin = degerGoster(d, tip);
+                        if (tip === 'metin_karti') {
+                          const icerik = typeof d === 'string' ? d : (d?.icerik || d?.baslik || d?.aciklama || d?.metin || "");
+                          baslik = icerik || stil.baslik;
+                          altMetin = null; // başlık zaten içeriği gösteriyor
+                        } else {
+                          baslik = oz.ozellik_adi || baslik;
+                        }
+                        
                         return (
                           <div key={idx} className={`relative overflow-hidden rounded-xl ${stil.bg} border ${stil.border} p-3 transition-all hover:shadow-md hover:scale-[1.02]`}>
                             <div className={`absolute left-0 top-0 bottom-0 w-1 ${stil.accent} rounded-l-xl`} />
@@ -2880,8 +2890,8 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-semibold text-gray-800 dark:text-slate-200">{baslik}</p>
-                                {degerStr && degerStr !== "-" && (
-                                  <p className="text-[11px] text-gray-500 dark:text-slate-400 truncate mt-0.5">{degerStr}</p>
+                                {altMetin && altMetin !== "-" && (
+                                  <p className="text-[11px] text-gray-500 dark:text-slate-400 truncate mt-0.5">{altMetin}</p>
                                 )}
                               </div>
                             </div>
