@@ -1078,22 +1078,48 @@ export default function MusteriPaketleriPage() {
                     </div>
                   )}
 
-                  {/* Garanti & Güvenlik (sablon_verileri içinden) */}
-                  {bilgiDetay.moduller?.sablon_verileri && (
-                    <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
-                      <div className="px-4 py-2.5 bg-gray-50 dark:bg-white/5 border-b border-gray-200 dark:border-white/10">
-                        <h5 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Ek Bilgiler (Şablon)</h5>
+                  {/* Şablon Verileri (düzenli gösterim) */}
+                  {bilgiDetay.moduller?.sablon_verileri && (() => {
+                    const veri = bilgiDetay.moduller.sablon_verileri;
+                    const satirlar = [];
+                    
+                    const formatDeger = (key, val) => {
+                      if (val == null) return null;
+                      if (typeof val !== 'object') return { etiket: key.replace(/_/g, " "), deger: String(val) };
+                      // Bilinen tipleri formatla
+                      if (val.fiyat !== undefined) return { etiket: key.replace(/_/g, " "), deger: `${Number(val.fiyat).toLocaleString("tr-TR")} ${val.para_birimi || "TL"}` };
+                      if (val.aktivasyon_fiyat !== undefined) return { etiket: "Aktivasyon / Yenileme", deger: `${Number(val.aktivasyon_fiyat).toLocaleString("tr-TR")} ₺ / ${Number(val.yenileme_fiyat || 0).toLocaleString("tr-TR")} ₺` };
+                      if (val.kademeler && Array.isArray(val.kademeler)) return { etiket: `Kademeli (${val.tip || "adet"})`, deger: val.kademeler.map(k => `${k.adet || k.kapasite} ${k.birim || ""}: ${Number(k.fiyat).toLocaleString("tr-TR")} TL`).join(" • ") };
+                      if (val.uzantilar && Array.isArray(val.uzantilar)) return { etiket: "Domain", deger: val.uzantilar.map(u => `${u.uzanti}: ${Number(u.aktivasyon || 0).toLocaleString("tr-TR")} ₺`).join(" • ") };
+                      if (val.min !== undefined) return { etiket: "Kullanıcı", deger: `${val.min}-${val.max || "∞"} kişi${val.ek_kullanici_fiyat ? ` (+${val.ek_kullanici_fiyat}₺/kişi)` : ""}` };
+                      // Genel obje
+                      const parcalar = Object.entries(val).filter(([,v]) => v != null && v !== "").map(([k,v]) => `${k.replace(/_/g, " ")}: ${v}`);
+                      return parcalar.length > 0 ? { etiket: key.replace(/_/g, " "), deger: parcalar.join(" • ") } : null;
+                    };
+                    
+                    Object.entries(veri).forEach(([key, val]) => {
+                      const satir = formatDeger(key, val);
+                      if (satir) satirlar.push(satir);
+                    });
+                    
+                    if (satirlar.length === 0) return null;
+                    
+                    return (
+                      <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                        <div className="px-4 py-2.5 bg-gray-50 dark:bg-white/5 border-b border-gray-200 dark:border-white/10">
+                          <h5 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Şablon Detayları</h5>
+                        </div>
+                        <div className="divide-y divide-gray-100 dark:divide-white/5">
+                          {satirlar.map((s, i) => (
+                            <div key={i} className="flex items-center justify-between px-4 py-2.5">
+                              <span className="text-xs text-gray-500 dark:text-slate-400 capitalize">{s.etiket}</span>
+                              <span className="text-xs font-medium text-gray-900 dark:text-white text-right max-w-[60%]">{s.deger}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div className="p-4 space-y-2">
-                        {Object.entries(bilgiDetay.moduller.sablon_verileri).map(([key, val]) => (
-                          <div key={key} className="flex items-center justify-between p-2.5 rounded-lg bg-gray-50 dark:bg-white/5">
-                            <span className="text-sm text-gray-700 dark:text-slate-300 capitalize">{key.replace(/_/g, " ")}</span>
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">{typeof val === "object" ? JSON.stringify(val) : String(val)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Transfer Geçmişi */}
                   {bilgiDetay.moduller?.transfer_gecmisi?.length > 0 && (
@@ -1780,7 +1806,8 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
     
     // Toplam hesapla
     // Kademeli fiyat varsa temel fiyatı değil kademe fiyatını kullan (kademe zaten temel fiyatı içerir)
-    const anaFiyat = aktivasyonFiyat > 0 ? aktivasyonFiyat : (kademeFiyat > 0 ? kademeFiyat : temelFiyat);
+    // Aktivasyon ayrı bir kalemdir, üzerine eklenir
+    const anaFiyat = (kademeFiyat > 0 ? kademeFiyat : temelFiyat) + aktivasyonFiyat;
     const toplam = anaFiyat + paketFiyat + ekKullaniciFiyat + domainFiyat + paketOzellikFiyat;
     
     // KDV hesapla
@@ -2809,7 +2836,20 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                       case "kademeli_fiyat": return d?.kademeler?.length ? `${d.tip || "adet"} - ${d.kademeler.length} kademe` : (d?.tip || "-");
                       case "domain_fiyat": return d?.uzantilar?.length ? `${d.uzantilar.length} uzantı` : "-";
                       case "demo_suresi": return d?.gun ? `${d.gun} gün` : "-";
-                      case "metin_karti": return typeof d === 'string' ? d : (d?.icerik || d?.deger || "-");
+                      case "metin_karti": {
+                        if (typeof d === 'string') return d;
+                        if (d?.icerik) return d.icerik;
+                        if (d?.aciklama) return d.aciklama;
+                        if (d?.metin) return d.metin;
+                        if (d?.deger && typeof d.deger === 'string') return d.deger;
+                        if (d?.baslik && Object.keys(d).length === 1) return d.baslik;
+                        // Obje ise anlamlı değerleri göster
+                        if (d && typeof d === 'object') {
+                          const degerler = Object.entries(d).filter(([k]) => k !== 'baslik' && k !== 'tip').map(([, v]) => v).filter(Boolean);
+                          return degerler.length > 0 ? degerler.join(" • ") : "-";
+                        }
+                        return "-";
+                      }
                       case "periyot_indirim": return d ? `Aylık %${d.aylik_oran || 0} / Yıllık %${d.yillik_oran || 0}` : "-";
                       case "gecis_fiyati": return d?.fiyat ? `${Number(d.fiyat).toLocaleString("tr-TR")} ${d.para_birimi || "TL"}` : "-";
                       case "siparis_miktari": return d ? `${d.min_adet || 1}-${d.max_adet || "∞"} adet` : "-";

@@ -91,6 +91,18 @@ const sadeceSayi = (deger, maxUzunluk) =>
 
 const epostaGecerliMi = (v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
+/* TC Kimlik No algoritma kontrolü */
+const tcKimlikGecerliMi = (tc) => {
+  if (!tc || tc.length !== 11) return false;
+  if (!/^[1-9][0-9]{10}$/.test(tc)) return false;
+  const h = tc.split("").map(Number);
+  const t10 = ((h[0]+h[2]+h[4]+h[6]+h[8])*7 - (h[1]+h[3]+h[5]+h[7])) % 10;
+  if (t10 < 0) return false;
+  if (h[9] !== t10) return false;
+  const t11 = (h[0]+h[1]+h[2]+h[3]+h[4]+h[5]+h[6]+h[7]+h[8]+h[9]) % 10;
+  return h[10] === t11;
+};
+
 /* ============================================= */
 /*  Ortak Stil Sabitleri                          */
 /* ============================================= */
@@ -268,13 +280,14 @@ export default function MusteriEklePage() {
       if (!form.adSoyad.trim()) h.adSoyad = "Ad Soyad zorunludur.";
       if (!form.tcKimlikNo.trim()) h.tcKimlikNo = "TC Kimlik No zorunludur.";
       else if (form.tcKimlikNo.length !== 11) h.tcKimlikNo = "TC Kimlik No 11 haneli olmalıdır.";
+      else if (!tcKimlikGecerliMi(form.tcKimlikNo)) h.tcKimlikNo = "Geçersiz TC Kimlik numarası. Lütfen doğru giriniz.";
     }
 
     /* Tüzel müşteri */
     if (aktifSekme === "tuzel") {
       if (!form.sirketAdi.trim()) h.sirketAdi = "Şirket Ünvanı zorunludur.";
       if (!form.vergiNo.trim()) h.vergiNo = "Vergi Numarası zorunludur.";
-      else if (form.vergiNo.length !== 10) h.vergiNo = "Vergi Numarası 10 haneli olmalıdır.";
+      else if (form.vergiNo.length < 10 || form.vergiNo.length > 11) h.vergiNo = "Vergi Numarası 10 veya 11 haneli olmalıdır.";
       if (!form.vergiDairesi.trim()) h.vergiDairesi = "Vergi Dairesi zorunludur.";
     }
 
