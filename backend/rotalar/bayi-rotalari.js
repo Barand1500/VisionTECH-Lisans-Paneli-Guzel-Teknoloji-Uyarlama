@@ -61,7 +61,10 @@ router.get("/:id", hataYakala(async (req, res) => {
 
 /* ---- Bayi Ekle ---- */
 router.post("/", hataYakala(async (req, res) => {
-  const { ad, yetkili, eposta, telefon, vergi_no, vergi_dairesi, sektor_id, sehir, durum, tur, ust_bayi_id, tc_kimlik_no, pasaport_no, ad_soyad, sirket_adi, notlar, etiketler } = req.body;
+  let { ad, yetkili, eposta, telefon, vergi_no, vergi_dairesi, sektor_id, sehir, durum, tur, ust_bayi_id, tc_kimlik_no, pasaport_no, ad_soyad, sirket_adi, notlar, etiketler } = req.body;
+  tc_kimlik_no = tc_kimlik_no?.trim() || null;
+  vergi_no = vergi_no?.trim() || null;
+  pasaport_no = pasaport_no?.trim() || null;
   if (!ad) return dogrulamaHatasi(res, "Bayi adi zorunludur.");
 
   /* Validasyon kontrolleri */
@@ -90,7 +93,10 @@ router.put("/:id", hataYakala(async (req, res) => {
   const mevcut = await prisma.bayi.findUnique({ where: { id }, select: { id: true, tc_kimlik_no: true, vergi_no: true, pasaport_no: true } });
   if (!mevcut) return bulunamadiHatasi(res, "Bayi bulunamadi.");
 
-  const { ad, yetkili, eposta, telefon, vergi_no, vergi_dairesi, sektor_id, sehir, durum, tur, ust_bayi_id, tc_kimlik_no, pasaport_no, ad_soyad, sirket_adi, notlar, etiketler } = req.body;
+  let { ad, yetkili, eposta, telefon, vergi_no, vergi_dairesi, sektor_id, sehir, durum, tur, ust_bayi_id, tc_kimlik_no, pasaport_no, ad_soyad, sirket_adi, notlar, etiketler } = req.body;
+  tc_kimlik_no = tc_kimlik_no?.trim() || null;
+  vergi_no = vergi_no?.trim() || null;
+  pasaport_no = pasaport_no?.trim() || null;
 
   /* Validasyon kontrolleri (güncelleme) - sadece değişen değerleri doğrula */
   if (eposta && !epostaGecerliMi(eposta)) return dogrulamaHatasi(res, "Gecersiz e-posta formati.");

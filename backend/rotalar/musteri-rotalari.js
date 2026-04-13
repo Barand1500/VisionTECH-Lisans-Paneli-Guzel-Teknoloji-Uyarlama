@@ -49,7 +49,12 @@ router.get("/:id", hataYakala(async (req, res) => {
 
 /* ---- Musteri Ekle ---- */
 router.post("/", hataYakala(async (req, res) => {
-  const { tur, ad_soyad, sirket_adi, yetkili_kisi, eposta, tc_kimlik_no, vergi_no, vergi_dairesi, pasaport_no, sektor_id, durum, ust_musteri_id, telefonlar, adresler, etiketler } = req.body;
+  let { tur, ad_soyad, sirket_adi, yetkili_kisi, eposta, tc_kimlik_no, vergi_no, vergi_dairesi, pasaport_no, sektor_id, durum, ust_musteri_id, telefonlar, adresler, etiketler } = req.body;
+
+  /* Boşlukları temizle */
+  tc_kimlik_no = tc_kimlik_no?.trim() || null;
+  vergi_no = vergi_no?.trim() || null;
+  pasaport_no = pasaport_no?.trim() || null;
 
   if (!tur) return dogrulamaHatasi(res, "Musteri turu zorunludur.");
   if (tur === "gercek" && !ad_soyad) return dogrulamaHatasi(res, "Gercek kisi icin ad soyad zorunludur.");
@@ -94,7 +99,10 @@ router.put("/:id", hataYakala(async (req, res) => {
   const mevcut = await prisma.musteri.findFirst({ where: { id, silinme_tarihi: null }, select: { id: true, tc_kimlik_no: true, vergi_no: true, pasaport_no: true } });
   if (!mevcut) return bulunamadiHatasi(res, "Musteri bulunamadi.");
 
-  const { tur, ad_soyad, sirket_adi, yetkili_kisi, eposta, tc_kimlik_no, vergi_no, vergi_dairesi, pasaport_no, sektor_id, etiketler, durum, ust_musteri_id, telefonlar, adresler } = req.body;
+  let { tur, ad_soyad, sirket_adi, yetkili_kisi, eposta, tc_kimlik_no, vergi_no, vergi_dairesi, pasaport_no, sektor_id, etiketler, durum, ust_musteri_id, telefonlar, adresler } = req.body;
+  tc_kimlik_no = tc_kimlik_no?.trim() || null;
+  vergi_no = vergi_no?.trim() || null;
+  pasaport_no = pasaport_no?.trim() || null;
 
   /* Validasyon kontrolleri (güncelleme) - sadece değişen alanları doğrula */
   if (eposta && !epostaGecerliMi(eposta)) return dogrulamaHatasi(res, "Gecersiz e-posta formati.");
