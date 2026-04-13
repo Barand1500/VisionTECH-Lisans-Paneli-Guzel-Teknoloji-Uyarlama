@@ -2874,9 +2874,11 @@ function YeniPaketModal({ musteriId, kapat, onBasarili, urunler, gruplar = [], p
                         let baslik = stil.baslik;
                         let altMetin = degerGoster(d, tip);
                         if (tip === 'metin_karti') {
-                          const icerik = typeof d === 'string' ? d : (d?.icerik || d?.baslik || d?.aciklama || d?.metin || "");
+                          // oz.deger ham veriyi kullan (parseDeger sayıya çevirebilir)
+                          const ham = oz.deger;
+                          const icerik = typeof ham === 'string' ? ham : (typeof d === 'string' ? d : (d?.icerik || d?.baslik || d?.aciklama || d?.metin || String(d ?? "")));
                           baslik = icerik || stil.baslik;
-                          altMetin = null; // başlık zaten içeriği gösteriyor
+                          altMetin = null;
                         } else {
                           baslik = oz.ozellik_adi || baslik;
                         }
