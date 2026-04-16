@@ -85,6 +85,10 @@ router.post("/kullanicilar", yetkiKontrol, sadaceAdmin, hataYakala(async (req, r
   const { ad_soyad, eposta, sifre, rol, aktif } = req.body;
   if (!ad_soyad || !eposta || !sifre) return dogrulamaHatasi(res, "Ad soyad, e-posta ve sifre zorunludur.");
 
+  const hedefRol = rol || "Yönetici";
+  const rolKayit = await prisma.rol.findFirst({ where: { ad: hedefRol, silinme_tarihi: null } });
+  if (!rolKayit) return dogrulamaHatasi(res, `"${hedefRol}" adlı rol bulunamadı. Önce roller sekmesinden bu rolü ekleyin.`);
+
   const mevcut = await prisma.kullanici.findFirst({
     where: { eposta, silinme_tarihi: null },
   });
@@ -94,7 +98,7 @@ router.post("/kullanicilar", yetkiKontrol, sadaceAdmin, hataYakala(async (req, r
   const kullaniciAdi = eposta.split("@")[0];
 
   const sonuc = await prisma.kullanici.create({
-    data: { kullanici_adi: kullaniciAdi, sifre_hash: hash, ad_soyad, eposta, rol: rol || "kullanici", aktif: aktif !== undefined ? (aktif ? 1 : 0) : 1 },
+    data: { kullanici_adi: kullaniciAdi, sifre_hash: hash, ad_soyad, eposta, rol: hedefRol, aktif: aktif !== undefined ? (aktif ? 1 : 0) : 1 },
   });
   res.status(201).json({ basarili: true, mesaj: "Kullanici basariyla eklendi.", id: sonuc.id });
 }));
