@@ -3953,8 +3953,7 @@ function KullanicilarSekmesi() {
   useEffect(() => { kullanicilariGetir(); }, []);
 
   /* rol map: backend enum → frontend label */
-  const rolMap = { admin: "Admin", kullanici: "Editör", izleyici: "Görüntüleyici" };
-  const rolLabel = (r) => rolMap[r] || r;
+  const rolLabel = (r) => r || "—";
 
   const kaydet = async (veri) => {
     try {
@@ -4069,20 +4068,24 @@ function KullanicilarSekmesi() {
 
 function KullaniciModal({ modal, kapat, kaydet }) {
   const duzenle = modal !== "yeni";
+  const [roller, setRoller] = useState([]);
   const [form, setForm] = useState({
     id: duzenle ? modal.id : null,
     ad_soyad: duzenle ? modal.ad_soyad : "",
     eposta: duzenle ? modal.eposta : "",
     sifre: "",
-    rol: duzenle ? modal.rol : "izleyici",
+    rol: duzenle ? modal.rol : "",
     aktif: duzenle ? (modal.aktif ? "aktif" : "pasif") : "aktif",
   });
-  const [roller, setRoller] = useState([]);
   const ref = useRef(null);
   const sallanma = () => { if (ref.current) { ref.current.classList.remove("sallan"); void ref.current.offsetWidth; ref.current.classList.add("sallan"); } };
 
   useEffect(() => {
-    apiGet("/roller").then((res) => setRoller(res.veri || [])).catch(() => {});
+    apiGet("/roller").then((res) => {
+      const liste = res.veri || [];
+      setRoller(liste);
+      if (!duzenle && liste.length > 0) setForm((o) => ({ ...o, rol: liste[0].ad }));
+    }).catch(() => {});
   }, []);
 
   const gonder = (e) => {
@@ -4118,15 +4121,9 @@ function KullaniciModal({ modal, kapat, kaydet }) {
           <div>
             <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Rol</label>
             <select value={form.rol} onChange={(e) => setForm((o) => ({ ...o, rol: e.target.value }))} className={INPUT_STIL}>
-              {roller.length > 0 ? roller.map((r) => (
-                <option key={r.id} value={r.ad}>{r.ad.charAt(0).toUpperCase() + r.ad.slice(1)}</option>
-              )) : (
-                <>
-                  <option value="admin">Admin</option>
-                  <option value="kullanici">Editör</option>
-                  <option value="izleyici">Görüntüleyici</option>
-                </>
-              )}
+              {roller.map((r) => (
+                <option key={r.id} value={r.ad}>{r.ad}</option>
+              ))}
             </select>
           </div>
           <div>
