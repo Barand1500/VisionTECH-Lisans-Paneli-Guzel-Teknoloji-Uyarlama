@@ -106,7 +106,7 @@ export default function BayiDetayPage() {
   }, [id, git]);
 
   /* ---- Bayi Adi ---- */
-  const bayiAdi = bayi?.sirket_adi || `Bayi #${id}`;
+  const bayiAdi = bayi?.ad || bayi?.sirket_adi || bayi?.ad_soyad || `Bayi #${id}`;
 
   /* ---- Kisi Kaydet ---- */
   const kisiKaydet = async (form) => {
@@ -295,10 +295,10 @@ export default function BayiDetayPage() {
                   </div>
                 </div>
               )}
-              {bayi.yetkili_kisi && (
+              {bayi.yetkili && (
                 <div>
                   <p className="text-xs text-gray-400 dark:text-slate-500 mb-1">Yetkili Kişi</p>
-                  <p className="text-sm text-gray-900 dark:text-white">{bayi.yetkili_kisi}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">{bayi.yetkili}</p>
                 </div>
               )}
               <div>
@@ -375,12 +375,12 @@ export default function BayiDetayPage() {
                         </div>
                       </div>
                     )}
-                    {bayi.yetkili_kisi && (
+                    {bayi.yetkili && (
                       <div className="p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
                         <p className="text-xs text-gray-400 dark:text-slate-500 mb-1">Yetkili Kişi</p>
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">{bayi.yetkili_kisi}</p>
-                          <KopyalaButonu metin={bayi.yetkili_kisi} />
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{bayi.yetkili}</p>
+                          <KopyalaButonu metin={bayi.yetkili} />
                         </div>
                       </div>
                     )}

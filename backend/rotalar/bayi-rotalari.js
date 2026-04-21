@@ -61,7 +61,7 @@ router.get("/:id", hataYakala(async (req, res) => {
 
 /* ---- Bayi Ekle ---- */
 router.post("/", hataYakala(async (req, res) => {
-  let { ad, yetkili, eposta, telefon, vergi_no, vergi_dairesi, sektor_id, sehir, durum, tur, ust_bayi_id, tc_kimlik_no, pasaport_no, ad_soyad, sirket_adi, notlar, etiketler } = req.body;
+  let { ad, yetkili, eposta, telefon, vergi_no, vergi_dairesi, sektor_id, durum, tur, ust_bayi_id, tc_kimlik_no, pasaport_no, ad_soyad, sirket_adi, notlar, etiketler } = req.body;
   tc_kimlik_no = tc_kimlik_no?.trim() || null;
   vergi_no = vergi_no?.trim() || null;
   pasaport_no = pasaport_no?.trim() || null;
@@ -77,7 +77,7 @@ router.post("/", hataYakala(async (req, res) => {
     data: {
       ad, yetkili: yetkili || null, eposta: eposta || null, telefon: telefon || null,
       vergi_no: vergi_no || null, vergi_dairesi: vergi_dairesi || null,
-      sektor_id: sektor_id || null, sehir: sehir || null, durum: durum || "aktif", tur: tur || "tuzel",
+      sektor_id: sektor_id || null, durum: durum || "aktif", tur: tur || "tuzel",
       ust_bayi_id: ust_bayi_id || null, tc_kimlik_no: tc_kimlik_no || null,
       pasaport_no: pasaport_no || null, ad_soyad: ad_soyad || null,
       sirket_adi: sirket_adi || null, notlar: notlar || null,
@@ -93,7 +93,7 @@ router.put("/:id", hataYakala(async (req, res) => {
   const mevcut = await prisma.bayi.findUnique({ where: { id }, select: { id: true, tc_kimlik_no: true, vergi_no: true, pasaport_no: true } });
   if (!mevcut) return bulunamadiHatasi(res, "Bayi bulunamadi.");
 
-  let { ad, yetkili, eposta, telefon, vergi_no, vergi_dairesi, sektor_id, sehir, durum, tur, ust_bayi_id, tc_kimlik_no, pasaport_no, ad_soyad, sirket_adi, notlar, etiketler } = req.body;
+  let { ad, yetkili, eposta, telefon, vergi_no, vergi_dairesi, sektor_id, durum, tur, ust_bayi_id, tc_kimlik_no, pasaport_no, ad_soyad, sirket_adi, notlar, etiketler } = req.body;
   tc_kimlik_no = tc_kimlik_no?.trim() || null;
   vergi_no = vergi_no?.trim() || null;
   pasaport_no = pasaport_no?.trim() || null;
@@ -113,7 +113,6 @@ router.put("/:id", hataYakala(async (req, res) => {
       vergi_no: vergi_no !== undefined ? (vergi_no || null) : undefined,
       vergi_dairesi: vergi_dairesi !== undefined ? (vergi_dairesi || null) : undefined,
       sektor_id: sektor_id !== undefined ? (sektor_id || null) : undefined,
-      sehir: sehir !== undefined ? (sehir || null) : undefined,
       durum: durum || undefined, tur: tur || undefined,
       ust_bayi_id: ust_bayi_id !== undefined ? (ust_bayi_id || null) : undefined,
       tc_kimlik_no: tc_kimlik_no !== undefined ? (tc_kimlik_no || null) : undefined,
@@ -138,16 +137,16 @@ router.delete("/:id", hataYakala(async (req, res) => {
   res.json({ basarili: true, mesaj: "Bayi basariyla silindi." });
 }));
 
-/* ---- Bayinin Musterilerini Getir (lisanslar uzerinden) ---- */
+/* ---- Bayinin Musterilerini Getir (bayi_id veya lisanslar uzerinden) ---- */
 router.get("/:id/musteriler", hataYakala(async (req, res) => {
   const bayiId = Number(req.params.id);
   const musteriler = await prisma.$queryRawUnsafe(`
     SELECT DISTINCT m.*
     FROM musteriler m
-    INNER JOIN lisanslar l ON l.musteri_id = m.id
-    WHERE l.bayi_id = ? AND m.silinme_tarihi IS NULL
+    LEFT JOIN lisanslar l ON l.musteri_id = m.id AND l.bayi_id = ?
+    WHERE (m.bayi_id = ? OR l.bayi_id IS NOT NULL) AND m.silinme_tarihi IS NULL
     ORDER BY m.id DESC
-  `, bayiId);
+  `, bayiId, bayiId);
   res.json({ basarili: true, veri: temizle(musteriler) });
 }));
 
@@ -165,25 +164,29 @@ router.get("/:id/dosyalar", hataYakala(async (req, res) => {
 
 /* ---- Dosya Yukle ---- */
 router.post("/:id/dosyalar", (req, res) => {
-  yukleme.single("dosya")(req, res, async (err) => {
+  yukleme.array("dosyalar", 10)(req, res, async (err) => {
     if (err instanceof multer.MulterError) {
       return res.status(400).json({ basarili: false, mesaj: err.code === "LIMIT_FILE_SIZE" ? "Dosya boyutu 10MB sinirini asiyor." : err.message });
     }
     if (err) return res.status(400).json({ basarili: false, mesaj: err.message });
-    if (!req.file) return res.status(400).json({ basarili: false, mesaj: "Dosya secilmedi." });
+    if (!req.files || req.files.length === 0) return res.status(400).json({ basarili: false, mesaj: "Dosya secilmedi." });
 
     try {
       const bayi_id = Number(req.params.id);
-      const dosya = await prisma.bayiDosya.create({
-        data: {
-          bayi_id,
-          dosya_adi: req.file.filename,
-          orijinal_ad: req.file.originalname,
-          dosya_tipi: req.file.mimetype,
-          boyut: BigInt(req.file.size),
-        },
-      });
-      res.status(201).json({ basarili: true, mesaj: "Dosya basariyla yuklendi.", veri: temizle(dosya) });
+      const eklenen = [];
+      for (const dosya of req.files) {
+        const sonuc = await prisma.bayiDosya.create({
+          data: {
+            bayi_id,
+            dosya_adi: dosya.filename,
+            orijinal_ad: dosya.originalname,
+            dosya_tipi: dosya.mimetype,
+            boyut: BigInt(dosya.size),
+          },
+        });
+        eklenen.push({ id: sonuc.id, dosya_adi: dosya.filename, orijinal_ad: dosya.originalname });
+      }
+      res.status(201).json({ basarili: true, mesaj: `${eklenen.length} dosya yuklendi.`, veri: temizle(eklenen) });
     } catch (e) {
       res.status(500).json({ basarili: false, mesaj: "Dosya yuklenirken hata: " + e.message });
     }

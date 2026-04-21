@@ -144,7 +144,7 @@ export default function BayilerPage() {
 
   /* Çizgi stili & sütun sürükleme */
   const [cizgiStil, setCizgiStil] = useState("yok");
-  const [sutunSirasiTemel, setSutunSirasiTemel] = useState(["ad", "tur", "ustBayi", "sehir", "telefon", "etiketler", "durum"]);
+  const [sutunSirasiTemel, setSutunSirasiTemel] = useState(["ad", "tur", "ustBayi", "telefon", "etiketler", "durum"]);
   const [suruklenenSutun, setSuruklenenSutun] = useState(null);
 
   /* ---- Not Modalı ---- */
@@ -224,7 +224,7 @@ export default function BayilerPage() {
         adSoyad: b.ad_soyad || "",
         sirketAdi: b.sirket_adi || "",
         telefonlar: b.telefon ? [b.telefon] : [],
-        adresler: b.sektor ? [b.sektor] : [],
+        adresler: [],
         etiketler: Array.isArray(b.etiketler) ? b.etiketler : (b.etiketler ? (() => { try { const p = JSON.parse(b.etiketler); return Array.isArray(p) ? p : b.etiketler.split(",").map(s => s.trim()).filter(Boolean); } catch { return b.etiketler.split(",").map(s => s.trim()).filter(Boolean); } })() : []),
       })));
     } catch (e) {
@@ -279,7 +279,7 @@ export default function BayilerPage() {
   /* Not modalı açıldığında notları yükle */
   useEffect(() => {
     if (notModal) {
-      apiGet(`/bayiler/${notModal.id}/notlar`)
+      apiGet(`/notlar/bayi/${notModal.id}`)
         .then((res) => setBayiNotlar(res.veri || []))
         .catch(() => setBayiNotlar([]));
     } else {
@@ -389,8 +389,8 @@ export default function BayilerPage() {
   };
 
   /* Sütun sürükleme yardımcıları */
-  const sutunBasliklari = { ad: "Bayi Adı", tur: "Türü", ustBayi: "Üst Bayi", sehir: "Şehir", telefon: "Telefon", etiketler: "Etiketler", durum: "Durum" };
-  const sutunSiralamaMap = { ad: "ad", tur: "tur", sehir: "sehir", durum: "durum" };
+  const sutunBasliklari = { ad: "Bayi Adı", tur: "Türü", ustBayi: "Üst Bayi", telefon: "Telefon", etiketler: "Etiketler", durum: "Durum" };
+  const sutunSiralamaMap = { ad: "ad", tur: "tur", durum: "durum" };
   const sutunDragStart = (e, idx) => { setSuruklenenSutun(idx); e.dataTransfer.effectAllowed = "move"; };
   const sutunDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; };
   const sutunDrop = (e, hedefIdx) => {
@@ -549,8 +549,8 @@ export default function BayilerPage() {
   const bayiNotEkle = async () => {
     if (!yeniNot.trim() || !notModal) return;
     try {
-      await apiPost(`/bayiler/${notModal.id}/notlar`, { metin: yeniNot.trim(), onemli: yeniNotOnemli });
-      const res = await apiGet(`/bayiler/${notModal.id}/notlar`);
+      await apiPost(`/notlar/bayi/${notModal.id}`, { metin: yeniNot.trim(), onemli: yeniNotOnemli });
+      const res = await apiGet(`/notlar/bayi/${notModal.id}`);
       setBayiNotlar(res.veri || []);
       setYeniNot("");
       setYeniNotOnemli(false);
@@ -562,7 +562,7 @@ export default function BayilerPage() {
   /* ---- Not Silme ---- */
   const bayiNotSil = async (notId) => {
     try {
-      await apiDelete(`/bayiler/notlar/${notId}`);
+      await apiDelete(`/notlar/${notId}`);
       setBayiNotlar((prev) => prev.filter((n) => n.id !== notId));
     } catch (e) {
       console.error("Not silinemedi:", e);
@@ -617,7 +617,6 @@ export default function BayilerPage() {
       case "ad": return <td key={key} className="px-6 py-4"><div><p className="font-medium text-gray-900 dark:text-white">{bayi.ad}</p><p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{bayi.yetkili}</p></div></td>;
       case "tur": return <td key={key} className="px-6 py-4"><span className={`text-xs px-2.5 py-1 rounded-full font-medium ${bayi.ustBayiId ? "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400" : "bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400"}`}>{bayiTuruBelirle(bayi)}</span></td>;
       case "ustBayi": return <td key={key} className="px-6 py-4 text-gray-600 dark:text-slate-400">{bayi.ustBayiId ? ustBayiAdiBul(bayi.ustBayiId) : "—"}</td>;
-      case "sehir": return <td key={key} className="px-6 py-4 text-gray-600 dark:text-slate-400">{bayi.sehir}</td>;
       case "telefon": return <td key={key} className="px-6 py-4 text-gray-600 dark:text-slate-400 whitespace-nowrap"><span className="inline-flex items-center group">{bayi.telefon || (bayi.telefonlar && bayi.telefonlar[0]) || "—"}<KopyalaButonu metin={bayi.telefon || (bayi.telefonlar && bayi.telefonlar[0])} /></span></td>;
       case "etiketler": return <td key={key} className="px-6 py-4"><div className="flex flex-wrap gap-1 max-w-[200px]">{Array.isArray(bayi.etiketler) && bayi.etiketler.length > 0 ? bayi.etiketler.map((etiket, idx) => <span key={idx} className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">{etiket}</span>) : <span className="text-gray-400 dark:text-slate-500 text-xs">-</span>}</div></td>;
       case "durum": return <td key={key} className="px-6 py-4 text-center"><span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium ${bayi.durum === "aktif" ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-500"}`}><span className={`w-1.5 h-1.5 rounded-full ${bayi.durum === "aktif" ? "bg-emerald-500" : "bg-gray-400 dark:bg-slate-500"}`} />{bayi.durum === "aktif" ? "Aktif" : "Pasif"}</span></td>;

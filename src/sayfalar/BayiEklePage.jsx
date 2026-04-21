@@ -8,8 +8,9 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { apiGet, apiPost, apiPut, API_URL } from "../yardimcilar/api";
+import { apiGet, apiPost, apiPut, apiDelete, API_URL } from "../yardimcilar/api";
 import { useAktiviteLog } from "../baglam/AktiviteLogContext";
+import { useAuth } from "../baglam/AuthContext";
 
 /* ============================================= */
 /*  Sabit Tanımlamalar                            */
@@ -121,6 +122,7 @@ export default function BayiEklePage() {
   const { id } = useParams();
   const duzenleModu = !!id;
   const { logEkle } = useAktiviteLog();
+  const { kullanici } = useAuth();
 
   const [aktifSekme, setAktifSekme] = useState("tuzel");
   const [form, setForm] = useState(bosFormOlustur());
@@ -134,6 +136,9 @@ export default function BayiEklePage() {
   const dosyaInputRef = useRef(null);
   const [dosyalar, setDosyalar] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(false);
+  const [notListesi, setNotListesi] = useState([]);
+  const [yeniNotMetni, setYeniNotMetni] = useState("");
+  const [duzenNot, setDuzenNot] = useState(null); // {id, metin}
 
   /* ---- Bayileri ve Sektörleri API'den Çek ---- */
   useEffect(() => {
@@ -149,34 +154,62 @@ export default function BayiEklePage() {
   useEffect(() => {
     if (!duzenleModu) return;
     setYukleniyor(true);
-    apiGet(`/bayiler/${id}`).then((yanit) => {
-      if (yanit?.veri) {
-        const b = yanit.veri;
-        setAktifSekme(b.tur || "tuzel");
-        const ustBayiObj = bayiler.find((x) => x.id === b.ust_bayi_id);
-        setForm({
-          sirketAdi: b.sirket_adi || "",
-          adSoyad: b.ad_soyad || "",
-          yetkili: b.yetkili || "",
-          eposta: b.eposta || "",
-          vergiDairesi: b.vergi_dairesi || "",
-          vergiNo: b.vergi_no || "",
-          tcKimlikNo: b.tc_kimlik_no || "",
-          pasaportNo: b.pasaport_no || "",
-          sektor: b.sektor_id ? String(b.sektor_id) : "",
-          sektorDiger: "",
-          ustBayiId: b.ust_bayi_id ? String(b.ust_bayi_id) : "",
-          ustBayiArama: "",
-          ustBayi: ustBayiObj ? ustBayiObj.ad : "",
-          adres: b.adres || "",
-          kisiler: [],
-          notlar: b.notlar || "",
-          etiketler: Array.isArray(b.etiketler) ? b.etiketler : (b.etiketler ? (typeof b.etiketler === "string" ? (() => { try { return JSON.parse(b.etiketler) || []; } catch { return []; } })() : b.etiketler) : []),
-          yeniEtiket: "",
-          durum: b.durum === "aktif",
-        });
-      }
-    }).catch(() => {}).finally(() => setYukleniyor(false));
+    const bayiYukle = async () => {
+      try {
+        const yanit = await apiGet(`/bayiler/${id}`);
+        if (yanit?.veri) {
+          const b = yanit.veri;
+          setAktifSekme(b.tur || "tuzel");
+          const ustBayiObj = bayiler.find((x) => x.id === b.ust_bayi_id);
+
+          /* Kişileri ayrı endpoint'ten çek */
+          let kisilerData = [];
+          try {
+            const kisiYanit = await apiGet(`/kisiler/bayi/${id}`);
+            kisilerData = (kisiYanit.veri || []).map(k => ({
+              adSoyad: k.ad_soyad || "",
+              telefon: k.telefon || "",
+              eposta: k.eposta || "",
+              gorev: k.unvan || "",
+              adres: k.adres || "",
+            }));
+          } catch { /* Kişiler yüklenemezse boş bırak */ }
+
+          /* Notları ayrı endpoint'ten çek */
+          let notlarData = [];
+          try {
+            const notYanit = await apiGet(`/notlar/bayi/${id}`);
+            notlarData = (notYanit.veri || []).map(n => ({ id: n.id, metin: n.metin || "", onemli: n.onemli || false, tarih: n.tarih, kullanici_adi: n.kullanici_adi || null }));
+          } catch { /* Notlar yüklenemezse boş bırak */ }
+          setNotListesi(notlarData);
+
+          setForm({
+            sirketAdi: b.sirket_adi || "",
+            adSoyad: b.ad_soyad || "",
+            yetkili: b.yetkili || "",
+            eposta: b.eposta || "",
+            telefon: b.telefon || "",
+            vergiDairesi: b.vergi_dairesi || "",
+            vergiNo: b.vergi_no || "",
+            tcKimlikNo: b.tc_kimlik_no || "",
+            pasaportNo: b.pasaport_no || "",
+            sektor: b.sektor_id ? String(b.sektor_id) : "",
+            sektorDiger: "",
+            ustBayiId: b.ust_bayi_id ? String(b.ust_bayi_id) : "",
+            ustBayiArama: "",
+            ustBayi: ustBayiObj ? ustBayiObj.ad : "",
+            adres: "",
+            kisiler: kisilerData,
+            notlar: "",
+            etiketler: Array.isArray(b.etiketler) ? b.etiketler : (b.etiketler ? (typeof b.etiketler === "string" ? (() => { try { return JSON.parse(b.etiketler) || []; } catch { return []; } })() : b.etiketler) : []),
+            yeniEtiket: "",
+            durum: b.durum === "aktif",
+          });
+        }
+      } catch { /* Bayi yüklenemezse yönlendir */ }
+      setYukleniyor(false);
+    };
+    bayiYukle();
   }, [duzenleModu, id, bayiler.length]);
 
   /* ---- Üst Bayi dropdown dışına tıklanınca kapat ---- */
@@ -220,7 +253,7 @@ export default function BayiEklePage() {
   };
 
   /* ---- Kişi İşlemleri ---- */
-  const bosKisi = () => ({ adSoyad: "", telefon: "", eposta: "", gorev: "", adres: "" });
+  const bosKisi = () => ({ adSoyad: "", telefon: "", eposta: "", gorev: "", adres: "", birincil: false });
   const kisiEkle = () => setForm((o) => ({ ...o, kisiler: [...o.kisiler, bosKisi()] }));
   const kisiGuncelle = (idx, alan, deger) => {
     setForm((o) => {
@@ -232,14 +265,91 @@ export default function BayiEklePage() {
   const kisiSil = (idx) => setForm((o) => ({ ...o, kisiler: o.kisiler.filter((_, i) => i !== idx) }));
 
   /* ---- Etiket Yardımcıları ---- */
+  const [tumEtiketler, setTumEtiketler] = useState([]);
+  const [etiketOneriAcik, setEtiketOneriAcik] = useState(false);
+  const etiketRef = useRef(null);
+
+  useEffect(() => {
+    const disariTikla = (e) => { if (etiketRef.current && !etiketRef.current.contains(e.target)) setEtiketOneriAcik(false); };
+    document.addEventListener("mousedown", disariTikla);
+    return () => document.removeEventListener("mousedown", disariTikla);
+  }, []);
+
+  useEffect(() => {
+    const topla = async () => {
+      const set = new Set();
+      try {
+        const [mRes, bRes] = await Promise.all([apiGet("/musteriler"), apiGet("/bayiler")]);
+        if (mRes?.veri) mRes.veri.forEach((m) => {
+          const arr = Array.isArray(m.etiketler) ? m.etiketler : (typeof m.etiketler === "string" ? (() => { try { return JSON.parse(m.etiketler); } catch { return []; } })() : []);
+          arr.forEach((e) => set.add(e));
+        });
+        if (bRes?.veri) bRes.veri.forEach((b) => {
+          const arr = Array.isArray(b.etiketler) ? b.etiketler : (typeof b.etiketler === "string" ? (() => { try { return JSON.parse(b.etiketler); } catch { return []; } })() : []);
+          arr.forEach((e) => set.add(e));
+        });
+      } catch {}
+      setTumEtiketler([...set].sort((a, b) => a.localeCompare(b, "tr")));
+    };
+    topla();
+  }, []);
+
+  const filtrelenmisEtiketler = tumEtiketler.filter(
+    (e) => e.toLowerCase().includes((form.yeniEtiket || "").toLowerCase()) && !(form.etiketler || []).includes(e)
+  );
+
+  const etiketSec = (etiket) => {
+    if (etiket && !(form.etiketler || []).includes(etiket)) {
+      setForm((o) => ({ ...o, etiketler: [...(o.etiketler || []), etiket], yeniEtiket: "" }));
+    }
+    setEtiketOneriAcik(false);
+  };
+
   const etiketEkle = () => {
     const yeni = form.yeniEtiket.trim();
     if (!yeni) return;
     if ((form.etiketler || []).includes(yeni)) { alanGuncelle("yeniEtiket", ""); return; }
     setForm((o) => ({ ...o, etiketler: [...(o.etiketler || []), yeni], yeniEtiket: "" }));
+    setEtiketOneriAcik(false);
   };
   const etiketSil = (idx) => setForm((o) => ({ ...o, etiketler: (o.etiketler || []).filter((_, i) => i !== idx) }));
   const etiketKeyDown = (e) => { if (e.key === "Enter") { e.preventDefault(); etiketEkle(); } };
+
+  /* ============================================= */
+  /*  Not İşlemleri                                */
+  /* ============================================= */
+
+  const notEkle = async () => {
+    if (!yeniNotMetni.trim()) return;
+    if (duzenleModu) {
+      try {
+        await apiPost(`/notlar/bayi/${id}`, { metin: yeniNotMetni.trim(), onemli: false });
+        const notYanit = await apiGet(`/notlar/bayi/${id}`);
+        setNotListesi((notYanit.veri || []).map(n => ({ id: n.id, metin: n.metin || "", onemli: n.onemli || false, tarih: n.tarih, kullanici_adi: n.kullanici_adi || null })));
+      } catch { /* hata */ }
+    } else {
+      setNotListesi(prev => [...prev, { id: Date.now(), metin: yeniNotMetni.trim(), onemli: false, tarih: new Date().toISOString(), yeni: true, kullanici_adi: kullanici?.ad_soyad || null }]);
+    }
+    setYeniNotMetni("");
+  };
+
+  const notSil = async (notId) => {
+    const not = notListesi.find(n => n.id === notId);
+    if (not && !not.yeni && duzenleModu) {
+      try { await apiDelete(`/notlar/${notId}`); } catch { /* hata */ }
+    }
+    setNotListesi(prev => prev.filter(n => n.id !== notId));
+  };
+
+  const notGuncelle = async (notId, yeniMetin) => {
+    if (!yeniMetin.trim()) return;
+    const not = notListesi.find(n => n.id === notId);
+    if (not && !not.yeni && duzenleModu) {
+      try { await apiPut(`/notlar/${notId}`, { metin: yeniMetin.trim() }); } catch { /* hata */ }
+    }
+    setNotListesi(prev => prev.map(n => n.id === notId ? { ...n, metin: yeniMetin.trim() } : n));
+    setDuzenNot(null);
+  };
 
   /* ============================================= */
   /*  Form Doğrulama                               */
@@ -298,7 +408,7 @@ export default function BayiEklePage() {
         ad: bayiAdi,
         yetkili: form.yetkili || form.adSoyad,
         eposta: form.eposta,
-        telefon: form.kisiler[0]?.telefon || "",
+        telefon: form.telefon || form.kisiler[0]?.telefon || "",
         vergi_no: form.vergiNo,
         vergi_dairesi: form.vergiDairesi,
         sektor_id: form.sektor ? Number(form.sektor) : null,
@@ -310,7 +420,6 @@ export default function BayiEklePage() {
         ad_soyad: form.adSoyad,
         sirket_adi: form.sirketAdi,
         adres: form.adres || null,
-        notlar: form.notlar || null,
         etiketler: (form.etiketler || []).length > 0 ? form.etiketler : null,
       };
 
@@ -321,6 +430,46 @@ export default function BayiEklePage() {
         yanit = await apiPost("/bayiler", govde);
       }
 
+      /* Yeni bayi için notları kaydet */
+      const bayiIdNot = duzenleModu ? id : yanit?.id;
+      if (!duzenleModu && bayiIdNot && notListesi.length > 0) {
+        for (const n of notListesi) {
+          try {
+            await apiPost(`/notlar/bayi/${bayiIdNot}`, { metin: n.metin, onemli: n.onemli || false });
+          } catch { /* not kaydedilemezse devam et */ }
+        }
+      }
+
+      /* Kişileri kaydet */
+      const bayiIdKisi = duzenleModu ? id : yanit?.id;
+      if (form.kisiler && form.kisiler.length > 0 && bayiIdKisi) {
+        /* Düzenleme modunda mevcut kişileri sil */
+        if (duzenleModu) {
+          try {
+            const mevcutKisiler = await apiGet(`/kisiler/bayi/${bayiIdKisi}`);
+            if (mevcutKisiler.veri) {
+              for (const k of mevcutKisiler.veri) {
+                try { await apiDelete(`/kisiler/bayi/${bayiIdKisi}/${k.id}`); } catch {}
+              }
+            }
+          } catch {}
+        }
+        /* Yeni kişileri ekle */
+        for (const kisi of form.kisiler) {
+          if (kisi.adSoyad?.trim() || kisi.telefon?.trim()) {
+            try {
+              await apiPost(`/kisiler/bayi/${bayiIdKisi}`, {
+                ad_soyad: kisi.adSoyad || '',
+                telefon: kisi.telefon || null,
+                eposta: kisi.eposta || null,
+                unvan: kisi.gorev || null,
+                birincil: kisi.birincil || false,
+              });
+            } catch (err) { console.error("Kişi eklenemedi:", err); }
+          }
+        }
+      }
+
       /* Dosya varsa yükle */
       const bayiId = duzenleModu ? id : yanit?.id;
       if (dosyalar.length > 0 && bayiId) {
@@ -328,7 +477,7 @@ export default function BayiEklePage() {
           const fd = new FormData();
           fd.append("dosyalar", dosya);
           try {
-            const token = localStorage.getItem("token");
+            const token = localStorage.getItem("gt_token");
             await fetch(`${API_URL}/bayiler/${bayiId}/dosyalar`, {
               method: "POST",
               headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -727,6 +876,21 @@ export default function BayiEklePage() {
                         onChange={(e) => kisiGuncelle(idx, "adres", e.target.value)}
                         rows={2} className={INPUT_STIL + " resize-none"} />
                     </div>
+                    <div className="md:col-span-2 flex items-center gap-3">
+                      <input type="checkbox" id={`birincil-bayi-${idx}`} checked={!!kisi.birincil}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setForm((o) => ({
+                              ...o,
+                              kisiler: o.kisiler.map((k, i) => ({ ...k, birincil: i === idx }))
+                            }));
+                          } else {
+                            kisiGuncelle(idx, "birincil", false);
+                          }
+                        }}
+                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                      <label htmlFor={`birincil-bayi-${idx}`} className="text-sm text-gray-700 dark:text-slate-300 cursor-pointer">Birincil İletişim Kişisi</label>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -758,8 +922,89 @@ export default function BayiEklePage() {
           {/* ---- Notlar ---- */}
           <div className="mb-6">
             <label className={LABEL_STIL}>Notlar</label>
-            <textarea placeholder="Bayiyle ilgili notlarınızı yazınız..." value={form.notlar}
-              onChange={(e) => alanGuncelle("notlar", e.target.value)} rows={4} className={INPUT_STIL + " resize-none"} />
+
+            {/* Mevcut notlar listesi */}
+            {notListesi.length > 0 && (
+              <div className="space-y-3 mb-4">
+                {notListesi.map((not) => (
+                  <div key={not.id} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                    {duzenNot && duzenNot.id === not.id ? (
+                      <div className="flex-1 flex flex-col gap-2">
+                        <textarea
+                          value={duzenNot.metin}
+                          onChange={(e) => setDuzenNot({ ...duzenNot, metin: e.target.value })}
+                          rows={3}
+                          className={INPUT_STIL + " resize-none"}
+                        />
+                        <div className="flex gap-2 justify-end">
+                          <button type="button" onClick={() => setDuzenNot(null)}
+                            className="px-3 py-1.5 text-sm rounded-lg text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
+                            İptal
+                          </button>
+                          <button type="button" onClick={() => notGuncelle(not.id, duzenNot.metin)}
+                            className="px-3 py-1.5 text-sm rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
+                            Kaydet
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-700 dark:text-slate-300 whitespace-pre-wrap">{not.metin}</p>
+                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                            {not.kullanici_adi && (
+                              <span className="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                {not.kullanici_adi}
+                              </span>
+                            )}
+                            {not.tarih && (
+                              <span className="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-slate-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {new Date(not.tarih).toLocaleString("tr-TR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button type="button" onClick={() => setDuzenNot({ id: not.id, metin: not.metin })}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors" title="Düzenle">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button type="button" onClick={() => notSil(not.id)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" title="Sil">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Yeni not ekleme */}
+            <div className="flex gap-2">
+              <textarea
+                placeholder="Yeni not ekleyin..."
+                value={yeniNotMetni}
+                onChange={(e) => setYeniNotMetni(e.target.value)}
+                rows={2}
+                className={INPUT_STIL + " resize-none flex-1"}
+              />
+              <button type="button" onClick={notEkle} disabled={!yeniNotMetni.trim()}
+                className="self-end px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0">
+                Ekle
+              </button>
+            </div>
           </div>
 
           {/* ---- Dosya Yükleme ---- */}
@@ -840,9 +1085,28 @@ export default function BayiEklePage() {
                 ))}
               </div>
             )}
-            <div className="flex items-center gap-2">
-              <input type="text" placeholder="Etiket yazın ve ekleyin" value={form.yeniEtiket}
-                onChange={(e) => alanGuncelle("yeniEtiket", e.target.value)} onKeyDown={etiketKeyDown} className={INPUT_STIL} />
+            <div className="flex items-center gap-2 relative" ref={etiketRef}>
+              <div className="relative flex-1">
+                <input type="text" placeholder="Etiket yazın ve ekleyin" value={form.yeniEtiket}
+                  onChange={(e) => { alanGuncelle("yeniEtiket", e.target.value); setEtiketOneriAcik(true); }}
+                  onFocus={() => setEtiketOneriAcik(true)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); etiketEkle(); }
+                    if (e.key === "Escape") setEtiketOneriAcik(false);
+                  }}
+                  className={INPUT_STIL} />
+                {etiketOneriAcik && filtrelenmisEtiketler.length > 0 && (
+                  <div className="absolute z-50 left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 shadow-xl">
+                    {filtrelenmisEtiketler.map((e, i) => (
+                      <button key={i} type="button"
+                        onMouseDown={(ev) => { ev.preventDefault(); etiketSec(e); }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors cursor-pointer">
+                        {e}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button type="button" onClick={etiketEkle} disabled={!form.yeniEtiket.trim()}
                 className="px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0">
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

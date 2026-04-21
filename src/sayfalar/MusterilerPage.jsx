@@ -319,7 +319,7 @@ function BayiMusteriDugumu({ bayi, musteriler, tumLisanslar, genislemis, setGeni
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-gray-900 dark:text-white">{bayi.firma_adi || bayi.ad || "Bayi"}</p>
-          <p className="text-xs text-gray-500 dark:text-slate-400">{bayi.sehir || "Şehir belirtilmemiş"}</p>
+          <p className="text-xs text-gray-500 dark:text-slate-400">{bayi.eposta || ""}</p>
         </div>
         <div className="flex items-center gap-3">
           <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${

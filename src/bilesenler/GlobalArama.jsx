@@ -132,7 +132,7 @@ export default function GlobalArama({ acik, kapat }) {
     /* Bayiler */
     bayiler.forEach((b) => {
       const ad = b.sirket_adi || b.ad_soyad || b.ad || `Bayi #${b.id}`;
-      const detay = [b.eposta, b.sehir].filter(Boolean).join(" · ");
+      const detay = [b.eposta].filter(Boolean).join(" · ");
       const birlesik = `${ad} ${detay} ${b.yetkili || ""} ${b.telefon || ""}`.toLowerCase();
       if (birlesik.includes(q)) {
         sonuclar.push({ ad, detay, yol: "/dashboard/bayiler", kategori: "Bayiler" });

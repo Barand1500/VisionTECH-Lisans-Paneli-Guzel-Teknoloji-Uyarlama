@@ -8,20 +8,22 @@ const { yetkiKontrol } = require("../yardimcilar/yetki-middleware");
 router.get("/musteri/:musteriId", yetkiKontrol, hataYakala(async (req, res) => {
   const notlar = await prisma.noti.findMany({
     where: { musteri_id: Number(req.params.musteriId) },
-    select: { id: true, musteri_id: true, metin: true, onemli: true, tarih: true },
+    select: { id: true, musteri_id: true, metin: true, onemli: true, tarih: true, kullanici: { select: { ad_soyad: true } } },
     orderBy: { tarih: "desc" },
   });
-  res.json({ basarili: true, veri: temizle(notlar) });
+  const sonuc = notlar.map(({ kullanici, ...n }) => ({ ...n, kullanici_adi: kullanici?.ad_soyad || null }));
+  res.json({ basarili: true, veri: temizle(sonuc) });
 }));
 
 /* ---- Bayiye Ait Notlari Listele ---- */
 router.get("/bayi/:bayiId", yetkiKontrol, hataYakala(async (req, res) => {
   const notlar = await prisma.noti.findMany({
     where: { bayi_id: Number(req.params.bayiId) },
-    select: { id: true, bayi_id: true, metin: true, onemli: true, tarih: true },
+    select: { id: true, bayi_id: true, metin: true, onemli: true, tarih: true, kullanici: { select: { ad_soyad: true } } },
     orderBy: { tarih: "desc" },
   });
-  res.json({ basarili: true, veri: temizle(notlar) });
+  const sonuc = notlar.map(({ kullanici, ...n }) => ({ ...n, kullanici_adi: kullanici?.ad_soyad || null }));
+  res.json({ basarili: true, veri: temizle(sonuc) });
 }));
 
 /* ---- Tum Notlari Listele ---- */
@@ -47,7 +49,7 @@ router.post("/musteri/:musteriId", yetkiKontrol, hataYakala(async (req, res) => 
   if (!metin || !metin.trim()) return dogrulamaHatasi(res, "Not metni zorunludur.");
 
   const sonuc = await prisma.noti.create({
-    data: { musteri_id: Number(req.params.musteriId), metin: metin.trim(), onemli: onemli ? 1 : 0 },
+    data: { musteri_id: Number(req.params.musteriId), metin: metin.trim(), onemli: onemli ? 1 : 0, kullanici_id: req.kullanici?.id || null },
   });
   res.status(201).json({ basarili: true, mesaj: "Not basariyla eklendi.", id: sonuc.id });
 }));
@@ -58,7 +60,7 @@ router.post("/bayi/:bayiId", yetkiKontrol, hataYakala(async (req, res) => {
   if (!metin || !metin.trim()) return dogrulamaHatasi(res, "Not metni zorunludur.");
 
   const sonuc = await prisma.noti.create({
-    data: { bayi_id: Number(req.params.bayiId), metin: metin.trim(), onemli: onemli ? 1 : 0 },
+    data: { bayi_id: Number(req.params.bayiId), metin: metin.trim(), onemli: onemli ? 1 : 0, kullanici_id: req.kullanici?.id || null },
   });
   res.status(201).json({ basarili: true, mesaj: "Not basariyla eklendi.", id: sonuc.id });
 }));
@@ -84,7 +86,7 @@ router.put("/:id", yetkiKontrol, hataYakala(async (req, res) => {
   const { metin, onemli } = req.body;
   await prisma.noti.update({
     where: { id },
-    data: { metin: metin || undefined, onemli: onemli !== undefined ? (onemli ? 1 : 0) : 0 },
+    data: { metin: metin || undefined, onemli: onemli !== undefined ? (onemli ? 1 : 0) : undefined },
   });
   res.json({ basarili: true, mesaj: "Not basariyla guncellendi." });
 }));

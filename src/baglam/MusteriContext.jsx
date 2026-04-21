@@ -63,6 +63,7 @@ export function MusteriProvider({ children }) {
         notlarData = nRes.veri.map((n) => ({
           id: n.id,
           musteriId: n.musteri_id,
+          bayiId: n.bayi_id,
           metin: n.metin,
           tarih: n.tarih,
           onemli: !!n.onemli,
@@ -111,7 +112,7 @@ export function MusteriProvider({ children }) {
             ad_soyad: kisi.adSoyad || '',
             telefon: kisi.telefon || null,
             eposta: kisi.eposta || null,
-            unvan: kisi.unvan || null,
+            unvan: kisi.gorev || kisi.unvan || null,
             birincil: kisi.birincil || false,
           });
         }
@@ -145,7 +146,54 @@ export function MusteriProvider({ children }) {
     if (guncelVeri.durum !== undefined) govde.durum = guncelVeri.durum;
     if (guncelVeri.telefonlar) govde.telefonlar = guncelVeri.telefonlar.filter(t => t);
     if (guncelVeri.adresler) govde.adresler = guncelVeri.adresler.filter(a => a);
+    if (guncelVeri.tur !== undefined) govde.tur = guncelVeri.tur;
+    if (guncelVeri.etiketler !== undefined) govde.etiketler = guncelVeri.etiketler;
     await apiPut(`/musteriler/${id}`, govde);
+
+    /* Kişileri güncelle: mevcut kişileri sil, yenilerini ekle */
+    if (guncelVeri.kisiler && guncelVeri.kisiler.length > 0) {
+      /* Önce mevcut kişileri al */
+      try {
+        const mevcutKisiler = await apiGet(`/kisiler/musteri/${id}`);
+        if (mevcutKisiler.veri) {
+          for (const k of mevcutKisiler.veri) {
+            await apiDelete(`/kisiler/musteri/${id}/${k.id}`);
+          }
+        }
+      } catch { /* Mevcut kişiler yoksa devam et */ }
+      /* Yeni kişileri ekle */
+      for (const kisi of guncelVeri.kisiler) {
+        if (kisi.adSoyad?.trim() || kisi.telefon?.trim()) {
+          await apiPost(`/kisiler/musteri/${id}`, {
+            ad_soyad: kisi.adSoyad || '',
+            telefon: kisi.telefon || null,
+            eposta: kisi.eposta || null,
+            unvan: kisi.gorev || kisi.unvan || null,
+            birincil: kisi.birincil || false,
+          });
+        }
+      }
+    }
+
+    /* Notları güncelle */
+    if (guncelVeri.notlar !== undefined) {
+      try {
+        const mevcutNotlar = await apiGet(`/notlar/musteri/${id}`);
+        if (guncelVeri.notlar.trim()) {
+          if (mevcutNotlar.veri && mevcutNotlar.veri.length > 0) {
+            /* Mevcut ilk notu güncelle */
+            await apiPut(`/notlar/${mevcutNotlar.veri[0].id}`, { metin: guncelVeri.notlar.trim() });
+          } else {
+            /* Yeni not ekle */
+            await apiPost(`/notlar/musteri/${id}`, { metin: guncelVeri.notlar.trim(), onemli: false });
+          }
+        } else if (mevcutNotlar.veri && mevcutNotlar.veri.length > 0) {
+          /* Not alanı temizlendi — mevcut ilk notu sil */
+          await apiDelete(`/notlar/${mevcutNotlar.veri[0].id}`);
+        }
+      } catch { /* Not güncellenemezse devam et */ }
+    }
+
     await verileriYukle();
   };
 

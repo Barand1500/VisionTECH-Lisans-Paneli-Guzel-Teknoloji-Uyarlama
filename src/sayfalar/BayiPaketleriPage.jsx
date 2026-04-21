@@ -85,7 +85,7 @@ export default function BayiPaketleriPage() {
   const [bayi, setBayi] = useState(null);
   const [tumBayiler, setTumBayiler] = useState([]);
 
-  const bayiAdiGoster = (b) => b?.sirket_adi || b?.yetkili_kisi || `Bayi #${b?.id || id}`;
+  const bayiAdiGoster = (b) => b?.ad || b?.sirket_adi || b?.ad_soyad || b?.yetkili_kisi || `Bayi #${b?.id || id}`;
 
   /* Önceki / Sonraki Bayi */
   const bayiIndex = tumBayiler.findIndex((b) => String(b.id) === String(id));

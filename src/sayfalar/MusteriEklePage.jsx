@@ -11,7 +11,8 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMusteriler } from "../baglam/MusteriContext";
 import { useAktiviteLog } from "../baglam/AktiviteLogContext";
-import { apiGet, apiPost, apiPut } from "../yardimcilar/api";
+import { useAuth } from "../baglam/AuthContext";
+import { apiGet, apiPost, apiPut, apiDelete } from "../yardimcilar/api";
 
 /* ============================================= */
 /*  Sabit Tanımlamalar                            */
@@ -126,6 +127,7 @@ export default function MusteriEklePage() {
   const duzenleModu = !!id;
   const { musteriler, musteriEkle, musteriGuncelle } = useMusteriler();
   const { logEkle } = useAktiviteLog();
+  const { kullanici } = useAuth();
 
   const [yukleniyor, setYukleniyor] = useState(duzenleModu);
   const [aktifSekme, setAktifSekme] = useState("gercek");
@@ -137,24 +139,75 @@ export default function MusteriEklePage() {
   const [bayiler, setBayiler] = useState([]);
   const [dosyalar, setDosyalar] = useState([]);
   const [dosyaYukleniyor, setDosyaYukleniyor] = useState(false);
+  const [mevcutDosyalar, setMevcutDosyalar] = useState([]);
+  const [dosyaAdDuzen, setDosyaAdDuzen] = useState(null); // {id, ad}
+  const [notListesi, setNotListesi] = useState([]);
+  const [yeniNotMetni, setYeniNotMetni] = useState("");
+  const [duzenNot, setDuzenNot] = useState(null); // {id, metin}
   const dosyaInputRef = useRef(null);
   const bayiRef = useRef(null);
 
   /* ---- Düzenleme modunda mevcut müşteriyi yükle ---- */
   useEffect(() => {
     if (duzenleModu) {
+      setYukleniyor(true);
       const musteriYukle = async () => {
         try {
           const yanit = await apiGet(`/musteriler/${id}`);
           const m = yanit.veri;
           if (m) {
+            /* Kişileri ayrı endpoint'ten çek */
+            let kisilerData = [];
+            try {
+              const kisiYanit = await apiGet(`/kisiler/musteri/${id}`);
+              kisilerData = (kisiYanit.veri || []).map(k => ({
+                adSoyad: k.ad_soyad || "",
+                telefon: k.telefon || "",
+                eposta: k.eposta || "",
+                gorev: k.unvan || "",
+                adres: k.adres || "",
+              }));
+            } catch { /* Kişiler yüklenemezse boş bırak */ }
+
+            /* Notları ayrı endpoint'ten çek */
+            let notlarData = [];
+            try {
+              const notYanit = await apiGet(`/notlar/musteri/${id}`);
+              notlarData = (notYanit.veri || []).map(n => ({ id: n.id, metin: n.metin || "", onemli: n.onemli || false, tarih: n.tarih, kullanici_adi: n.kullanici_adi || null }));
+            } catch { /* Notlar yüklenemezse boş bırak */ }
+            setNotListesi(notlarData);
+
+            /* Dosyaları ayrı endpoint'ten çek */
+            try {
+              const dosyaYanit = await apiGet(`/musteriler/${id}/dosyalar`);
+              setMevcutDosyalar(dosyaYanit.veri || []);
+            } catch { /* Dosyalar yüklenemezse boş bırak */ }
+
+            /* Telefon: telefonlar dizisinin ilk elemanı */
+            const telefonDeger = Array.isArray(m.telefonlar) && m.telefonlar.length > 0
+              ? m.telefonlar[0] : "";
+
+            /* Adres: adresler dizisinin ilk elemanı */
+            const adresDeger = Array.isArray(m.adresler) && m.adresler.length > 0
+              ? m.adresler[0] : "";
+
+            /* Bayi adını bayiler listesinden bul */
+            let bayiAdiDeger = "";
+            if (m.bayi_id) {
+              try {
+                const bayiYanit = await apiGet("/bayiler");
+                const bulunan = (bayiYanit.veri || []).find(b => b.id === m.bayi_id);
+                if (bulunan) bayiAdiDeger = bulunan.ad || bulunan.sirket_adi || `Bayi #${bulunan.id}`;
+              } catch { /* Bayi bulunamazsa boş bırak */ }
+            }
+
             setAktifSekme(m.tur || "gercek");
             setForm({
               sirketAdi: m.sirket_adi || "",
               yetkiliKisi: m.yetkili_kisi || "",
               adSoyad: m.ad_soyad || "",
               eposta: m.eposta || "",
-              telefon: "",
+              telefon: telefonDeger,
               sektor: m.sektor_id ? String(m.sektor_id) : "",
               sektorDiger: "",
               vergiDairesi: m.vergi_dairesi || "",
@@ -162,12 +215,12 @@ export default function MusteriEklePage() {
               tcKimlikNo: m.tc_kimlik_no || "",
               pasaportNo: m.pasaport_no || "",
               bayi: m.bayi_id ? String(m.bayi_id) : "",
-              bayiAdi: "",
+              bayiAdi: bayiAdiDeger,
               bayiArama: "",
-              adres: m.adres || (m.adresler && m.adresler[0]) || "",
-              kisiler: m.kisiler || [],
-              notlar: m.notlar || "",
-              etiketler: m.etiketler || [],
+              adres: adresDeger,
+              kisiler: kisilerData,
+              notlar: "",
+              etiketler: Array.isArray(m.etiketler) ? m.etiketler : [],
               yeniEtiket: "",
               durum: (m.durum || "").toLowerCase() === "aktif",
             });
@@ -240,7 +293,7 @@ export default function MusteriEklePage() {
   };
 
   /* ---- Kişi İşlemleri ---- */
-  const bosKisi = () => ({ adSoyad: "", telefon: "", eposta: "", gorev: "", adres: "" });
+  const bosKisi = () => ({ adSoyad: "", telefon: "", eposta: "", gorev: "", adres: "", birincil: false });
   const kisiEkle = () => setForm((o) => ({ ...o, kisiler: [...o.kisiler, bosKisi()] }));
   const kisiGuncelle = (idx, alan, deger) => {
     setForm((o) => {
@@ -252,11 +305,53 @@ export default function MusteriEklePage() {
   const kisiSil = (idx) => setForm((o) => ({ ...o, kisiler: o.kisiler.filter((_, i) => i !== idx) }));
 
   /* ---- Etiketler ---- */
+  const [tumEtiketler, setTumEtiketler] = useState([]);
+  const [etiketOneriAcik, setEtiketOneriAcik] = useState(false);
+  const etiketRef = useRef(null);
+
+  useEffect(() => {
+    const disariTikla = (e) => { if (etiketRef.current && !etiketRef.current.contains(e.target)) setEtiketOneriAcik(false); };
+    document.addEventListener("mousedown", disariTikla);
+    return () => document.removeEventListener("mousedown", disariTikla);
+  }, []);
+
+  useEffect(() => {
+    /* Tüm müşteri ve bayilerden mevcut etiketleri topla */
+    const topla = async () => {
+      const set = new Set();
+      try {
+        const [mRes, bRes] = await Promise.all([apiGet("/musteriler"), apiGet("/bayiler")]);
+        if (mRes?.veri) mRes.veri.forEach((m) => {
+          const arr = Array.isArray(m.etiketler) ? m.etiketler : (typeof m.etiketler === "string" ? (() => { try { return JSON.parse(m.etiketler); } catch { return []; } })() : []);
+          arr.forEach((e) => set.add(e));
+        });
+        if (bRes?.veri) bRes.veri.forEach((b) => {
+          const arr = Array.isArray(b.etiketler) ? b.etiketler : (typeof b.etiketler === "string" ? (() => { try { return JSON.parse(b.etiketler); } catch { return []; } })() : []);
+          arr.forEach((e) => set.add(e));
+        });
+      } catch {}
+      setTumEtiketler([...set].sort((a, b) => a.localeCompare(b, "tr")));
+    };
+    topla();
+  }, []);
+
+  const filtrelenmisEtiketler = tumEtiketler.filter(
+    (e) => e.toLowerCase().includes((form.yeniEtiket || "").toLowerCase()) && !(form.etiketler || []).includes(e)
+  );
+
+  const etiketSec = (etiket) => {
+    if (etiket && !form.etiketler.includes(etiket)) {
+      setForm((o) => ({ ...o, etiketler: [...o.etiketler, etiket], yeniEtiket: "" }));
+    }
+    setEtiketOneriAcik(false);
+  };
+
   const etiketEkle = () => {
     const etiket = form.yeniEtiket.trim();
     if (etiket && !form.etiketler.includes(etiket)) {
       setForm((o) => ({ ...o, etiketler: [...o.etiketler, etiket], yeniEtiket: "" }));
     }
+    setEtiketOneriAcik(false);
   };
   const etiketSil = (idx) => setForm((o) => ({ ...o, etiketler: o.etiketler.filter((_, i) => i !== idx) }));
   const etiketKeyDown = (e) => { if (e.key === "Enter") { e.preventDefault(); etiketEkle(); } };
@@ -302,6 +397,61 @@ export default function MusteriEklePage() {
   };
 
   /* ============================================= */
+  /*  Not İşlemleri                                */
+  /* ============================================= */
+
+  const notEkle = async () => {
+    if (!yeniNotMetni.trim()) return;
+    if (duzenleModu) {
+      try {
+        await apiPost(`/notlar/musteri/${id}`, { metin: yeniNotMetni.trim(), onemli: false });
+        const notYanit = await apiGet(`/notlar/musteri/${id}`);
+        setNotListesi((notYanit.veri || []).map(n => ({ id: n.id, metin: n.metin || "", onemli: n.onemli || false, tarih: n.tarih, kullanici_adi: n.kullanici_adi || null })));
+      } catch { /* hata */ }
+    } else {
+      setNotListesi(prev => [...prev, { id: Date.now(), metin: yeniNotMetni.trim(), onemli: false, tarih: new Date().toISOString(), yeni: true, kullanici_adi: kullanici?.ad_soyad || null }]);
+    }
+    setYeniNotMetni("");
+  };
+
+  const notSil = async (notId) => {
+    const not = notListesi.find(n => n.id === notId);
+    if (not && !not.yeni && duzenleModu) {
+      try { await apiDelete(`/notlar/${notId}`); } catch { /* hata */ }
+    }
+    setNotListesi(prev => prev.filter(n => n.id !== notId));
+  };
+
+  const notGuncelle = async (notId, yeniMetin) => {
+    if (!yeniMetin.trim()) return;
+    const not = notListesi.find(n => n.id === notId);
+    if (not && !not.yeni && duzenleModu) {
+      try { await apiPut(`/notlar/${notId}`, { metin: yeniMetin.trim() }); } catch { /* hata */ }
+    }
+    setNotListesi(prev => prev.map(n => n.id === notId ? { ...n, metin: yeniMetin.trim() } : n));
+    setDuzenNot(null);
+  };
+
+  /* ============================================= */
+  /*  Dosya İşlemleri                              */
+  /* ============================================= */
+
+  const mevcutDosyaSil = async (dosyaId) => {
+    if (!duzenleModu) return;
+    try {
+      await apiDelete(`/musteriler/${id}/dosyalar/${dosyaId}`);
+      setMevcutDosyalar(prev => prev.filter(d => d.id !== dosyaId));
+    } catch { /* hata */ }
+  };
+
+  const dosyaBoyutFormatla = (boyut) => {
+    if (!boyut) return "";
+    if (boyut < 1024) return boyut + " B";
+    if (boyut < 1024 * 1024) return (boyut / 1024).toFixed(0) + " KB";
+    return (boyut / (1024 * 1024)).toFixed(1) + " MB";
+  };
+
+  /* ============================================= */
   /*  Form Gönderme                                */
   /* ============================================= */
 
@@ -314,10 +464,9 @@ export default function MusteriEklePage() {
       eposta: form.eposta,
       sektorId: form.sektor ? Number(form.sektor) : null,
       bayiId: form.bayi ? Number(form.bayi) : null,
-      telefonlar: form.kisiler.map((k) => k.telefon).filter(Boolean),
+      telefonlar: [form.telefon, ...form.kisiler.map((k) => k.telefon)].filter(Boolean),
       adresler: form.adres.trim() ? [form.adres.trim()] : [],
       kisiler: form.kisiler.filter((k) => k.adSoyad.trim() || k.telefon.trim()),
-      notlar: form.notlar,
       etiketler: form.etiketler,
       durum: form.durum ? "aktif" : "pasif",
       ...(aktifSekme === "gercek" && {
@@ -371,8 +520,17 @@ export default function MusteriEklePage() {
       setDosyaYukleniyor(false);
     }
 
+    /* Yeni müşteri için notları kaydet */
+    if (!duzenleModu && musteriId && notListesi.length > 0) {
+      for (const n of notListesi) {
+        try {
+          await apiPost(`/notlar/musteri/${musteriId}`, { metin: n.metin, onemli: n.onemli || false });
+        } catch { /* not kaydedilemezse devam et */ }
+      }
+    }
+
     setBasarili(true);
-    setTimeout(() => git(duzenleModu ? `/dashboard/musteri/${id}` : "/dashboard/musteriler"), 2000);
+    setTimeout(() => git("/dashboard/musteriler"), 2000);
   };
 
   /* ============================================= */
@@ -429,13 +587,13 @@ export default function MusteriEklePage() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <button
-            onClick={() => git(duzenleModu ? `/dashboard/musteri/${id}` : "/dashboard/musteriler")}
+            onClick={() => git("/dashboard/musteriler")}
             className="inline-flex items-center gap-2 text-sm text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors mb-2 cursor-pointer"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            {duzenleModu ? "Müşteri Detayına Dön" : "Müşterilere Dön"}
+            Müşterilere Dön
           </button>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             {duzenleModu ? "Müşteri Düzenle" : "Yeni Müşteri Kaydı"}
@@ -761,6 +919,22 @@ export default function MusteriEklePage() {
                         onChange={(e) => kisiGuncelle(idx, "adres", e.target.value)}
                         rows={2} className={INPUT_STIL + " resize-none"} />
                     </div>
+                    <div className="md:col-span-2 flex items-center gap-3">
+                      <input type="checkbox" id={`birincil-${idx}`} checked={!!kisi.birincil}
+                        onChange={(e) => {
+                          /* Birincil seçildiğinde diğerlerini kaldır */
+                          if (e.target.checked) {
+                            setForm((o) => ({
+                              ...o,
+                              kisiler: o.kisiler.map((k, i) => ({ ...k, birincil: i === idx }))
+                            }));
+                          } else {
+                            kisiGuncelle(idx, "birincil", false);
+                          }
+                        }}
+                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                      <label htmlFor={`birincil-${idx}`} className="text-sm text-gray-700 dark:text-slate-300 cursor-pointer">Birincil İletişim Kişisi</label>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -791,13 +965,134 @@ export default function MusteriEklePage() {
 
           <div className="mb-6">
             <label className={LABEL_STIL}>Notlar</label>
-            <textarea placeholder="Müşteriyle ilgili notlarınızı yazınız..." value={form.notlar}
-              onChange={(e) => alanGuncelle("notlar", e.target.value)} rows={4} className={INPUT_STIL + " resize-none"} />
+
+            {/* Mevcut notlar listesi */}
+            {notListesi.length > 0 && (
+              <div className="space-y-3 mb-4">
+                {notListesi.map((not) => (
+                  <div key={not.id} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                    {duzenNot && duzenNot.id === not.id ? (
+                      <div className="flex-1 flex flex-col gap-2">
+                        <textarea
+                          value={duzenNot.metin}
+                          onChange={(e) => setDuzenNot({ ...duzenNot, metin: e.target.value })}
+                          rows={3}
+                          className={INPUT_STIL + " resize-none"}
+                        />
+                        <div className="flex gap-2 justify-end">
+                          <button type="button" onClick={() => setDuzenNot(null)}
+                            className="px-3 py-1.5 text-sm rounded-lg text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
+                            İptal
+                          </button>
+                          <button type="button" onClick={() => notGuncelle(not.id, duzenNot.metin)}
+                            className="px-3 py-1.5 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+                            Kaydet
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-700 dark:text-slate-300 whitespace-pre-wrap">{not.metin}</p>
+                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                            {not.kullanici_adi && (
+                              <span className="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                {not.kullanici_adi}
+                              </span>
+                            )}
+                            {not.tarih && (
+                              <span className="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-slate-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {new Date(not.tarih).toLocaleString("tr-TR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button type="button" onClick={() => setDuzenNot({ id: not.id, metin: not.metin })}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors" title="Düzenle">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button type="button" onClick={() => notSil(not.id)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" title="Sil">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Yeni not ekleme */}
+            <div className="flex gap-2">
+              <textarea
+                placeholder="Yeni not ekleyin..."
+                value={yeniNotMetni}
+                onChange={(e) => setYeniNotMetni(e.target.value)}
+                rows={2}
+                className={INPUT_STIL + " resize-none flex-1"}
+              />
+              <button type="button" onClick={notEkle} disabled={!yeniNotMetni.trim()}
+                className="self-end px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0">
+                Ekle
+              </button>
+            </div>
           </div>
 
-          {/* ---- Dosya Yükleme ---- */}
+          {/* ---- Dosyalar ---- */}
           <div className="mb-6">
-            <label className={LABEL_STIL}>Dosya Ekle (PDF, Resim)</label>
+            <label className={LABEL_STIL}>Dosyalar</label>
+
+            {/* Mevcut yüklü dosyalar */}
+            {mevcutDosyalar.length > 0 && (
+              <div className="space-y-3 mb-4">
+                {mevcutDosyalar.map((dosya) => (
+                  <div key={dosya.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {dosya.dosya_tipi?.startsWith("image/") ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      )}
+                      <span className="text-sm text-gray-700 dark:text-slate-300 truncate">{dosya.orijinal_ad}</span>
+                      <span className="text-xs text-gray-400 dark:text-slate-500 shrink-0">({dosyaBoyutFormatla(dosya.boyut)})</span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <a href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/musteriler/${id}/dosyalar/${dosya.id}/indir`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors" title="İndir">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      </a>
+                      <button type="button" onClick={() => mevcutDosyaSil(dosya.id)}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" title="Sil">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Yeni dosya ekleme */}
             <input type="file" ref={dosyaInputRef} multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp"
               onChange={(e) => {
                 const yeniDosyalar = Array.from(e.target.files);
@@ -873,9 +1168,28 @@ export default function MusteriEklePage() {
                 ))}
               </div>
             )}
-            <div className="flex items-center gap-2">
-              <input type="text" placeholder="Etiket yazın ve ekleyin" value={form.yeniEtiket}
-                onChange={(e) => alanGuncelle("yeniEtiket", e.target.value)} onKeyDown={etiketKeyDown} className={INPUT_STIL} />
+            <div className="flex items-center gap-2 relative" ref={etiketRef}>
+              <div className="relative flex-1">
+                <input type="text" placeholder="Etiket yazın ve ekleyin" value={form.yeniEtiket}
+                  onChange={(e) => { alanGuncelle("yeniEtiket", e.target.value); setEtiketOneriAcik(true); }}
+                  onFocus={() => setEtiketOneriAcik(true)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); etiketEkle(); }
+                    if (e.key === "Escape") setEtiketOneriAcik(false);
+                  }}
+                  className={INPUT_STIL} />
+                {etiketOneriAcik && filtrelenmisEtiketler.length > 0 && (
+                  <div className="absolute z-50 left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 shadow-xl">
+                    {filtrelenmisEtiketler.map((e, i) => (
+                      <button key={i} type="button"
+                        onMouseDown={(ev) => { ev.preventDefault(); etiketSec(e); }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer">
+                        {e}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button type="button" onClick={etiketEkle} disabled={!form.yeniEtiket.trim()}
                 className="px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0">
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

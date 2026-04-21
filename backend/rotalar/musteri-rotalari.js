@@ -1,8 +1,36 @@
 const express = require("express");
 const router = express.Router();
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 const { prisma, temizle } = require("../veritabani/prisma");
 const { hataYakala, dogrulamaHatasi, bulunamadiHatasi } = require("../yardimcilar/hata-yonetimi");
 const { epostaGecerliMi, tcKimlikGecerliMi, vergiNoGecerliMi, pasaportNoGecerliMi } = require("../yardimcilar/validasyon");
+
+/* ---- Multer ayarlari ---- */
+const musteriDepolama = multer.diskStorage({
+  destination(_req, _file, cb) {
+    const klasor = path.join(__dirname, "..", "uploads", "musteriler");
+    fs.mkdirSync(klasor, { recursive: true });
+    cb(null, klasor);
+  },
+  filename(_req, file, cb) {
+    const benzersiz = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, benzersiz + path.extname(file.originalname));
+  },
+});
+const musteriYukleme = multer({
+  storage: musteriDepolama,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter(_req, file, cb) {
+    const izinli = /pdf|png|jpe?g|gif|webp/;
+    if (izinli.test(file.mimetype) || izinli.test(path.extname(file.originalname).toLowerCase().slice(1))) {
+      cb(null, true);
+    } else {
+      cb(new Error("Yalnizca PDF, PNG, JPEG, GIF, WEBP dosyalarina izin verilir."));
+    }
+  },
+});
 
 /* ---- Tum Musterileri Listele ---- */
 router.get("/", hataYakala(async (req, res) => {
@@ -49,7 +77,7 @@ router.get("/:id", hataYakala(async (req, res) => {
 
 /* ---- Musteri Ekle ---- */
 router.post("/", hataYakala(async (req, res) => {
-  let { tur, ad_soyad, sirket_adi, yetkili_kisi, eposta, tc_kimlik_no, vergi_no, vergi_dairesi, pasaport_no, sektor_id, durum, ust_musteri_id, telefonlar, adresler, etiketler } = req.body;
+  let { tur, ad_soyad, sirket_adi, yetkili_kisi, eposta, tc_kimlik_no, vergi_no, vergi_dairesi, pasaport_no, sektor_id, bayi_id, durum, ust_musteri_id, telefonlar, adresler, etiketler } = req.body;
 
   /* Boşlukları temizle */
   tc_kimlik_no = tc_kimlik_no?.trim() || null;
@@ -78,6 +106,7 @@ router.post("/", hataYakala(async (req, res) => {
       vergi_dairesi: vergi_dairesi || null,
       pasaport_no: pasaport_no || null,
       sektor_id: sektor_id || null,
+      bayi_id: bayi_id || null,
       etiketler: etiketler || undefined,
       durum: durum || "aktif",
       ust_musteri_id: ust_musteri_id || null,
@@ -99,7 +128,7 @@ router.put("/:id", hataYakala(async (req, res) => {
   const mevcut = await prisma.musteri.findFirst({ where: { id, silinme_tarihi: null }, select: { id: true, tc_kimlik_no: true, vergi_no: true, pasaport_no: true } });
   if (!mevcut) return bulunamadiHatasi(res, "Musteri bulunamadi.");
 
-  let { tur, ad_soyad, sirket_adi, yetkili_kisi, eposta, tc_kimlik_no, vergi_no, vergi_dairesi, pasaport_no, sektor_id, etiketler, durum, ust_musteri_id, telefonlar, adresler } = req.body;
+  let { tur, ad_soyad, sirket_adi, yetkili_kisi, eposta, tc_kimlik_no, vergi_no, vergi_dairesi, pasaport_no, sektor_id, bayi_id, etiketler, durum, ust_musteri_id, telefonlar, adresler } = req.body;
   tc_kimlik_no = tc_kimlik_no?.trim() || null;
   vergi_no = vergi_no?.trim() || null;
   pasaport_no = pasaport_no?.trim() || null;
@@ -124,6 +153,7 @@ router.put("/:id", hataYakala(async (req, res) => {
         vergi_dairesi: vergi_dairesi !== undefined ? (vergi_dairesi || null) : undefined,
         pasaport_no: pasaport_no !== undefined ? (pasaport_no || null) : undefined,
         sektor_id: sektor_id !== undefined ? (sektor_id || null) : undefined,
+        bayi_id: bayi_id !== undefined ? (bayi_id || null) : undefined,
         etiketler: etiketler !== undefined ? etiketler : undefined,
         durum: durum || undefined,
         ust_musteri_id: ust_musteri_id !== undefined ? (ust_musteri_id || null) : undefined,
@@ -175,8 +205,62 @@ router.get("/:id/adresler", hataYakala(async (req, res) => {
 /* ---- Musteri Dosyalari ---- */
 router.get("/:id/dosyalar", hataYakala(async (req, res) => {
   const musteriId = Number(req.params.id);
-  const dosyalar = await prisma.musteriDosya.findMany({ where: { musteri_id: musteriId } });
+  const dosyalar = await prisma.musteriDosya.findMany({ where: { musteri_id: musteriId }, orderBy: { yuklenme_tarihi: "desc" } });
   res.json({ basarili: true, veri: temizle(dosyalar) });
+}));
+
+/* ---- Dosya Yukle ---- */
+router.post("/:id/dosyalar", (req, res) => {
+  musteriYukleme.array("dosyalar", 10)(req, res, async (err) => {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ basarili: false, mesaj: err.code === "LIMIT_FILE_SIZE" ? "Dosya boyutu 10MB sinirini asiyor." : err.message });
+    }
+    if (err) return res.status(400).json({ basarili: false, mesaj: err.message });
+    if (!req.files || req.files.length === 0) return res.status(400).json({ basarili: false, mesaj: "Dosya secilmedi." });
+
+    try {
+      const musteriId = Number(req.params.id);
+      const eklenen = [];
+      for (const dosya of req.files) {
+        const sonuc = await prisma.musteriDosya.create({
+          data: {
+            musteri_id: musteriId,
+            dosya_adi: dosya.filename,
+            orijinal_ad: dosya.originalname,
+            dosya_tipi: dosya.mimetype,
+            boyut: BigInt(dosya.size),
+          },
+        });
+        eklenen.push({ id: sonuc.id, dosya_adi: dosya.filename, orijinal_ad: dosya.originalname });
+      }
+      res.status(201).json({ basarili: true, mesaj: `${eklenen.length} dosya yuklendi.`, veri: temizle(eklenen) });
+    } catch (e) {
+      res.status(500).json({ basarili: false, mesaj: "Dosya yuklenirken hata: " + e.message });
+    }
+  });
+});
+
+/* ---- Dosya Indir ---- */
+router.get("/:id/dosyalar/:dosyaId/indir", hataYakala(async (req, res) => {
+  const dosya = await prisma.musteriDosya.findFirst({
+    where: { id: Number(req.params.dosyaId), musteri_id: Number(req.params.id) },
+  });
+  if (!dosya) return bulunamadiHatasi(res, "Dosya bulunamadi.");
+  const dosyaYolu = path.join(__dirname, "..", "uploads", "musteriler", dosya.dosya_adi);
+  if (!fs.existsSync(dosyaYolu)) return bulunamadiHatasi(res, "Dosya sunucuda bulunamadi.");
+  res.download(dosyaYolu, dosya.orijinal_ad);
+}));
+
+/* ---- Dosya Sil ---- */
+router.delete("/:id/dosyalar/:dosyaId", hataYakala(async (req, res) => {
+  const dosya = await prisma.musteriDosya.findFirst({
+    where: { id: Number(req.params.dosyaId), musteri_id: Number(req.params.id) },
+  });
+  if (!dosya) return bulunamadiHatasi(res, "Dosya bulunamadi.");
+  const dosyaYolu = path.join(__dirname, "..", "uploads", "musteriler", dosya.dosya_adi);
+  if (fs.existsSync(dosyaYolu)) fs.unlinkSync(dosyaYolu);
+  await prisma.musteriDosya.delete({ where: { id: dosya.id } });
+  res.json({ basarili: true, mesaj: "Dosya basariyla silindi." });
 }));
 
 module.exports = router;

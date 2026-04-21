@@ -95,6 +95,7 @@ model Musteri {
   vergi_dairesi     String?   @db.VarChar(100)
   pasaport_no       String?   @db.VarChar(50)
   sektor_id         Int?
+  bayi_id           Int?
   etiketler         Json?
   durum             String    @default("aktif") @db.VarChar(50)
   ust_musteri_id    Int?
@@ -103,6 +104,7 @@ model Musteri {
   silinme_tarihi    DateTime? @db.DateTime(0)
 
   sektor        Sektor?  @relation(fields: [sektor_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  bayi          Bayi?    @relation(fields: [bayi_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
   ustMusteri    Musteri? @relation("MusteriHierarsi", fields: [ust_musteri_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
   altMusteriler Musteri[] @relation("MusteriHierarsi")
 
@@ -119,6 +121,7 @@ model Musteri {
   @@index([durum])
   @@index([eposta])
   @@index([sektor_id])
+  @@index([bayi_id])
   @@index([ust_musteri_id])
   @@index([kayit_tarihi])
   @@index([silinme_tarihi])
@@ -203,6 +206,7 @@ model Bayi {
 
   dosyalar         BayiDosya[]
   lisanslar        Lisans[]
+  musteriler       Musteri[]
   bayiNotlar       Noti[]
   iletisimKisileri IletisimKisi[]
   bayiUrunler      BayiUrun[]
