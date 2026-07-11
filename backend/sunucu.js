@@ -45,18 +45,23 @@ uygulama.use("/api", genelLimit);
 /* ---- Global Auth Middleware ---- */
 /* Giris, sifre sifirlama ve durum haric tum API rotalari icin token zorunlu */
 const acikRotalar = [
-  "/api/yetki/giris",
-  "/api/yetki/sifre-sifirla",
-  "/api/iletisim/sifremi-unuttum",
-  "/api/durum",
+  "/yetki/giris",
+  "/yetki/sifre-sifirla",
+  "/iletisim/sifremi-unuttum",
+  "/durum",
 ];
+if (process.env.PAKET_ERISIM_AKTIF === "true") {
+  acikRotalar.push("/erisim/paket-kontrol");
+}
 uygulama.use("/api", (req, res, next) => {
-  if (acikRotalar.some((r) => req.path === r || req.originalUrl === r)) return next();
+  const yol = req.path.split("?")[0];
+  if (acikRotalar.some((r) => yol === r || req.originalUrl.split("?")[0] === `/api${r}`)) return next();
   yetkiKontrol(req, res, next);
 });
 
 /* ---- API Rotalari ---- */
 uygulama.use("/api/yetki", yetkiLimit, require("./rotalar/yetki-rotalari"));
+uygulama.use("/api/erisim", require("./rotalar/erisim-rotalari"));
 uygulama.use("/api/musteriler", require("./rotalar/musteri-rotalari"));
 uygulama.use("/api/bayiler", require("./rotalar/bayi-rotalari"));
 uygulama.use("/api/bayi-urunler", require("./rotalar/bayi-urun-rotalari")); // Ayri endpoint

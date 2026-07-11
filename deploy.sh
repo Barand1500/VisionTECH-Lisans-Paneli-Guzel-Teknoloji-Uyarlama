@@ -35,6 +35,7 @@ ssh ${SUNUCU_KULLANICI}@${SUNUCU_IP} << 'UZAK_KOMUT'
   npx prisma generate
   npx prisma db push --accept-data-loss
   echo "  -> Backend yeniden baslatiliyor..."
+  echo "  NOT: CloudPanel Node.js bu site icin aciksa PM2 kullanmayin (port cakismasi)."
   pm2 restart guzel-teknoloji || pm2 start sunucu.js --name guzel-teknoloji
   cd ..
   echo "  -> Deploy tamamlandi!"
